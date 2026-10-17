@@ -80,7 +80,10 @@ func _physics_process(delta: float) -> void:
 func handle_state_switch() -> void:
 	if Input.is_action_just_pressed("switch"):
 		if curr_state == "default":
+			# Activate a signal that triggers an activation animation
+			# Connect to CanvasLayer --> toggle visibility to dim background?
 			curr_state = "electric"
 		
 		elif curr_state == "electric":
+			# reverse signal 
 			curr_state = "default"

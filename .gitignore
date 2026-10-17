@@ -5,3 +5,6 @@
 # Personal Claude Code settings (never committed)
 CLAUDE.local.md
 .claude/settings.local.json
+
+# macOS folder settings
+.DS_Store
