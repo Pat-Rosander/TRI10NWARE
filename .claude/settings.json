@@ -1,0 +1,31 @@
+{
+  "outputStyle": "Explanatory",
+  "env": {
+    "GODOT": "/Applications/Godot 4.5.1 .app/Contents/MacOS/Godot"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(/Applications/Godot 4.5.1 .app/Contents/MacOS/Godot *)",
+      "Bash(\"/Applications/Godot 4.5.1 .app/Contents/MacOS/Godot\" *)",
+      "Bash(\"$GODOT\" *)",
+      "Bash(tools/*.sh *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git mv *)",
+      "Bash(git tag *)"
+    ],
+    "ask": [
+      "Edit(/docs/TRI10NWARE.md)",
+      "Edit(/docs/reference/**)",
+      "Edit(/game/art/**)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git reset *)",
+      "Bash(git checkout *)"
+    ]
+  }
+}
