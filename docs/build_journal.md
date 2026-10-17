@@ -56,7 +56,7 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 - Moved into `game/art/legacy/`: `player_v0.png`, `world_tileset.png`, `health.png`, each with its `.import` file (rewritten by the import step).
 - Deleted: `player/player.gd`, `player/player.gd.uid`, `player/player.tscn`, `levels/level_1.tscn`.
 - `game/.gitignore` trimmed to `.godot/` and `/android/`, plus `config/build_info.cfg`.
-- New root `.gitignore`: `builds/`, `.DS_Store`, `CLAUDE.local.md`, `.claude/settings.local.json`.
+- New root `.gitignore`: `builds/`, `.DS_Store`, `.vscode/`, `CLAUDE.local.md`, `.claude/settings.local.json`.
 - New `CREDITS.md`: the asset register, with the three legacy files as `owner draft`.
 - `tools/` and `builds/` created on disk (not committed; see below).
 
@@ -78,5 +78,5 @@ The headless import step rebuilt Godot's cache in `game/.godot/` and rewrote eac
 - *Decide and log:* `CREDITS.md` was created now, not in M0 step 11, because step 1.4 adds rows to it. It uses step 11's columns exactly; step 11 extends it. (Approved with the step plan.)
 - *Deviation from step 1.1:* the tag is local. CLAUDE.md forbids the AI from pushing. Owner: run `git push origin prototype-v0`.
 - *Question:* the license column for the three legacy images says "owner to confirm". Please fill it in.
-- *Note:* the untracked `.vscode/` folder (the owner's editor settings) is left alone, neither committed nor ignored.
+- *Owner decision (2026-10-17):* `.vscode/` (personal VS Code settings) is ignored in the root `.gitignore`, and the spec's M0 step 1 `.gitignore` row was updated to match, with the owner's approval.
 - Tests: none yet. The unit-test runner arrives in M0 step 9; verification was the import run, the rename status and the `.import` paths.

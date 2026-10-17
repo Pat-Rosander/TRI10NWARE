@@ -4,6 +4,9 @@ builds/
 # macOS folder settings
 .DS_Store
 
+# Personal VS Code settings
+.vscode/
+
 # Personal Claude Code settings (never committed)
 CLAUDE.local.md
 .claude/settings.local.json
