@@ -4,10 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M0 step 10, delivery path, 2026-10-18. `tools/run_tests.sh` runs everything (44 unit tests pass; scenarios skipped until M1 step 8). `tools/export_all.sh` builds all three targets plus the itch.io zips (last trial: build `0.1.0-4fa9196`).
-- **Next step:** M0 step 11, project documents (`/step M0.11`).
+- **Last completed:** M0 step 11, project documents, 2026-10-18. M0's files are all in place. `docs/decision_log.md` now records every decide-and-log choice; the journal's own decision notes are no longer the record.
+- **Next step:** M1 step 1, tile set and `SolidGrid` (`/step M1.1`). M0's "done when" list still has owner checks open (below); M1 should start only once they pass.
 - **Waiting on the owner:**
     - **Reload the project in Godot now** (Project → Reload Current Project) before changing any Project Settings. Step 10 added `rendering/textures/vram_compression/import_etc2_astc=true` to `project.godot` while the editor was open; saving settings from the old in-memory copy would drop it, and the macOS export would fail again.
+    - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
     - Check the builds (M0 step 10 entry, "How to see it"): run `tools/export_all.sh`, launch the macOS app with `-- --debug-tools` and press backtick to see the build ID; open the web build through `tools/serve_web.sh` at `http://localhost:8000/?debug=1`; upload `TRI10NWARE_web.zip` to a draft itch.io page; on the Windows PC, run `TRI10NWARE.exe -- --debug-tools`.
     - Check the debug overlay (M0 step 8 entry, "How to see it"): run with `-- --debug-tools`, press backtick, and try 1, 2 and 3. Accept if Godot asks to re-save `main.tscn` or `debug_overlay.tscn`.
     - Reopen Godot from `game/project.godot`. The missing-main-scene error is gone. Running the project (F5) shows a blank window, sized to the largest whole multiple of 640 × 360 that fits your screen. Please check three things: the window size; that Alt+Enter (Option+Enter) toggles fullscreen; and that a run with `-- --debug-tools` writes a file to `user://traces/` when you close the window, while a run without the flag writes none. These could not be checked automatically (see the M0 step 7 entry). If Godot asks to re-save `main.tscn`, accept: it adds the scripts' UIDs.
@@ -444,3 +445,29 @@ Verification done in this session: `run_tests.sh` exits 0. `export_all.sh`, run 
 - *Decide freely:* the macOS itch.io zip is built with `ditto --norsrc --noextattr`; the export presets list only the options the spec names.
 - *Note:* the Windows export gave no warning about `rcedit` (the tool Godot uses to set the `.exe` icon and version info from a Mac), so no change was needed. Whether the `.exe` shows the game icon or Godot's default is for the Windows check to show.
 - No open questions.
+
+## M0 step 11: project documents (2026-10-18)
+
+**What was built:**
+
+- `README.md` (rewritten): how to play each build, including first-launch steps for macOS and Windows; controls; prerequisites and the `GODOT` variable; opening, running, debug tools, tests, exporting, serving the web build, and the itch.io upload steps.
+- `CREDITS.md` (extended): a `placeholder` row for `game/icon.svg`, Godot's default icon (MIT).
+- `docs/decision_log.md` (new): all 46 tuning values with source and test; every decision from M0 steps 1–11; empty tables for tuning changes, disclosed deviations, added scenarios and owner questions.
+- `docs/known_issues.md` (new): severity scale and table; none known.
+- `docs/support_matrix.md` (new): engine, renderer, the build Mac (MacBook Air M2, macOS 15.5), and one row per target and browser, each marked tested, partly tested or unverified.
+- `docs/evidence/ledger.csv` (new): the header row only.
+- `docs/evidence/traces/.gitkeep`, `docs/evidence/media/.gitkeep` (new, empty).
+- The reference PDFs and Level 1 mockups were already in place from M0 prep; checked, not changed.
+
+**How it works:** these are the documents a reviewer gets with every submission (AC page 9). Each has one job.
+
+- The **README** is for someone with no help: a player downloading from itch.io, or a developer cloning the repository. The old README described the prototype, with the project at the root and dash on S, so it was rewritten from the step 3 input map and the step 10 tools. It also documents the debug flags, which AC page 9 asks for ("verification-scene/debug access instructions").
+- The **decision log** replaces the "Decisions and questions" part of journal entries as the official record. Section 1 lists every tuning value: AC page 9 asks for "selected values", not only choices. Section 2 copies every earlier decide-and-log item and owner decision, each with the test or check that shows it. The journal keeps the longer explanation. From now on, every step records its choices in this log, in the same commit.
+- The **support matrix** answers D-02 honestly. It records only what was actually run: the macOS build was launched headless on the build Mac, and Windows and every browser are still **unverified**. A row moves to "tested" only when someone runs the build on that OS or browser and records the version.
+- **Known issues** and the **ledger** start empty. The ledger's header matches the spec letter for letter, because M3 and M9 fill it row by row.
+
+**Why:** spec "M0 step 11: project documents" and "Repository layout"; AC page 9 (evidence package, decision and tuning log, known issues, ledger); D-02 (support matrix), D-03 (first-launch and web-serving instructions), D-08 (export instructions, controls, attribution).
+
+**How to see it:** read `README.md` and `docs/support_matrix.md`. When you test the Windows build or a browser, fill in its row in the support matrix. Verified: `tools/run_tests.sh` exits 0 (44 passed, no code changed). The ledger header matches the spec's exactly. The decision log has 46 tuning rows, matching `test_tuning.gd`. The README's controls match the `[input]` section of `project.godot` and the step 3 table.
+
+**Decisions and questions:** recorded in `docs/decision_log.md` (M0.11 rows): the README was rewritten rather than patched; `icon.svg` is registered as a placeholder; earlier decisions were copied into the log, which is now the record. No open questions. M0's done-when checks that need the owner's hands (window size, fullscreen, the trace on quit, the Windows and web launches) are still listed under "Waiting on the owner". Ask for the spec reviewer if you'd like M0 checked against the spec before starting M1.

@@ -1,0 +1,152 @@
+# TRI10NWARE decision and tuning log
+
+This is the "decision and tuning log" required by AC page 9: every tuning value and every developer-owned choice, with its reason and the test or check that shows it. No fixed rule changes without being disclosed here.
+
+- **What goes here:** every change to `game/config/tuning.tres`; every "decide and log" choice (spec, "Authority tiers"); every owner decision that changes behavior; every added test scenario (which bug or criterion it covers); every engine quirk worked around; every disclosed deviation from an AC value; questions raised for the owner.
+- **How:** add a row in the same commit as the change. Newest at the bottom of each table. Never delete a row: when a choice changes, add a new row that names the one it replaces.
+- **History:** until M0 step 11 (2026-10-18), decisions were recorded only in the build journal's entries. They are copied into section 2 below; the journal entries keep the full discussion.
+
+## 1. Tuning values
+
+Current values in `game/config/tuning.tres`. Source: **AC** values are fixed by the acceptance criteria (changing one is a disclosed deviation, section 3); **Celeste** values are Celeste's movement constants with distances and speeds doubled for 16 px tiles; **Ours** and **Owner** are starting values from the spec. Each value's reason is its row in the spec's M0 step 4 table. All start values are checked field by field, with their types, by `game/tests/unit/test_tuning.gd` (`test_every_field_has_its_start_value`, `test_no_unlisted_fields`); the 12 durations' tick conversions are checked by `test_derived_ticks`.
+
+| Field | Value | Ticks | Source | Changed |
+| --- | --- | --- | --- | --- |
+| `body_size_px` | 12 × 15 | | Owner (from the sprite) | Start value |
+| `run_max_speed_px_s` | 180 | | Celeste | Start value |
+| `run_accel_px_s2` | 2000 | | Celeste | Start value |
+| `run_reduce_px_s2` | 800 | | Celeste | Start value |
+| `air_control_mult` | 0.65 | | Celeste | Start value |
+| `gravity_px_s2` | 1800 | | Celeste | Start value |
+| `max_fall_speed_px_s` | 320 | | Celeste | Start value |
+| `apex_gravity_mult` | 0.5 | | Celeste | Start value |
+| `apex_threshold_px_s` | 80 | | Celeste | Start value |
+| `jump_speed_px_s` | 210 | | Celeste | Start value |
+| `jump_h_boost_px_s` | 80 | | Celeste | Start value |
+| `jump_sustain_s` | 0.2 | 12 | Celeste | Start value |
+| `coyote_s` | 0.1 | 6 | AC M-05 | Start value |
+| `jump_buffer_s` | 0.1 | 6 | AC M-06 | Start value |
+| `wall_check_px` | 6 | | Celeste | Start value |
+| `wall_jump_h_speed_px_s` | 260 | | Celeste | Start value |
+| `wall_jump_lock_s` | 0.16 | 10 | Celeste | Start value. 9.6 ticks rounds to 10, so the real lock is 0.167 s |
+| `corner_correction_px` | 8 | | Celeste | Start value |
+| `dash_corner_correction_px` | 8 | | Celeste | Start value |
+| `oneway_assist_px` | 8 | | Ours | Start value |
+| `post_dash_snap_px` | 6 | | Ours | Start value |
+| `dash_speed_px_s` | 480 | | Celeste | Start value |
+| `dash_end_speed_px_s` | 320 | | Celeste | Start value |
+| `dash_end_up_mult` | 0.75 | | Celeste | Start value |
+| `dash_s` | 0.15 | 9 | Celeste | Start value |
+| `dash_cooldown_s` | 0.2 | 12 | Celeste | Start value |
+| `dash_buffer_s` | 0.1 | 6 | Ours | Start value |
+| `charged_refill_clears_cooldown` | true | | Ours | Start value |
+| `charged_launch_speed_px_s` | 440 | | Ours | Start value |
+| `charged_region_radius_px` | 64 | | Ours | Start value |
+| `charged_exit_margin_px` | 1 | | Ours | Start value |
+| `root_contact_margin_px` | 4 | | Ours | Start value |
+| `overlap_snap_px` | 6 | | Ours | Start value |
+| `max_volts` | 3 | | AC | Start value |
+| `countdown_s` | 3.0 | 180 | AC S-03 | Start value |
+| `countdown_in_default` | `CONTINUE` (0) | | AC S-03; OD-1 | Start value |
+| `allow_flow_entry_at_zero` | false | | AC S-03; OD-1 | Start value |
+| `death_freeze_s` | 0.35 | 21 | Ours | Start value |
+| `respawn_s` | 0.25 | 15 | Ours | Start value |
+| `room_transition_s` | 0.3 | 18 | Ours | Start value |
+| `fall_margin_px` | 32 | | Ours | Start value |
+| `flow_backdrop_color` | `Color(0.55, 0.5, 0.7)` | | Owner (art), placeholder | Start value |
+| `flow_fade_s` | 0.15 | 9 | Ours | Start value |
+| `inactive_platform_alpha` | 0.35 | | Ours | Start value |
+| `stick_deadzone` | 0.2 | | Ours | Start value |
+| `trace_memory_limit` | 100000 | | Ours | Start value |
+
+**Tuning changes** (one row per retune, with the playtest or scenario behind it):
+
+| Date | Field | Old → new | Reason | Test or scenario |
+| --- | --- | --- | --- | --- |
+| | | | None yet | |
+
+## 2. Developer choices and owner decisions
+
+Kind: **D&L** = decide and log; **Owner** = owner decision; **Engine** = workaround for engine behavior.
+
+| Step | Date | Kind | Choice | Reason | Test or check |
+| --- | --- | --- | --- | --- | --- |
+| M0.1 | 2026-10-17 | D&L | `tools/` and `builds/` existed on disk only until step 10 | Git cannot track an empty folder; `builds/` is ignored | `tools/` committed in M0 step 10 |
+| M0.1 | 2026-10-17 | D&L | `CREDITS.md` created in step 1, not step 11, with step 11's columns | Step 1 registers the legacy art | `CREDITS.md` |
+| M0.1 | 2026-10-17 | Owner | `.vscode/` is ignored in the root `.gitignore`; spec updated | Personal editor settings stay out of the repository | `.gitignore` |
+| M0.1 | 2026-10-17 | D&L | Tag `prototype-v0` is local; the owner pushes it | The AI never pushes | Owner to run `git push origin prototype-v0` |
+| M0.2 | 2026-10-17 | D&L | Removed the prototype's launch-in-fullscreen setting (`display/window/size/mode=3`) | The spec sets a 1280 × 720 window; fullscreen stays one key away (D-07) | Settings read back headless (journal, M0 step 2) |
+| M0.3 | 2026-10-17 | D&L | Movement actions have deadzone 0; the input source applies the round `stick_deadzone` | Godot's per-axis deadzone is square and delays diagonals (M-03) | `test_input_source.gd` (snapping and deadzone tests) |
+| M0.3 | 2026-10-17 | D&L | Gamepad events bind to any device (−1) | Any connected pad works | Input map read back (journal, M0 step 3) |
+| M0.3 | 2026-10-17 | D&L | `fullscreen` is the main Enter key with Alt; keypad Enter is not bound | The spec lists only Alt+Enter | Input map read back |
+| M0.3 | 2026-10-17 | Owner | `fullscreen` keyboard binding uses device −1 (All Devices); every other key stays device 0 | Owner tested two keyboards; see the build journal Status note on device numbers | Owner check, M0 step 7 |
+| M0.4 | 2026-10-17 | D&L | Start values live only in `tuning.tres`; `tuning_data.gd` fields have no values, except `countdown_in_default` | Ground rule 4; Godot omits values equal to the script default | `test_tuning.gd` |
+| M0.4 | 2026-10-17 | D&L | Field types: `_px` are `int`, `body_size_px` is `Vector2i`, `max_volts` and `trace_memory_limit` are `int`, the rest `float` (or `bool`, `Color`) | Positions are whole pixels | `test_tuning.gd` checks types |
+| M0.4 | 2026-10-17 | D&L | `countdown_in_default` is the enum `TuningData.CountdownMode` (stored as a number, 0 = continue) | Inspector dropdown; a misspelling fails at load | `test_tuning.gd` |
+| M0.4 | 2026-10-17 | D&L | Tick values are computed in `Tuning._init` | They exist before any other autoload's `_ready` | `test_tuning.gd` (`test_derived_ticks`) |
+| M0.5 | 2026-10-17 | D&L | Build ID = `<version>-<commit>` from `config/build_info.cfg` `[build]`; `<version>-dev` without it | One build ID everywhere (D-01) | `test_trace.gd`; step 10 export check |
+| M0.5 | 2026-10-17 | D&L | Trace header `target` is `OS.get_name()`; `tick_rate` is `Engine.physics_ticks_per_second` | The values that actually ran | `test_trace.gd` |
+| M0.5 | 2026-10-17 | D&L | Header `tuning` holds every stored field in designer units, found automatically; no derived ticks | Ticks follow from the fields; new fields need no Trace change | `test_trace.gd` |
+| M0.5 | 2026-10-17 | D&L | JSON keeps key order (tick, room, event, data) and full float precision; vectors and colors as arrays | Cross-target comparison sees every bit (D-04) | `test_trace.gd` |
+| M0.5 | 2026-10-17 | D&L | Trace file names use the local clock, with `-2`, `-3` added on a clash | Wall-clock time only in names, never in rules | `test_trace.gd` |
+| M0.5 | 2026-10-17 | D&L | `session_start` is a catalog entry at tick 0, written first and kept outside the ring; `begin_session()` resets tick and room | The header always survives trimming | `test_trace.gd` |
+| M0.5 | 2026-10-17 | D&L | Catalog check: event data must carry exactly the listed fields (empty values for fields that don't apply) | Typos can't slip into evidence | `test_trace.gd` |
+| M0.6 | 2026-10-17 | D&L | Digital input beats the stick: the stick is read only when no movement key or D-pad button is held | One clear precedence rule | `test_input_source.gd` |
+| M0.6 | 2026-10-17 | D&L | Several gamepads are merged (any-device bindings) | No pad selection screen | Step 6 check |
+| M0.6 | 2026-10-17 | D&L | `mark_all_stale()` discards presses not yet read | They belong to the screen that just closed (R-01, R-04) | `test_input_source.gd` |
+| M0.6 | 2026-10-17 | D&L | The live input source runs with process mode Always | Keeps tracking held keys during pause | `test_input_source.gd` |
+| M0.6 | 2026-10-17 | D&L | Losing window or app focus releases every held action | The OS may never send the key-ups | `test_input_source.gd` |
+| M0.6 | 2026-10-17 | D&L | `PressBuffer.expire()` reports on tick *t* + window + 1; a replaced token is reported by `press()` | The first tick the token can't be spent | `test_press_buffer.gd` |
+| M0.6 | 2026-10-17 | D&L | Scripted input ticks are relative to the case's `start_tick` | Scenario files stay position-independent | `test_input_source.gd` |
+| M0.7 | 2026-10-17 | D&L | `DebugOverlay` joins `main.tscn` in step 8 | Its scene is created in step 8 | `main.tscn` |
+| M0.7 | 2026-10-17 | D&L | `Main` starts `World` in `_ready()` until M3's title screen | No title screen in M0 | Step 7 check |
+| M0.7 | 2026-10-17 | Owner | `World` makes its own `LiveInputSource` in M0 (marked `M0 only, replaced in M1 step 4`); `set_input_source()` is permanent | Input works before the Player exists | Step 7 check |
+| M0.7 | 2026-10-17 | D&L | Window sizing counts the title bar, never goes below 1×, centers the window; skipped headless, on web, embedded and when not windowed | Whole multiples only (V-01). On 1366 × 768 with a taskbar the window is 1× | Step 7 check; owner check pending |
+| M0.7 | 2026-10-17 | D&L | `?debug=1` counts only on `localhost` or `127.0.0.1` | Debug tools never reach players on itch.io | Step 7 check |
+| M0.7 | 2026-10-17 | D&L | `Main` process mode Always; `World` Pausable, set explicitly | Fullscreen works while paused; pause stops ticks (R-04) | Step 7 check |
+| M0.7 | 2026-10-17 | D&L | Slow-motion counter resets on speed change; a requested step while frozen runs exactly one tick; divisors other than 1, 2, 4 are rejected | Predictable frame-stepping (D-05) | Step 7 and 8 checks |
+| M0.7 | 2026-10-17 | D&L | `--quit-when-done` counts as a scenario flag and turns debug tools on; unknown arguments warn; a bad `--render-fps` errors and is ignored | Consistent flag handling | Step 7 check |
+| M0.7 | 2026-10-17 | Engine | `Camera2D` uses the physics process callback | Godot forces it under physics interpolation and warns otherwise | Step 7 check |
+| M0.7 | 2026-10-17 | Owner | Trace saved on quit only with debug tools on, and never on the web; spec updated | Players get no trace files | Owner check, M0 step 7 |
+| M0.7 | 2026-10-17 | Engine | `main.gd` `window_scale()` carries `@warning_ignore("integer_division")` | The remainder is meant to be dropped | Editor warning gone |
+| M0.8 | 2026-10-17 | D&L | The debug overlay starts hidden; backtick shows it | Debug runs start looking like the game | Step 8 check |
+| M0.8 | 2026-10-17 | D&L | The overlay readout also shows the speed and `FROZEN` | A tester sees why ticks stopped | Step 8 check |
+| M0.8 | 2026-10-17 | D&L | Key 2 (step) is ignored unless frozen | Otherwise a press while running leaks a tick into the next freeze | Step 8 check |
+| M0.8 | 2026-10-17 | D&L | Without debug tools, `Main` frees the overlay | Its keys can't work for players | Step 8 check |
+| M0.9 | 2026-10-17 | D&L | Any engine error during a unit test fails it, unless the test collects it with `take_errors()` (Godot 4.5 `Logger`); warnings ignored | GDScript has no exceptions; a crash would look like a pass | Runner self-check with broken tests (journal, M0 step 9) |
+| M0.9 | 2026-10-17 | D&L | Each test method gets a fresh instance; files sorted by name, methods in source order | No leaks between tests; repeatable order | `test_runner.gd` |
+| M0.9 | 2026-10-17 | D&L | Finding zero tests is a failure | A mistyped folder can't look like success | `test_runner.gd` |
+| M0.9 | 2026-10-17 | D&L | `assert_eq` requires the same type | `6` and `6.0` differ; catches mistyped tuning fields | `test_tuning.gd` |
+| M0.9 | 2026-10-17 | D&L | Trace tests use private instances of `trace.gd`; the ring test sets `trace_memory_limit` to 3 briefly | The real autoload is never touched | `test_trace.gd` |
+| M0.10 | 2026-10-18 | Owner | macOS bundle identifier `com.patrickrosander.tri10nware` | Required by the export preset | `export_presets.cfg` |
+| M0.10 | 2026-10-18 | Engine | `rendering/textures/vram_compression/import_etc2_astc=true` | Godot 4.5.1 refuses universal and arm64 macOS exports without it; no texture changed | `export_all.sh` succeeds |
+| M0.10 | 2026-10-18 | D&L | Exports are release builds (`--export-release`); debug tools stay reachable by flag | Players get release builds | Step 10 export check |
+| M0.10 | 2026-10-18 | D&L | `export_all.sh` deletes `build_info.cfg` on exit | Editor runs keep the `-dev` build ID | Step 10 export check |
+| M0.10 | 2026-10-18 | D&L | Build info: `commit` is the 7-character short hash; `date` is UTC `YYYY-MM-DDTHH:MM:SSZ` | Short, unambiguous IDs | Step 10 export check |
+| M0.10 | 2026-10-18 | D&L | `run_tests.sh` skips scenarios until `verification/scenario_runner.gd` exists | The command would otherwise hang | `tools/run_tests.sh` |
+| M0.10 | 2026-10-18 | D&L | `serve_web.sh` uses port 8000 by default, binds to `127.0.0.1`, and disables caching | Matches `?debug=1`; never serves a stale export | Step 10 check |
+| M0.11 | 2026-10-18 | D&L | `README.md` rewritten rather than patched | The old one described the prototype layout and controls | README cross-checked against the input map |
+| M0.11 | 2026-10-18 | D&L | `game/icon.svg` (Godot's default icon) registered in `CREDITS.md` as a placeholder | Every art file is registered (D-08) | `CREDITS.md` |
+| M0.11 | 2026-10-18 | D&L | Decisions from M0 steps 1–10 copied here from the build journal; this log is the record from now on | One place for AC page 9's log | This file |
+
+## 3. Disclosed deviations
+
+AC values changed for a build. Each needs an owner decision before any build ships with it, and must be listed in that build's known deviations.
+
+| Date | Field or rule | AC value → used value | Owner decision | Builds affected |
+| --- | --- | --- | --- | --- |
+| | | | None | |
+
+## 4. Added test scenarios
+
+Regression and extra scenarios added without a plan update (spec, "Implementation plan", file groups).
+
+| Date | File | Bug or criterion covered |
+| --- | --- | --- |
+| | | None yet |
+
+## 5. Questions for the owner
+
+| Date | Question | Raised in | Answer |
+| --- | --- | --- | --- |
+| | | | None open |
