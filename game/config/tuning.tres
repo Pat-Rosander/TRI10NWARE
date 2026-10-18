@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="TuningData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://config/tuning_data.gd" id="1_bsj0f"]
+
+[resource]
+script = ExtResource("1_bsj0f")
+body_size_px = Vector2i(12, 15)
+run_max_speed_px_s = 180.0
+run_accel_px_s2 = 2000.0
+run_reduce_px_s2 = 800.0
+air_control_mult = 0.65
+gravity_px_s2 = 1800.0
+max_fall_speed_px_s = 320.0
+apex_gravity_mult = 0.5
+apex_threshold_px_s = 80.0
+jump_speed_px_s = 210.0
+jump_h_boost_px_s = 80.0
+jump_sustain_s = 0.2
+coyote_s = 0.1
+jump_buffer_s = 0.1
+wall_check_px = 6
+wall_jump_h_speed_px_s = 260.0
+wall_jump_lock_s = 0.16
+corner_correction_px = 8
+dash_corner_correction_px = 8
+oneway_assist_px = 8
+post_dash_snap_px = 6
+dash_speed_px_s = 480.0
+dash_end_speed_px_s = 320.0
+dash_end_up_mult = 0.75
+dash_s = 0.15
+dash_cooldown_s = 0.2
+dash_buffer_s = 0.1
+charged_refill_clears_cooldown = true
+charged_launch_speed_px_s = 440.0
+charged_region_radius_px = 64
+charged_exit_margin_px = 1
+root_contact_margin_px = 4
+overlap_snap_px = 6
+max_volts = 3
+countdown_s = 3.0
+death_freeze_s = 0.35
+respawn_s = 0.25
+room_transition_s = 0.3
+fall_margin_px = 32
+flow_backdrop_color = Color(0.55, 0.5, 0.7, 1)
+flow_fade_s = 0.15
+inactive_platform_alpha = 0.35
+stick_deadzone = 0.2
+trace_memory_limit = 100000
