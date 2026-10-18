@@ -1099,7 +1099,7 @@ M1 is built in these numbered steps, one session each (`/step M1.1` and so on). 
 | `game/player/player_visuals.gd` | Script on the `Visuals` node. Each frame, picks the animation and facing from the player's state | Visuals read state and never drive it |
 | `game/player/player_frames.tres` | `SpriteFrames` with eight animations: `default_idle`, `default_run`, `default_jump`, `default_dash`, and the same four with an `electric_` prefix | The design document's naming; "electric" survives only in asset names |
 | `game/art/player/player_sheet.png` | Player sprite sheet for both states, made by the owner. Until it arrives, a plain placeholder at this path | Source frames for `player_frames.tres` |
-| `game/core/jump_resolver.gd` | `class_name JumpResolver extends RefCounted`. Given what is currently possible, returns which jump fires: ground, charged, coyote, wall or none | Jump precedence in one testable place |
+| `game/core/jump_resolver.gd` | `class_name JumpResolver extends RefCounted`. Given what is currently possible, returns which jump fires: ground, coyote, charged, wall or none | Jump precedence in one testable place |
 | `game/core/dash_state.gd` | `class_name DashState extends RefCounted`. Dash charges (0 or 1), active ticks, direction, start tick, cooldown ticks, refill rules | The dash rules (M-03, M-04, C-08) in one testable place |
 | `game/core/pixel_mover.gd` | `class_name PixelMover extends RefCounted`. Whole-pixel position, sub-pixel remainder, the pixel-by-pixel move, and the movement assists (below) | All collision in one deterministic, testable place |
 | `game/core/solid_grid.gd` | `class_name SolidGrid extends RefCounted`. Which 16 px cells are solid, one-way or open, built from a room's tile layers; answers "is this rectangle blocked for this state?" | The mover's view of the world, with no physics engine |
@@ -1114,7 +1114,7 @@ M1 is built in these numbered steps, one session each (`/step M1.1` and so on). 
 | `game/debug/debug_world_draw.gd` | A `Node2D` inside `World`, drawn above the room when the overlay is on. Draws the player's body, room bounds, failure line and entrances; later regions, contact areas and goal zones | Makes invisible rules visible (C-01, V-03) |
 | `game/verification/scenario_runner.gd` | `class_name ScenarioRunner extends Node`. Runs scenario files against the real game and writes results (below) | Deterministic, repeatable evidence on every target |
 | `game/tests/unit/test_jump_resolver.gd` | Every combination of ground, coyote, charged and wall eligibility, with and without an active dash, returns the documented winner | Precedence must never drift |
-| `game/tests/unit/test_dash_state.gd` | Start, duration, cooldown, a refill on every grounded tick, no refill mid-dash | M-03, M-04 |
+| `game/tests/unit/test_dash_state.gd` | Start, duration, cooldown, a refill on every grounded tick, no refill mid-dash, a charged refill, with and without clearing the cooldown (C-08) | M-03, M-04 |
 | `game/tests/unit/test_pixel_mover.gd` | Against a small hand-made grid: stopping at walls, floors and ceilings at every speed up to dash speed; one-way tops blocking only from above; sub-pixel rounding (mirrored left and right moves give mirrored positions, an exact half, the remainder reset on a block, no drift over many ticks at constant speed); the wall query at the full `wall_check_px`, and a guard that `tuning.tres` keeps `wall_check_px` below 16; each assist, including when it must *not* apply | Collision correctness |
 | `game/tests/unit/test_solid_grid.gd` | Building from tile data, state-dependent solidity, edge walls and pits, pending tiles | Collision correctness |
 | `game/verification/scenarios/m01_ordinary_jump.json` … `m08_no_volt_cost.json` | 8 scenario files, listed below | Evidence for M-01 to M-08 |
@@ -1161,7 +1161,7 @@ All velocities are in pixels per second; the tick length is a fixed 1/60 s. "Hel
 
 1. **Ground:** the player is grounded.
 2. **Coyote:** airborne with coyote ticks remaining.
-3. **Charged:** from M2 (flow, airborne, an armed and powered region).
+3. **Charged:** built and tested in M1 step 3; first eligible in M2, when `player.gd` supplies flow, airborne and an armed, powered region. Until then the player always passes false.
 4. **Wall:** airborne with an ordinary wall within `wall_check_px` on either side.
 
 Coyote ranks above charged so that a late-ledge jump behaves exactly like a jump from the ledge, where a ground jump already ranks above a charged jump. Walking off a ledge into a charged region therefore gives the ordinary jump on the first press and the charged jump on the next.
@@ -1449,7 +1449,6 @@ Files extended in M2:
 | `player.tscn` | Adds `FlowController` (Node) and `Visuals/SwitchFX` (AnimatedSprite2D) |
 | `player.gd` | Calls the switch step; adds the charged jump |
 | `player_frames.tres` | The owner's `electric_` animations |
-| `jump_resolver.gd` | Adds the charged kind |
 | `gym.tscn` | Adds charged stations |
 | `debug_world_draw.gd` | Draws regions colored by encounter state, plus their exit rings |
 | `main.tscn` | Adds `HUD` |

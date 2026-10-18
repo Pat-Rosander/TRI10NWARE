@@ -4,8 +4,8 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M1 step 2, `PixelMover` without assists, 2026-10-18. The owner chose to start M1 while the M0 checks below are still open.
-- **Next step:** M1 step 3, rule objects: `jump_resolver.gd`, `dash_state.gd` and their tests (`/step M1.3`). Nothing blocks it.
+- **Last completed:** M1 step 3, rule objects (`JumpResolver`, `DashState`), 2026-10-18. The owner chose to start M1 while the M0 checks below are still open.
+- **Next step:** M1 step 4, the player: `player.tscn`, `player.gd` with steps 1–10 wired into `World`, `player_visuals.gd`, `player_frames.tres` (`/step M1.4`). Nothing blocks it.
 - **Waiting on the owner:**
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
     - Check the builds (M0 step 10 entry, "How to see it"): run `tools/export_all.sh`, launch the macOS app with `-- --debug-tools` and press backtick to see the build ID; open the web build through `tools/serve_web.sh` at `http://localhost:8000/?debug=1`; upload `TRI10NWARE_web.zip` to a draft itch.io page; on the Windows PC, run `TRI10NWARE.exe -- --debug-tools`.
@@ -16,6 +16,7 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - Confirm the license of `game/art/tiles/level_1_tiles.png` in `CREDITS.md`.
 - **Open questions:** none.
 - **Note for M1 steps 4 and 5:** `PixelMover` turns velocity into movement as `velocity / ticks_per_second` (decision log, M1.2). Integrate acceleration the same way (`velocity += accel / Tuning.TICKS_PER_SECOND`), and pass `Tuning.TICKS_PER_SECOND` into `PixelMover.new()`.
+- **Note for M1 step 4 (M1.3 classes):** create `DashState.new(Tuning.dash_ticks, Tuning.dash_cooldown_ticks, data.dash_speed_px_s, data.dash_end_speed_px_s, data.dash_end_up_mult, data.charged_refill_clears_cooldown)`. Step 3: if the dash buffer can spend and `can_start()`, call `start(held, facing, tick)`, then set velocity from `start_velocity_x()/_y()` and cancel sustain and soft apex. Step 4: `JumpResolver.resolve(grounded, coyote > 0, false, wall_left or wall_right, dash.is_active(), jump_buffer.created_tick(), dash.start_tick)` (charged stays `false` until M2); for a wall jump, `wall_jump_side(wall_left, wall_right, held_x, facing)` is the wall left behind; log the kind with `kind_name()`. Step 7: `refill_ground()` on every grounded tick, logging `dash_refill` cause ground when it returns true. Step 9: `tick_timers()`; when it returns true, apply `end_velocity_x()/_y()` and log `dash_end`. Charged jumps (M2) call `interrupt()` then `refill_charged()`.
 - **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
 - **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
@@ -525,5 +526,33 @@ The mover touches no nodes and no autoloads: the grid, body size, wall-check dis
 - Body geometry: the feet line is the rectangle's bottom edge.
 - Wall reach is 0 to `wall_check_px` − 1 px, exactly as the spec words it. My approved plan wrongly said "a gap of exactly 6 px is true"; the spec text governs, and the test follows it.
 - Contacts are fields reset on each move; the mover logs no trace events until step 6.
+
+No questions for the owner.
+
+## M1 step 3: rule objects (2026-10-18)
+
+**What was built:**
+
+- `game/core/jump_resolver.gd` and its `.uid` (new): `class_name JumpResolver`, jump precedence and the both-walls rule.
+- `game/core/dash_state.gd` and its `.uid` (new): `class_name DashState`, the dash rules.
+- `game/tests/unit/test_jump_resolver.gd` and its `.uid` (new): 6 tests.
+- `game/tests/unit/test_dash_state.gd` and its `.uid` (new): 12 tests.
+- `docs/TRI10NWARE.md`: four owner-approved edits about the charged kind (below).
+- `docs/decision_log.md`: five M1.3 rows.
+
+**How it works:** `JumpResolver` has no state. The player hands it yes-or-no facts for this tick (grounded? coyote ticks left? a charged jump possible? a wall in reach? a dash active?) and the press and dash-start ticks, and it answers which jump fires. Outside a dash it is the first true item in the fixed list ground, coyote, charged, wall. During a dash the answer is always "none" unless a charged jump is possible *and* the jump was pressed after the dash started; that is how "jump and dash pressed together gives a clean, full dash" holds. A second helper picks which wall a wall jump leaves: the only wall in reach, or in a one-tile shaft the wall opposite the held direction (with nothing held, the wall behind the player).
+
+`DashState` holds one dash charge plus two countdowns. Starting a dash spends the charge, sets the active countdown to 9 ticks and the cooldown to 12, and remembers the direction: the held 8-way direction, or the facing if nothing is held. It also computes velocities: 480 px/s along the direction at the start and 320 px/s at the end, with diagonals using a stored 1/√2 so they are never faster, and an upward end slowed by × 0.75. `tick_timers()` runs once per tick in step 9 and reports the tick the dash runs out, so a dash started on tick *t* moves on ticks *t* to *t* + 8 and the next can start on *t* + 12.
+
+Refills follow the spec's two causes. `refill_ground()` runs on every grounded tick and gives the charge back only when no dash is active, so a dash along the ground refills on the first grounded tick after it ends, never during it (M-04). `refill_charged()` is the charged jump's refill (M2), which also clears the cooldown so a waiting dash press fires on the next tick: the charged dash (C-08). Both return true only when the charge actually goes from 0 to 1, which is exactly when the trace catalog's `dash_refill` event should be logged. Neither class logs anything itself or reads an autoload; tuning values are passed in.
+
+**Why:** spec M1 build order step 3; "M1 files" (`jump_resolver.gd`, `dash_state.gd` and their tests); "How movement works", steps 3, 4 (precedence, during a dash, wall jump), 7 (refill) and 9 (dash end); "Charged objects, step by step" (refill and cooldown clear); "Same-tick contract" rows on jump kinds, dash and jump presses, and walls on both sides; ground rules 8 and 15. AC M-01, M-02, M-03, M-04, M-05, M-06, C-07, C-08.
+
+**How to see it:** nothing visible yet; the player uses these classes in step 4. Verified: unit tests 92 passed, 0 failed (18 new), with no script warnings in the headless run. The resolver tests cover all 16 eligibility combinations without a dash and, with a dash, presses before, on and after the dash's start tick.
+
+**Decisions and questions:**
+
+- Owner decision: the charged kind is in the resolver now (the M1 test list asked for it; the M2 table said otherwise). The spec was edited with the owner's wording: the precedence order in the `jump_resolver.gd` row, "Step 4, jump" item 3, the charged refill in the `test_dash_state.gd` row, and the M2 `jump_resolver.gd` row removed.
+- Decide and log (decision log, M1.3): the both-walls rule and dash velocities live in the core classes; a charged jump clears the cooldown even with a full charge, but `dash_refill` is reported only on 0 → 1; `interrupt()` leaves the cooldown running; the dash test uses constants, because `test_tuning.gd` already pins the tuning values (my plan had proposed a separate guard, which would only duplicate it).
 
 No questions for the owner.
