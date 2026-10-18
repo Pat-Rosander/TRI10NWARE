@@ -4,12 +4,12 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M0 step 1, migrate prototype repository, 2026-10-17.
-- **Next step:** M0 step 2, project settings (`/step M0.2`).
+- **Last completed:** M0 step 2, project settings, 2026-10-17.
+- **Next step:** M0 step 3, input map (`/step M0.3`).
 - **Waiting on the owner:**
+    - Reopen Godot from `game/project.godot`. The renderer is now Compatibility, so the editor restarts into it. Until M0 step 7 creates `world/main.tscn`, the editor and the import step report that the main scene is missing; that is expected.
     - Push the tag: `git push origin prototype-v0`.
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
-    - Reopen Godot from `game/project.godot` (the root project no longer exists).
     - M0 step 0 prerequisites, still needed: the 4.5.1 export templates, the macOS bundle identifier, the itch.io project page, and access to a Windows PC. Godot 4.5.1 itself is confirmed at `/Applications/Godot 4.5.1 .app`.
     - Before M1 step 2: accept or replace the three proposed answers under "Decide before step 2" in the M1 build order.
 - **Open questions:** none.
@@ -80,3 +80,25 @@ The headless import step rebuilt Godot's cache in `game/.godot/` and rewrote eac
 - *Question:* the license column for the three legacy images says "owner to confirm". Please fill it in.
 - *Owner decision (2026-10-17):* `.vscode/` (personal VS Code settings) is ignored in the root `.gitignore`, and the spec's M0 step 1 `.gitignore` row was updated to match, with the owner's approval.
 - Tests: none yet. The unit-test runner arrives in M0 step 9; verification was the import run, the rename status and the `.import` paths.
+
+## M0 step 2: project settings (2026-10-17)
+
+**What was built:**
+
+- `game/project.godot`: every setting in the step 2 table. Changed: version `0.1.0`; main scene `res://world/main.tscn` (replacing the prototype's stale scene UID); Compatibility renderer for desktop, mobile and web (and the matching `GL Compatibility` feature tag); 1280 × 720 window override; `viewport` stretch, `keep` aspect, `integer` scale mode; pixel snapping on; physics interpolation on; jitter fix `0.0`; untyped declarations are an **Error**. Removed: the prototype's fullscreen window mode. The prototype's `[input]` block is untouched; step 3 replaces it.
+
+**How it works:** Godot reads `project.godot` at startup, before any script runs. The game now draws everything onto a 640 × 360 canvas (`viewport` stretch) and scales that canvas up by a whole number only (`integer`), adding black bars instead of stretching (`keep`). Pixels therefore stay square and crisp at 2× and 3×. The window opens at 1280 × 720. Step 7's `main.gd` will grow it to the largest whole multiple that fits the screen.
+
+The simulation clock is 60 physics ticks per second, and up to 8 ticks may run in one rendered frame, so at 30 FPS the game still advances 2 ticks per frame and never slows down. Physics interpolation smooths movement between ticks on displays faster than 60 Hz. It only changes what is drawn, never the simulation. Those first two values are Godot's defaults. Godot writes only non-default values to `project.godot`, so you won't see them in the file, but they were checked by reading them back.
+
+With `untyped_declaration` set to Error, a script with any untyped variable, parameter or return value fails to load. That enforces ground rule 2 automatically.
+
+**Why:** spec "M0 step 2: project settings"; "Starting decisions this plan depends on" (renderer, 60 ticks, 640 × 360); ground rules 2 and 4; AC V-01 (integer scaling) and D-04/D-05 (one renderer everywhere, frame-rate-independent ticks).
+
+**How to see it:** reopen Godot from `game/project.godot`, then open Project → Project Settings with Advanced Settings on. The values match the step 2 table, and the top-right renderer label reads "Compatibility". Running the project fails until step 7 adds the main scene. Verified headless with a throwaway script that read all 23 settings back through `ProjectSettings` (23 passes; not committed, since the unit-test runner arrives in step 9).
+
+**Decisions and questions:**
+
+- *Decide and log:* removed the prototype's `display/window/size/mode=3` (exclusive fullscreen at launch). The step 2 table specifies a 1280 × 720 window by default, which launching fullscreen would contradict; fullscreen stays one key away through the `fullscreen` action (step 3, D-07).
+- Not changed here: the prototype input actions, which step 3 replaces in full.
+- No open questions.
