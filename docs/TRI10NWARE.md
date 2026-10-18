@@ -1334,7 +1334,7 @@ Every room scene, including the gym, uses exactly this structure. `room.gd` find
 1. Remove and free every room under `RoomSlot`.
 2. Instance the requested room from the catalog, position it at its `world_rect`, add it under `RoomSlot`, and build its `SolidGrid`.
 3. Place the player at the entrance with fresh state, calling `reset_physics_interpolation()` on the player and the camera so the jump is not smoothed.
-4. Set the camera limits from the room's bounds, and log `room_enter`.
+4. Set the camera limits from the room's bounds, and log `room_enter`, or `respawn` when the call is a respawn.
 
 Docs: [Nodes and scene instances](https://docs.godotengine.org/en/4.5/tutorials/scripting/nodes_and_scene_instances.html), [PackedScene](https://docs.godotengine.org/en/4.5/classes/class_packedscene.html), [Running code in the editor](https://docs.godotengine.org/en/4.5/tutorials/plugins/running_code_in_the_editor.html), [Node.reset_physics_interpolation](https://docs.godotengine.org/en/4.5/classes/class_node.html).
 

@@ -3,21 +3,7 @@
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
-
-# M1 step 4 only, replaced by load_room() in step 5: the temporary test floor and its spawn.
-const _TEST_SIZE: Vector2i = Vector2i(640, 368)
-# M1 step 4 only: the feet on the floor's top, 4.5 tiles from the left edge.
-const _TEST_SPAWN: Vector2i = Vector2i(72, 336)
-# M1 step 4 only: areas of solid cells (position and size in cells), painted with atlas tile (0, 0).
-const _TEST_SOLIDS: Array[Rect2i] = [
-	Rect2i(0, 21, 22, 2),   # floor, left of the pit
-	Rect2i(26, 21, 14, 2),  # floor, right of the pit (cells 22–25 are the pit)
-	Rect2i(0, 0, 1, 21),    # left wall
-	Rect2i(39, 0, 1, 21),   # right wall
-	Rect2i(7, 19, 5, 2),    # a 2-tile step, to walk off for coyote jumps
-	Rect2i(16, 6, 2, 15),   # a tall pillar, for wall jumps
-	Rect2i(30, 19, 6, 2),   # a 2-tile ledge past the pit
-]
+const CATALOG: RoomCatalog = preload("res://rooms/room_catalog.tres")
 
 ## The current tick. Counts only while the rules run, never on skipped or frozen physics steps.
 var tick: int = 0
@@ -29,16 +15,14 @@ var frame: InputFrame = InputFrame.new()
 var debug_frozen: bool = false
 ## Debug slow motion: 1 runs every physics step, 2 every 2nd, 4 every 4th.
 var slow_divisor: int = 1: set = _set_slow_divisor
+## The current room's ID, and the entrance a respawn returns to (the checkpoint).
+var room_id: StringName
+var checkpoint: StringName
 
 var _input_source: InputSource
 var _step_requested: bool = false
 # Physics steps since the last tick that ran, for slow motion.
 var _slow_phase: int = 0
-# True when the player was placed rather than moved this tick, so step 11 resets the camera's
-# interpolation after moving it.
-var _teleported: bool = false
-# M1 step 4 only: the grid of the temporary test floor.
-var _test_grid: SolidGrid
 
 @onready var _player: Player = $Player
 @onready var _camera: CameraRigScript = $Camera
@@ -47,11 +31,7 @@ var _test_grid: SolidGrid
 func _ready() -> void:
 	if _input_source == null:
 		_input_source = _player.input_source
-	_build_test_floor()
-	_player.respawn(_TEST_SPAWN, _test_grid)
-	_camera.set_bounds(_test_grid.bounds)
-	_camera.move_to(_player.mover.position)
-	_camera.reset_physics_interpolation()
+	load_room(CATALOG.start_room, CATALOG.start_entrance)
 
 
 func _physics_process(_delta: float) -> void:
@@ -95,6 +75,37 @@ func request_step() -> void:
 ## scenario run. The source must already be in the scene tree if it reads live events.
 func set_input_source(source: InputSource) -> void:
 	_input_source = source
+
+
+## Builds [param id] fresh from the catalog and places the player at [param entrance_id] with
+## fresh state, replacing any current room. Used at game start, for respawns, by the debug menu
+## and by scenarios. Logs `room_enter`, or `respawn` when [param is_respawn] is true.
+func load_room(id: StringName, entrance_id: StringName, is_respawn: bool = false) -> void:
+	var entry: RoomEntry = CATALOG.find(id)
+	if entry == null:
+		return
+	var slot: Node = $RoomSlot
+	for old: Node in slot.get_children():
+		slot.remove_child(old)
+		old.queue_free()
+	var room: Room = entry.scene.instantiate() as Room
+	room.position = Vector2(entry.world_rect.position)
+	slot.add_child(room)
+	var grid: SolidGrid = room.build_grid()
+	var entrance: RoomEntrance = room.entrance(entrance_id)
+	if entrance == null:
+		return
+	room_id = id
+	checkpoint = entrance_id
+	Trace.room = String(id)
+	_player.respawn(entry.world_rect.position + entrance.feet(), grid, entrance.facing)
+	if is_respawn:
+		_input_source.mark_all_stale()
+	_camera.set_bounds(room.bounds)
+	_camera.move_to(_player.mover.position)
+	_camera.reset_physics_interpolation()
+	Trace.record("respawn" if is_respawn else "room_enter",
+			{"room": String(id), "entrance": String(entrance_id)})
 
 
 func _set_slow_divisor(value: int) -> void:
@@ -162,19 +173,13 @@ func _step_timers() -> void:
 func _step_outcomes() -> void:
 	if _player.fell():
 		Trace.record("death", {"cause": "fell"})
-		# M1 step 4 only: the test floor's spawn; step 5 respawns at the current entrance.
-		_player.respawn(_TEST_SPAWN, _test_grid)
-		_input_source.mark_all_stale()
-		_teleported = true
+		load_room(room_id, checkpoint, true)
 
 
 # Step 11: publish the new state; the camera target is set here.
 func _step_publish() -> void:
 	_player.publish()
 	_camera.move_to(_player.mover.position)
-	if _teleported:
-		_camera.reset_physics_interpolation()
-		_teleported = false
 
 
 # Reports and removes the token in [param buffer] if its window has closed.
@@ -190,18 +195,3 @@ func _add_token(buffer: PressBuffer, action: String) -> void:
 	if replaced != PressBuffer.NONE:
 		Trace.record("press_expired", {"action": action, "created_tick": replaced})
 	Trace.record("press", {"action": action})
-
-
-# M1 step 4 only, replaced by load_room() in step 5: paints the temporary test floor into a
-# tile layer under RoomSlot and builds its SolidGrid.
-func _build_test_floor() -> void:
-	var layer: TileMapLayer = TileMapLayer.new()
-	layer.name = "TestFloor"
-	layer.tile_set = load("res://tiles/level_tiles.tres")
-	for area: Rect2i in _TEST_SOLIDS:
-		for y: int in range(area.position.y, area.end.y):
-			for x: int in range(area.position.x, area.end.x):
-				layer.set_cell(Vector2i(x, y), 0, Vector2i(0, 0))
-	$RoomSlot.add_child(layer)
-	_test_grid = SolidGrid.new(Rect2i(Vector2i.ZERO, _TEST_SIZE))
-	_test_grid.add_layer(layer)

@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M1 step 4, the player (`player.tscn`, `player.gd`, `player_visuals.gd`, `player_frames.tres`, World steps 1–10 wired), 2026-10-18.
-- **Next step:** M1 step 5, rooms: `room.gd`, `room_entrance.gd`, `room_entry.gd`, `room_catalog.gd`, `room_catalog.tres`, `World.load_room()` and the `gym.tscn` skeleton (`/step M1.5`). Ends with the owner painting the gym.
+- **Last completed:** M1 step 4, the player, 2026-10-18. **M1 step 5 code is committed** (rooms, the catalog, `World.load_room()`, the gym skeleton), but the step finishes only when the owner's painted gym is committed.
+- **Next step:** owner paints the gym (M1 step 5 entry, "Painting guide"), then M1 step 6, assists (`/step M1.6`).
 - **Waiting on the owner:**
+    - **Paint the gym** in `game/verification/gym/gym.tscn`, following the painting guide in the M1 step 5 entry, and commit it (or ask a session to commit it). Until then, F5 drops the player into the pit and respawns them forever. While `gym.tscn` is open in the editor, no session may edit it.
     - Play the M1 step 4 test floor (M1 step 4 entry, "How to see it"): run, jump, wall jump off the pillar and side walls, dash in 8 directions, fall into the pit. If a key seems ignored, run the keyboard device check in the note below.
     - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
@@ -17,7 +18,7 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - M0 step 0 prerequisites, still needed: the itch.io project page and access to a Windows PC. Confirmed: Godot 4.5.1 at `/Applications/Godot 4.5.1 .app`, its export templates (installed), and the macOS bundle identifier `com.patrickrosander.tri10nware` (owner, 2026-10-18).
     - Confirm the license of `game/art/tiles/level_1_tiles.png` in `CREDITS.md`.
 - **Open questions:** the owner's player art is at `game/art/player/player_frames.png`, but the spec's slot is `player_sheet.png`: rename the file, or rename the slot in the spec? (decision log, section 5).
-- **Note for M1 step 5:** delete every line in `game/world/world.gd` marked `M1 step 4 only` (the `_TEST_*` constants, `_test_grid`, `_build_test_floor()`, and the test-floor calls in `_ready()` and `_step_outcomes()`); `load_room()` replaces them. Use `Player.respawn(feet, grid, facing)` with the entrance's position and `facing`; it already resets the player's interpolation, and World must still call `reset_physics_interpolation()` on the camera after `move_to()` (step 11 does this when `_teleported` is set). A fall then respawns at the current entrance and may log `respawn`.
+- **Note for M1 step 8:** the chimney's 4-tile width is provisional (decision log, M1.5); if the chimney scenario shows alternating wall jumps cannot climb it, propose a new width to the owner.
 - **Note on diagnostics (2026-10-18):** headless runs never print GDScript warnings, so "no warnings in the headless run" proves nothing; check the diagnostics tool after editing scripts. It works now: VS Code's Godot Tools was looking on port 6008 while Godot 4.5 listens on 6005, and the owner set `godotTools.lsp.serverPort` to 6005. M1 steps 1–3 had left 13 editor warnings; they were cleared on 2026-10-18 (decision log, M1.1–3 Engine row), and all 26 scripts are clean.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
 
@@ -603,3 +604,46 @@ Verified:
 - Owner art: the owner supplied `player_frames.png` during the step. `player_frames.tres` uses it, and the developer's placeholder was removed before commit.
 - Decide and log (decision log, M1.4): air control on both acceleration and reduction; the facing rules; gravity on grounded ticks; `jump.object` is `""`; `land.vy_before`; replaced tokens logged as expired; the M1 fall reset without a `respawn` event.
 - Question: the art file is `player_frames.png`, but the spec slot is `player_sheet.png`. Rename the file, or rename the slot?
+
+## M1 step 5: rooms, gym skeleton (2026-10-18)
+
+**What was built:**
+
+- New: `game/rooms/room.gd`, `room_entrance.gd`, `room_entry.gd`, `room_catalog.gd`, `room_catalog.tres`, and `game/verification/gym/gym.tscn` (the skeleton), plus Godot's `.uid` files for the new scripts.
+- Changed: `game/world/world.gd` gains `load_room()`, and every `M1 step 4 only` line (the test floor) is gone. `docs/TRI10NWARE.md` (load_room step 4, owner-approved), `docs/decision_log.md`.
+
+**How it works:**
+
+The **catalog** (`room_catalog.tres`) is the world map. It holds one `RoomEntry` per room: the room's ID, its scene, and its `world_rect`, its place and size on the map in pixels. It also names the starting room and entrance, which in M1 are `gym` and `start`. Rooms never point at each other; only the catalog knows where each one sits.
+
+A **room scene** has a `Room` root and the seven fixed children from the spec's room convention. Its content is built with its top-left corner at (0, 0); World moves the whole room to `world_rect.position` when it builds it. `Room` looks up its own bounds in the catalog, finds entrances by ID (or lists them sorted by node name), and builds its `SolidGrid` from its three tile layers. In the editor it draws an orange outline of its bounds so you can see where to paint. It reads the catalog with `load()` rather than `preload`, because the catalog contains the room's scene and the scene contains `room.gd`; a preload would be a loop. An **entrance** is a `Marker2D` whose position is where the player's feet appear. It also says which way the player faces.
+
+`World.load_room(room, entrance, is_respawn)` does the spec's four steps. It frees the old room, builds a fresh one from its scene at its map position, builds the grid, and places the player there with fresh rule objects. It then clamps the camera to the new bounds, moves it without smoothing, and logs one event: `room_enter`, or `respawn` for a respawn. World remembers the current room and the checkpoint entrance. The game starts with `load_room(start_room, start_entrance)`. A fall logs `death` and then calls `load_room(room, checkpoint, true)`, which also marks held buttons stale. Because the room is rebuilt from its scene rather than repaired, every retry starts from the room exactly as designed (R-01). Each trace line is now stamped with the current room's ID.
+
+**Why:** "M1 build order" step 5, "M1 files" (the room rows), "Room scene convention", "Gym stations in M1", and "How rooms connect". It serves R-01 (a fresh room and player on every respawn) and prepares M-01 to M-08, whose scenarios run in the gym in step 8.
+
+**How to see it:** open `game/verification/gym/gym.tscn`. The orange rectangle is the gym's bounds (2560 × 512, which is 160 × 32 tiles), and the `Entrances` node holds ten markers. Press F5: until the gym is painted, the player drops into the pit at the bottom and respawns at `start` about every half second. That is expected. With `-- --debug-tools`, the saved trace shows one `room_enter` and then `death`/`respawn` pairs.
+
+**Painting guide for the owner.** The columns and rows are tiles measured from the gym's top-left corner. Paint ordinary ground and walls on `WorldTiles`. Each station's floor top is row 26 (y = 416 px), with floor tiles from row 26 down, except the two drop stations, whose ledge tops are at row 20. Put divider walls between stations wherever they help. Each entrance marker already sits on its planned floor top. If you paint a station somewhere else, drag its marker so it stays on a tile top (y a multiple of 16).
+
+| Entrance | Columns | Paint |
+| --- | --- | --- |
+| `start` | 0–11 | Open floor |
+| `run_track` | 12–55 | 40 tiles of flat floor plus a margin each side |
+| `wall_shaft` | 56–65 | Two tall walls 6 tiles apart (inside, columns 58–63) |
+| `narrow_shaft` | 66–71 | Two tall walls with a 1-tile gap (column 68) |
+| `single_wall` | 72–81 | One tall wall, open space beside it |
+| `chimney` | 82–89 | Two walls 4 tiles apart (inside, columns 84–87), tall, open at the top. The width is **provisional** from current tuning; step 8's scenario confirms it |
+| `corner_ceiling` | 90–105 | Low ceilings with corners at about 3.5 tiles up (jump height is about 55 px), and ledge lips at dash height (a dash covers about 72 px) |
+| `dash_chamber` | 106–119 | A closed box, 12 × 8 tiles inside: floor top at row 26, ceiling at row 17, walls at columns 106 and 119 |
+| `coyote_ledge` | 120–139 | A ledge with its top at row 20, then a long drop with no floor, to the pit at the bottom edge |
+| `buffer_drop` | 140–153 | A ledge with its top at row 20, then a 6-tile drop to flat floor at row 26 |
+
+Columns 154–159 are spare.
+
+**Decisions and questions:**
+
+- Owner decisions (plan review): no new test file this step (M6's `test_world_layout.gd` checks the catalog); a fall logs `death` then `respawn`, never `room_enter`, through `load_room()`'s `is_respawn` parameter. The spec's load_room step 4 now reads "log `room_enter`, or `respawn` when the call is a respawn" (owner-approved).
+- Decide and log (decision log, M1.5): the gym's `world_rect`; the station layout and entrance positions; the provisional chimney width; deferring the catalog's point and neighbor lookups to M6; reading the catalog with `load()`, not `preload`.
+- Check run: 92 unit tests pass; import and a 300-frame headless run printed no errors. A throwaway script (not committed) confirmed `room_enter gym start` at tick 0, then `death`/`respawn` pairs only, one room under `RoomSlot`, and the feet at the gym's world offset.
+- The owner's art rename (`player_frames.png` → `player_sheet_v1.png`, with `player_frames.tres` re-saved) was left untouched by this step; the owner committed it separately (`a29f319`). The slot-name question stays open: the spec's slot is still `player_sheet.png`.

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RoomCatalog" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://rooms/room_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://rooms/room_entry.gd" id="2_entry"]
+[ext_resource type="PackedScene" path="res://verification/gym/gym.tscn" id="3_gym"]
+
+[sub_resource type="Resource" id="Resource_gym"]
+script = ExtResource("2_entry")
+room_id = &"gym"
+scene = ExtResource("3_gym")
+world_rect = Rect2i(32768, 0, 2560, 512)
+
+[resource]
+script = ExtResource("1_catalog")
+rooms = Array[ExtResource("2_entry")]([SubResource("Resource_gym")])
+start_room = &"gym"
+start_entrance = &"start"
