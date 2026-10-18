@@ -112,4 +112,5 @@ static func cell_of(px: Vector2i) -> Vector2i:
 # Floor division by the tile size. Integer `/` truncates toward zero, which is wrong for
 # negative coordinates.
 static func _floor_div(value: int) -> int:
+	@warning_ignore("integer_division")
 	return (value - posmod(value, TILE_PX)) / TILE_PX

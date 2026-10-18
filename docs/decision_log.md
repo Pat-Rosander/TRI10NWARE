@@ -146,6 +146,7 @@ Kind: **D&L** = decide and log; **Owner** = owner decision; **Engine** = workaro
 | M1.3 | 2026-10-18 | D&L | A charged jump clears the cooldown (when `charged_refill_clears_cooldown` is on) even if the dash charge was already full; `dash_refill` is reported only when the charge goes from 0 to 1 | Spec: "the dash refills … the cooldown clears too", with no condition on the charge; the trace catalog defines `dash_refill` as 0 → 1 | `test_charged_refill_clears_the_cooldown_when_on` |
 | M1.3 | 2026-10-18 | D&L | `interrupt()` ends a dash without touching the cooldown, which keeps running from the dash start | The cooldown is the minimum time between dash starts; only the charged refill clears it | `test_interrupt_ends_the_dash_and_keeps_the_cooldown` |
 | M1.3 | 2026-10-18 | D&L | `test_dash_state.gd` uses the tuning start values as constants and has no separate tuning guard | `test_tuning.gd` already pins every dash field and the derived ticks (9 and 12) | — |
+| M1.1–3 | 2026-10-18 | Engine | `@warning_ignore("integer_division")` on the 9 intended integer divisions in `solid_grid.gd`, `pixel_mover.gd`, `test_pixel_mover.gd` and `test_solid_grid.gd`; `test_tuning.gd` calls the static `seconds_to_ticks()` through a preloaded script constant instead of the autoload instance | The editor showed 13 warnings that headless runs never print. The divisions mean to drop the remainder, as in `main.gd`; the static call had a real fix | Godot language server: all 26 scripts clean |
 
 ## 3. Disclosed deviations
 

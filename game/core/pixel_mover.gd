@@ -39,6 +39,8 @@ func _init(room_grid: SolidGrid, body_size: Vector2i, wall_check_px: int,
 ## The body rectangle in world pixels with its feet at [param at]. Its bottom edge is the feet
 ## line, so a body standing on a tile has its feet at the tile's top.
 func body_rect(at: Vector2i) -> Rect2i:
+	# The remainder is meant to be dropped: for an odd width the extra pixel goes to the right.
+	@warning_ignore("integer_division")
 	return Rect2i(at.x - _body_size.x / 2, at.y - _body_size.y, _body_size.x, _body_size.y)
 
 

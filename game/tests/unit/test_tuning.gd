@@ -2,6 +2,9 @@
 # field of tuning.tres against its start value in the spec's M0 step 4 table. Serves AC M-05, M-06, S-03, D-05.
 extends TestCase
 
+# seconds_to_ticks() is static, so it is called on the script rather than the autoload instance.
+const TuningScript := preload("res://autoload/tuning.gd")
+
 ## Every TuningData field with its start value and type from the M0 step 4 table. A field
 ## missing from tuning.tres loads as 0 and fails here by name.
 const EXPECTED: Dictionary[String, Variant] = {
@@ -80,9 +83,9 @@ func test_data_is_loaded() -> void:
 
 
 func test_seconds_to_ticks() -> void:
-	assert_eq(Tuning.seconds_to_ticks(0.1), 6, "0.1 s")
-	assert_eq(Tuning.seconds_to_ticks(3.0), 180, "3.0 s")
-	assert_eq(Tuning.seconds_to_ticks(0.15), 9, "0.15 s")
+	assert_eq(TuningScript.seconds_to_ticks(0.1), 6, "0.1 s")
+	assert_eq(TuningScript.seconds_to_ticks(3.0), 180, "3.0 s")
+	assert_eq(TuningScript.seconds_to_ticks(0.15), 9, "0.15 s")
 
 
 func test_derived_ticks() -> void:

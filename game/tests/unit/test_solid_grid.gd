@@ -160,6 +160,7 @@ func test_edges_are_walls_and_the_bottom_is_a_pit() -> void:
 
 func test_corner_cells() -> void:
 	var grid: SolidGrid = SolidGrid.new(ROOM)
+	@warning_ignore("integer_division")
 	var cells: Rect2i = Rect2i(0, 0, ROOM.size.x / T, ROOM.size.y / T)
 	assert_eq(grid.cell_flags(Vector2i(-1, -1)), SolidGrid.SOLID, "above-left")
 	assert_eq(grid.cell_flags(Vector2i(cells.end.x, -1)), SolidGrid.SOLID, "above-right")
@@ -172,6 +173,7 @@ func test_corner_cells() -> void:
 
 func test_cells_painted_outside_the_room_are_ignored() -> void:
 	var grid: SolidGrid = SolidGrid.new(ROOM)
+	@warning_ignore("integer_division")
 	var below: Vector2i = Vector2i(5, ROOM.size.y / T + 1)
 	grid.set_cell(below, SolidGrid.ORDINARY)
 	assert_eq(grid.cell_flags(below), 0, "the pit stays open")

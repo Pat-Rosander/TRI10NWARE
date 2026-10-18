@@ -181,6 +181,7 @@ func test_mirrored_moves_give_mirrored_positions() -> void:
 
 func test_block_resets_the_remainder_of_that_axis_only() -> void:
 	var grid: SolidGrid = _make_box()
+	@warning_ignore("integer_division")
 	var mover: PixelMover = _make_mover(grid, Vector2i(BOX.end.x - BODY.x / 2, 200))
 	mover.remainder_x = 0.3
 	mover.remainder_y = 0.2
@@ -233,6 +234,7 @@ func test_wall_query_reaches_the_full_wall_check_distance() -> void:
 	# Shifted the full wall_check_px, the body overlaps a wall up to wall_check_px - 1 px away;
 	# a wall exactly wall_check_px away is only touched.
 	var grid: SolidGrid = _make_box()
+	@warning_ignore("integer_division")
 	var half: int = BODY.x / 2
 	var y: int = 200
 	for gap: int in [0, 1, WALL_CHECK - 1]:
@@ -258,6 +260,7 @@ func test_platforms_are_never_walls_and_room_edges_are() -> void:
 	grid.set_flow(true)
 	assert_false(_make_mover(grid, Vector2i(10 * T - 8, y)).wall_at(1), "default-only, in flow")
 	assert_false(_make_mover(grid, Vector2i(12 * T - 8, y)).wall_at(1), "flow-only, in flow")
+	@warning_ignore("integer_division")
 	var half: int = BODY.x / 2
 	assert_true(_make_mover(grid, Vector2i(WALL_CHECK - 1 + half, 100)).wall_at(-1), "left room edge")
 	assert_true(_make_mover(grid, Vector2i(ROOM.end.x - WALL_CHECK + 1 - half, 100)).wall_at(1),
@@ -293,6 +296,7 @@ func _make_box() -> SolidGrid:
 # it stops. Returns "" if it stopped flush, never overlapping a solid cell, with that axis
 # zeroed and the right contact noted; otherwise a description of what went wrong.
 func _run_into_box_side(grid: SolidGrid, dir: Vector2i, gap: int, speed: int) -> String:
+	@warning_ignore("integer_division")
 	var half: int = BODY.x / 2
 	var start: Vector2i
 	match dir:
@@ -306,6 +310,7 @@ func _run_into_box_side(grid: SolidGrid, dir: Vector2i, gap: int, speed: int) ->
 			start = Vector2i(200, BOX.position.y + gap + BODY.y)
 	var mover: PixelMover = _make_mover(grid, start)
 	# The contact is noted on the first pixel attempt past flush, so allow gap + 1 pixels.
+	@warning_ignore("integer_division")
 	var max_ticks: int = (gap + 1) * TICKS / speed + 2
 	for tick: int in max_ticks:
 		mover.velocity_x = dir.x * speed
