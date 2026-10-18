@@ -3,6 +3,7 @@
 extends Node
 
 const WorldScript := preload("res://world/world.gd")
+const DebugOverlayScript := preload("res://debug/debug_overlay.gd")
 
 ## True when debug tools are on: --debug-tools, any scenario flag, or ?debug=1 on a local web page.
 var debug_tools: bool = false
@@ -16,12 +17,18 @@ var quit_when_done: bool = false
 var render_fps: int = 0
 
 @onready var _world: WorldScript = $World
+@onready var _debug_overlay: DebugOverlayScript = $DebugOverlay
 
 
 func _ready() -> void:
 	parse_args(OS.get_cmdline_user_args())
 	if OS.has_feature("web") and _web_debug_requested():
 		debug_tools = true
+	# Players never get the overlay or its keys; with debug tools on it starts hidden (backtick shows it).
+	if debug_tools:
+		_debug_overlay.world = _world
+	else:
+		_debug_overlay.queue_free()
 	if render_fps > 0:
 		Engine.max_fps = render_fps
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)

@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M0 step 7, Main and World skeleton, 2026-10-17.
-- **Next step:** M0 step 8, debug overlay (`/step M0.8`). Step 8 also adds the `DebugOverlay` instance to `world/main.tscn` (left out of step 7 because its scene did not exist yet), shown only when `Main.debug_tools` is true.
+- **Last completed:** M0 step 8, debug overlay, 2026-10-17.
+- **Next step:** M0 step 9, unit-test runner (`/step M0.9`). See the step 9 note below.
 - **Waiting on the owner:**
+    - Check the debug overlay (M0 step 8 entry, "How to see it"): run with `-- --debug-tools`, press backtick, and try 1, 2 and 3. Accept if Godot asks to re-save `main.tscn` or `debug_overlay.tscn`.
     - Reopen Godot from `game/project.godot`. The missing-main-scene error is gone. Running the project (F5) shows a blank window, sized to the largest whole multiple of 640 × 360 that fits your screen. Please check three things: the window size; that Alt+Enter (Option+Enter) toggles fullscreen; and that a run with `-- --debug-tools` writes a file to `user://traces/` when you close the window, while a run without the flag writes none. These could not be checked automatically (see the M0 step 7 entry). If Godot asks to re-save `main.tscn`, accept: it adds the scripts' UIDs.
     - Push the tag: `git push origin prototype-v0`.
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
@@ -298,4 +299,43 @@ There is no Player yet, so `World` makes its own `LiveInputSource` child in `_re
 - *Owner decision (2026-10-17):* **trace on quit** happens only with debug tools on, and never on the web, where the debug overlay's download covers it (step 8). The spec's `main.gd` row and the M0 done-when line were updated with approval.
 - *Note:* `main.tscn` was written by Godot's `ResourceSaver` from a headless script, like `tuning.tres` in step 4. The scripts are referenced by path, with no `uid=`. The editor adds UIDs the next time it saves the scene.
 - *Fix after owner check (2026-10-17):* the editor reported two `INTEGER_DIVISION` warnings for `main.gd`'s `window_scale()`; headless runs do not print them. The division is meant to drop the remainder (whole multiples only), so the line carries `@warning_ignore("integer_division")`. The owner confirmed the trace is saved on window close with `--debug-tools`. Window checks need the editor's "Embed Game on Next Play" turned off, because an embedded game cannot resize itself or go fullscreen.
+- No open questions.
+
+## M0 step 8: debug overlay (2026-10-17)
+
+**What was built:**
+
+- `game/debug/debug_overlay.tscn` (new): a `CanvasLayer` named `DebugOverlay` (process mode Always, layer 100, hidden at start) with one `Label`, `Readout`, in the top-left corner.
+- `game/debug/debug_overlay.gd` (new, with its `.uid`): fills the readout and handles the debug keys.
+- `game/world/main.tscn`: a `DebugOverlay` instance as a child of `Main`, beside `World`.
+- `game/world/main.gd`: wires the overlay to `World` when debug tools are on and frees it otherwise.
+
+**How it works:** the overlay is a screen layer that draws on top of everything. It is drawn in screen space, so the camera never moves it. Its process mode is Always, so it keeps working while the game is paused (M3). Every rendered frame, while it is shown, it writes five lines: the current tick, frames per second, the physics rate (60 Hz), the build ID from `Trace` (`0.1.0-dev` in editor runs), and the speed (1×, ½× or ¼×, plus `FROZEN`). It only reads these values. It never runs gameplay, so `World` keeps the project's only `_physics_process`.
+
+The keys come from the input map made in step 3. Backtick shows or hides the overlay. While it is shown, 1 freezes or unfreezes the simulation, 2 runs exactly one tick while frozen, and 3 cycles the speed 1× → ½× → ¼× → 1×. The overlay changes only `World`'s public `debug_frozen`, `request_step()` and `slow_divisor`; the tick-skipping itself was already in `World` from step 7. While the overlay is hidden, 1 to 3 do nothing, so stray number presses during play are harmless.
+
+`Main` decides whether the overlay exists. Godot runs a child's `_ready()` before its parent's, so the overlay cannot know about the command-line flags when it starts; `Main` reads them in its own `_ready()`. With debug tools on, `Main` gives the overlay its `World`. Without them, it deletes the overlay, so a normal player has no overlay and no debug keys at all.
+
+**Why:** spec "M0 step 8: debug overlay", the step 7 `main.tscn` row ("plus `DebugOverlay`"), and ground rules 3 and 5; M0 done-when line 2. AC D-01 (the build ID on screen), D-05 (frame-stepping and slow motion for frame-rate checks), and AC page 9 (debug access, documented in the README in step 11).
+
+**How to see it:** in Godot, turn off "Embed Game on Next Play", set Project → Project Settings → Run → Main Run Args to `-- --debug-tools` (or run from a terminal: `"$GODOT" --path game -- --debug-tools`), and press F5. Press backtick and the tick counts up at 60 per second. Press 1 to freeze, 2 to step one tick, 1 again to resume, and 3 to cycle slow motion. Without the flag, backtick does nothing. If Godot asks to re-save `main.tscn` or `debug_overlay.tscn`, accept: it adds the UIDs (the files reference scripts by path).
+
+Verified headless with a throwaway script (not committed; the test runner arrives in step 9), 22 passes with `--debug-tools` and 1 without, 0 fails:
+
+- Without the flag, `DebugOverlay` is gone. With it, the overlay exists, starts hidden and is wired to `World`.
+- 1 and 3 are ignored while hidden. A real backtick event through `Input.parse_input_event` shows the overlay.
+- The readout holds the tick, `Physics 60 Hz` and the `-dev` build ID; it shows `FROZEN` and `¼×` when they apply.
+- 12 physics steps give 12 ticks at 1×, 6 at ½× and 3 at ¼×. Frozen, 10 steps give 0 ticks; 2 then gives exactly 1. A 2 pressed before freezing did not leak a tick.
+- Backtick hides the overlay, after which 1 is ignored again. The overlay still toggles while the scene tree is paused.
+
+A real headless run with `--debug-tools` for 120 frames exited 0 with nothing on stderr, and still wrote its trace on quit. The editor was closed, so VS Code showed no GDScript diagnostics. **Not verified automatically:** how the readout looks on screen (font size 8 in the 640 × 360 canvas) and the real keyboard path for 1 to 3.
+
+**Decisions and questions:**
+
+- *Decide and log:* **the overlay starts hidden** when debug tools are on; backtick shows it.
+- *Decide and log:* **the readout also shows the speed and `FROZEN`**, so a tester can see why ticks stopped.
+- *Decide and log:* **2 (step) is ignored unless frozen.** `World` keeps a step request until the next frozen physics step, so a press while running would have leaked one tick into the next freeze.
+- *Decide and log:* **without debug tools, `Main` frees the overlay** rather than hiding it, so its keys cannot work.
+- *Decide freely:* the readout is a single `Label` with the default font at size 8, offset 4 px from the top-left corner. It is a placeholder for testing, not an art decision.
+- *Correction to the step 7 entry:* that entry says the overlay's trace download covers the web build "(step 8)". The spec puts "save or download the current trace" in the **M1 debug menu** (M1 build order step 7), so step 8 adds no download. Until M1, web runs keep no trace file.
 - No open questions.
