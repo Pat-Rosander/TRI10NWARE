@@ -4,21 +4,21 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M0 step 9, unit-test runner, 2026-10-17. Run the tests with `"$GODOT" --headless --path game res://tests/test_runner.tscn` (44 pass).
-- **Next step:** M0 step 10, delivery path (`/step M0.10`). See the step 10 note below.
+- **Last completed:** M0 step 10, delivery path, 2026-10-18. `tools/run_tests.sh` runs everything (44 unit tests pass; scenarios skipped until M1 step 8). `tools/export_all.sh` builds all three targets plus the itch.io zips (last trial: build `0.1.0-4fa9196`).
+- **Next step:** M0 step 11, project documents (`/step M0.11`).
 - **Waiting on the owner:**
+    - **Reload the project in Godot now** (Project → Reload Current Project) before changing any Project Settings. Step 10 added `rendering/textures/vram_compression/import_etc2_astc=true` to `project.godot` while the editor was open; saving settings from the old in-memory copy would drop it, and the macOS export would fail again.
+    - Check the builds (M0 step 10 entry, "How to see it"): run `tools/export_all.sh`, launch the macOS app with `-- --debug-tools` and press backtick to see the build ID; open the web build through `tools/serve_web.sh` at `http://localhost:8000/?debug=1`; upload `TRI10NWARE_web.zip` to a draft itch.io page; on the Windows PC, run `TRI10NWARE.exe -- --debug-tools`.
     - Check the debug overlay (M0 step 8 entry, "How to see it"): run with `-- --debug-tools`, press backtick, and try 1, 2 and 3. Accept if Godot asks to re-save `main.tscn` or `debug_overlay.tscn`.
     - Reopen Godot from `game/project.godot`. The missing-main-scene error is gone. Running the project (F5) shows a blank window, sized to the largest whole multiple of 640 × 360 that fits your screen. Please check three things: the window size; that Alt+Enter (Option+Enter) toggles fullscreen; and that a run with `-- --debug-tools` writes a file to `user://traces/` when you close the window, while a run without the flag writes none. These could not be checked automatically (see the M0 step 7 entry). If Godot asks to re-save `main.tscn`, accept: it adds the scripts' UIDs.
     - Push the tag: `git push origin prototype-v0`.
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
-    - M0 step 0 prerequisites, still needed: the 4.5.1 export templates, the macOS bundle identifier, the itch.io project page, and access to a Windows PC. Godot 4.5.1 itself is confirmed at `/Applications/Godot 4.5.1 .app`.
+    - M0 step 0 prerequisites, still needed: the itch.io project page and access to a Windows PC. Confirmed: Godot 4.5.1 at `/Applications/Godot 4.5.1 .app`, its export templates (installed), and the macOS bundle identifier `com.patrickrosander.tri10nware` (owner, 2026-10-18).
     - Before M1 step 2: accept or replace the three proposed answers under "Decide before step 2" in the M1 build order.
 - **Open questions:** none.
 - **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
 - **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
-- **Note for M0 step 10:** `export_all.sh` must write `config/build_info.cfg` with section `[build]` and keys `version`, `commit`, `date`, the format `Trace` reads (see the M0 step 5 entry).
-- **Note for M0 step 10:** the export presets must exclude `tests/*` (spec, M0 step 9: unit tests run in the editor build only). `run_tests.sh` runs `"$GODOT" --headless --path game res://tests/test_runner.tscn` and passes its exit code on (0 = all passed, 1 = any failure or no tests found).
 
 ## Entry template
 
@@ -382,4 +382,65 @@ Verification: the import step runs clean. The full run gives 44 passed, 0 failed
 - *Decide and log:* **the trace tests use private instances** of `autoload/trace.gd`, so the real autoload's log is never wiped or filled. The ring test sets `Tuning.data.trace_memory_limit` to 3 for one `begin_session()` call and restores it at once.
 - *Decide freely:* `TestCase` gains `add_node()`, `take_errors()`, `claimed_errors` and two runner hooks (`capture_error()`, `free_nodes()`) beyond the four asserts the spec names. The snap test uses hand-picked stick ratios around tan 22.5° instead of computing angles.
 - *Note:* the M0 step 8 entry's "How to see it" says to set Main Run Args to `-- --debug-tools`. Doing that in Project Settings writes exactly the `[editor]` line reverted here. If it comes back, that is where it comes from. Setting it is the owner's choice; it is just not committed.
+- No open questions.
+
+## M0 step 10: delivery path (2026-10-18)
+
+**What was built:**
+
+- `game/export_presets.cfg` (new): the three export presets, `macOS`, `Windows Desktop` and `Web`.
+- `tools/export_all.sh` (new): builds all three targets from one clean commit and packages the itch.io files.
+- `tools/run_tests.sh` (new): import, unit tests, scenarios; one exit code for all of it.
+- `tools/serve_web.sh` (new): serves `builds/web/` over local HTTP.
+- `game/project.godot` (changed): `rendering/textures/vram_compression/import_etc2_astc=true`.
+- `game/config/build_info.cfg` is *generated* by `export_all.sh` and deleted again when it finishes; it is git-ignored and never committed.
+
+**How it works:**
+
+*Exporting.* `tools/export_all.sh` first runs the import step, then refuses to go on unless `git status` is empty. Every build must come from a real commit, and a change you haven't committed would ship in a build that claims to be that commit. It then writes `game/config/build_info.cfg`:
+
+```ini
+[build]
+
+version="0.1.0"
+commit="4fa9196"
+date="2026-10-18T17:18:12Z"
+```
+
+The version is read from `application/config/version` in `project.godot`, the commit is the 7-character short hash, and the date is UTC. `Trace` (M0 step 5) already reads this file at launch and builds the build ID `0.1.0-4fa9196` from it. That ID appears in every trace header, every trace file name and the debug overlay. The script then runs Godot's three command-line exports (`--export-release`, one per preset) into `builds/macos/`, `builds/windows/` and `builds/web/`. It checks `git status` again: an export can rewrite `.import` or `.uid` files, and if it did, the build doesn't quite match the commit, so the script stops and asks for them to be committed first. Finally it writes the three upload files to `builds/itch/`. When the script exits, even after a failure, it deletes `build_info.cfg`, so running the game from the editor goes back to showing `0.1.0-dev`.
+
+*Presets.* Each preset follows the spec table: macOS is universal (Intel and Apple Silicon in one app), ad-hoc signed with Godot's built-in signer, not notarized, bundle ID `com.patrickrosander.tri10nware`. Windows is x86_64, with the game data embedded in the `.exe`, so it is a single file. Web has no threads and focuses the canvas on start. All three use the spec's filters: `config/build_info.cfg` and `verification/scenarios/*.json` are added (Godot only packs files it recognizes as resources unless told otherwise), and `tests/*` and `rooms/world_map_preview.*` are left out. Only the options the spec names are written in the file; Godot fills every other option with its default. If you open Project → Export in the editor, it will rewrite the file with every option spelled out. That is harmless, and worth committing if it happens.
+
+*The ETC2/ASTC setting.* The first macOS export failed: Godot refuses a universal or Apple Silicon export unless "Import ETC2 ASTC" is on, because Apple GPUs need that texture format for VRAM-compressed textures. Our pixel art isn't VRAM-compressed, so nothing looks different, and the reimport changed no `.import` file. Turning the setting on is an engine requirement, not a design choice.
+
+*itch.io files.* `TRI10NWARE_web.zip` holds the web export with `index.html` at the top. `TRI10NWARE_windows.zip` holds the `.exe`, `README.md` and `CREDITS.md`. `TRI10NWARE_macos.zip` holds `TRI10NWARE.app` and the two documents. The macOS one is repacked with macOS's `ditto` tool, not `zip`, because an `.app` is a folder with symlinks and a code signature that a plain zip can break. The signature lives inside the app, so the extended-attribute clutter (`__MACOSX/._*` entries) can be dropped safely, and was.
+
+*Testing.* `tools/run_tests.sh` runs the import step, the unit tests, then the scenarios at a fixed 60 FPS. It returns 0 only if every stage passed. The scenarios stage is skipped, with a message, until `game/verification/scenario_runner.gd` exists (M1 step 8). Today nothing would make `--run-scenarios --quit-when-done` quit, so the command would hang forever.
+
+*Serving the web build.* Browsers won't run a Godot web export from `file://`, and they refuse WebAssembly sent with the wrong content type. `tools/serve_web.sh` starts Python 3's built-in web server on `127.0.0.1` (port 8000, or the first argument). It sends `.wasm` as `application/wasm` and tells the browser not to cache, so a fresh export is never hidden behind an old one. Main's `?debug=1` check (M0 step 7) accepts `localhost` and `127.0.0.1`, so debug tools work through this server and nowhere else.
+
+**Why:** spec "M0 step 10: delivery path" (files, preset table, itch.io files, filters), "M0 step 0: prerequisites" (templates, bundle ID), "M0 done when" (the fourth item), and the step 5 and step 9 notes that were in the Status block. AC served: D-01 (every build and trace names its source revision), D-03 (the web build is tested over HTTP), D-08 (reproducible exports from the repository alone), and D-04 and D-05 through `run_tests.sh`.
+
+**How to see it:**
+
+1. `tools/run_tests.sh`, then `echo $?`. Expect `44 passed, 0 failed.`, `skipped (scenario runner arrives in M1 step 8)`, `run_tests: all passed.` and `0`.
+2. With everything committed: `tools/export_all.sh`. It prints `Build 0.1.0-<commit>` and lists the three itch.io zips.
+3. macOS: `builds/macos/TRI10NWARE.app/Contents/MacOS/TRI10NWARE -- --debug-tools` (unzip `builds/macos/TRI10NWARE.zip` first). Press backtick: the overlay shows `Build 0.1.0-<commit>`. Running from the editor still shows `0.1.0-dev`.
+4. Web: `tools/serve_web.sh`, then open `http://localhost:8000/?debug=1` and press backtick. Without `?debug=1` there is no overlay, and that is correct.
+5. itch.io: upload `builds/itch/TRI10NWARE_web.zip` to a draft page, set up as the spec says (kind HTML, 1280 × 720, fullscreen button on, SharedArrayBuffer off). It should load, though the build ID isn't visible there until the title overlay arrives in M3: the debug overlay is off on any host other than this machine.
+6. Windows: copy `TRI10NWARE_windows.zip` to the PC, unzip, run `TRI10NWARE.exe -- --debug-tools` from a terminal, and press backtick.
+
+Verification done in this session: `run_tests.sh` exits 0. `export_all.sh`, run from commit `4fa9196` and again after the zip fix, produced all six outputs with exit code 0, left the tree clean and removed `build_info.cfg`. The exported `.pck` files (web, macOS, and the one embedded in the Windows `.exe`) contain `config/build_info.cfg` and no `tests/` script or scene. The `tests/` *paths* still appear as text inside the pack, because Godot's global class list (`TestCase`) and UID cache list every script in the project, but the files themselves are not there. The macOS app is universal (`x86_64 arm64`), its ad-hoc signature verifies after the itch.io zip round trip, and it starts and quits headless with exit code 0 and no errors. `serve_web.sh` served `index.wasm` as `application/wasm` with `Cache-Control: no-store`. No GDScript files changed, so there is nothing for diagnostics to check.
+
+**Decisions and questions:**
+
+- *Owner decision (2026-10-18):* macOS bundle identifier `com.patrickrosander.tri10nware`.
+- *Decide and log (engine requirement):* **`import_etc2_astc` turned on** in `project.godot`. Godot 4.5.1 refuses universal and arm64 macOS exports without it. No texture or `.import` file changed.
+- *Decide and log:* **exports are release builds** (`--export-release`). Debug tools stay available through `--debug-tools` on desktop and `?debug=1` on localhost, as Main already allows.
+- *Decide and log:* **`export_all.sh` deletes `build_info.cfg` on exit**, so editor runs keep the `-dev` build ID (spec: "When missing (editor runs), the game shows 'dev build'"). The overlay's existing `Build 0.1.0-dev` line is how the game shows "dev build".
+- *Decide and log:* **build info formats:** `commit` is the 7-character short hash; `date` is UTC `YYYY-MM-DDTHH:MM:SSZ`.
+- *Decide and log:* **`run_tests.sh` skips the scenarios** until `verification/scenario_runner.gd` exists. The M0 done-when item needs only the unit tests.
+- *Decide and log:* **`serve_web.sh` uses port 8000 by default** (overridable), binds to `127.0.0.1`, and disables caching.
+- *Decide freely:* the macOS itch.io zip is built with `ditto --norsrc --noextattr`; the export presets list only the options the spec names.
+- *Note:* the Windows export gave no warning about `rcedit` (the tool Godot uses to set the `.exe` icon and version info from a Mac), so no change was needed. Whether the `.exe` shows the game icon or Godot's default is for the Windows check to show.
 - No open questions.
