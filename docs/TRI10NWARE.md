@@ -1074,9 +1074,9 @@ M1 is built in these numbered steps, one session each (`/step M1.1` and so on). 
 1. **Tile set and `SolidGrid`:** `level_tiles.tres` with the `solidity` custom data layer, using the owner's atlas `game/art/tiles/level_1_tiles.png` (owner decision 2026-10-18; it replaced the legacy placeholder); `solid_grid.gd`; `test_solid_grid.gd`.
 2. **`PixelMover` without assists:** `pixel_mover.gd`, `test_pixel_mover.gd`.
 3. **Rule objects:** `jump_resolver.gd`, `dash_state.gd`, `test_jump_resolver.gd`, `test_dash_state.gd`.
-4. **The player:** `player.tscn`, `player.gd` with steps 1–10 wired into `World`, `player_visuals.gd`, `player_frames.tres` (placeholder frames until the owner's sheet arrives).
+4. **The player:** `player.tscn`, `player.gd` with steps 1–10 wired into `World`, `player_visuals.gd`, `player_frames.tres` (placeholder frames until the owner's sheet arrives), plus the wall-jump and dash rows of **Control locks**.
 5. **Rooms:** `room.gd`, `room_entrance.gd`, `room_entry.gd`, `room_catalog.gd`, `room_catalog.tres`, `World.load_room()`, and `gym.tscn` as a **skeleton**: the room node, its three empty tile layers, one entrance per station, and its `RoomEntry`. **Owner hand-off:** the owner paints each station's tiles in the Godot editor, following the gym station table. The step is complete when the painted gym is committed.
-6. **Assists:** corner correction, dash corner correction, one-way platform help and post-dash floor snap in `PixelMover`, with their unit tests, plus the **Control locks** behavior.
+6. **Assists:** corner correction, dash corner correction, one-way platform help and post-dash floor snap in `PixelMover`, with their unit tests.
 7. **Debug tools:** `debug_world_draw.gd`, and the debug menu's room and station list.
 8. **Scenarios:** `scenario_runner.gd` and `m01`–`m08`, run against the painted gym.
 9. **Done-when:** the owner's feel playtest, the interpolation and jitter check, and the M1 summary in the build journal.
@@ -1236,7 +1236,7 @@ Every assist applies only where the body fits at the new position; none ever pus
 - The post-dash floor snap applies (table above).
 - `dash_end` is logged.
 
-Expire stale tokens.
+(Stale tokens are expired in step 1, before new presses.)
 
 **Step 10, outcomes.** Checked in this fixed order; the first that applies wins and is the one logged:
 

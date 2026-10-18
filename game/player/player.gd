@@ -1,0 +1,199 @@
+# The player: holds the movement rule objects (PixelMover, DashState, the press buffers and a
+# small movement-state record) and the step methods World calls each tick. No _physics_process.
+# Serves AC M-01, M-02, M-03, M-04, M-05, M-06, M-07, R-01.
+class_name Player
+extends Node2D
+
+## The player's changing movement state that lives in no rule object. Replaced on respawn.
+class MoveState extends RefCounted:
+	## Ticks of jump sustain left: while above 0 and jump is held, the rise holds at jump speed.
+	var sustain_ticks: int = 0
+	## Whether the soft apex (lighter gravity near the top of a held jump) may apply.
+	var soft_apex: bool = true
+	## Ticks of wall-jump lock left, and the horizontal direction forced meanwhile.
+	var wall_lock_ticks: int = 0
+	var wall_lock_dir: int = 0
+	## Airborne decision ticks left in which a coyote jump may fire.
+	var coyote_ticks: int = 0
+	## -1 left, 1 right.
+	var facing: int = 1
+	## What step 7 sensed; steps 3 and 4 of the next tick decide with it.
+	var grounded: bool = false
+	var wall_left: bool = false
+	var wall_right: bool = false
+
+
+## Every rule object is replaced, never reset, on respawn (R-01).
+var mover: PixelMover
+var dash: DashState
+var jump_buffer: PressBuffer
+var dash_buffer: PressBuffer
+var state: MoveState
+
+## The live input source in the scene; World reads it unless a scenario swaps in another.
+@onready var input_source: InputSource = $InputSource
+
+# Vertical velocity before step 6's move, for land's vy_before.
+var _vy_before_move: float = 0.0
+
+
+## Places the feet at [param feet] in [param grid] with fresh rule objects, facing
+## [param facing]. Grounded, walls and coyote are sensed at once (no land is logged), so the
+## first tick's decisions see the real state.
+func respawn(feet: Vector2i, grid: SolidGrid, facing: int = 1) -> void:
+	var data: TuningData = Tuning.data
+	mover = PixelMover.new(grid, data.body_size_px, data.wall_check_px, Tuning.TICKS_PER_SECOND)
+	mover.position = feet
+	dash = DashState.new(Tuning.dash_ticks, Tuning.dash_cooldown_ticks, data.dash_speed_px_s,
+			data.dash_end_speed_px_s, data.dash_end_up_mult, data.charged_refill_clears_cooldown)
+	jump_buffer = PressBuffer.new(Tuning.jump_buffer_ticks)
+	dash_buffer = PressBuffer.new(Tuning.dash_buffer_ticks)
+	state = MoveState.new()
+	state.facing = facing
+	_vy_before_move = 0.0
+	_sense_contacts()
+	position = Vector2(feet)
+	reset_physics_interpolation()
+
+
+## Step 3: starts a dash if the dash buffer holds a token and DashState allows a start (M-03).
+func step_dash(frame: InputFrame, tick: int) -> void:
+	if not dash_buffer.can_spend(tick) or not dash.can_start():
+		return
+	var created: int = dash_buffer.spend(tick)
+	Trace.record("press_spent", {"action": "dash", "created_tick": created, "spent_on": tick})
+	dash.start(frame.direction, state.facing, tick)
+	if dash.direction.x != 0:
+		state.facing = dash.direction.x
+	mover.velocity_x = dash.start_velocity_x()
+	mover.velocity_y = dash.start_velocity_y()
+	# A dash replaces a jump's arc completely: no upward pull returns when it ends.
+	state.sustain_ticks = 0
+	state.soft_apex = false
+	Trace.record("dash_start", {"dir_x": dash.direction.x, "dir_y": dash.direction.y,
+			"vx": mover.velocity_x, "vy": mover.velocity_y})
+
+
+## Step 4: at most one jump, chosen by JumpResolver; then the coyote countdown (M-01, M-02,
+## M-05, M-06).
+func step_jump(frame: InputFrame, tick: int) -> void:
+	if jump_buffer.can_spend(tick):
+		# Charged stays false until M2 supplies flow and an armed region.
+		var kind: JumpResolver.Kind = JumpResolver.resolve(state.grounded, state.coyote_ticks > 0,
+				false, state.wall_left or state.wall_right, dash.is_active(),
+				jump_buffer.created_tick(), dash.start_tick)
+		if kind != JumpResolver.Kind.NONE:
+			_jump(kind, frame, tick)
+	if not state.grounded and state.coyote_ticks > 0:
+		state.coyote_ticks -= 1
+
+
+## Step 5: run, air control, gravity, soft apex, sustain and fall cap. Velocity is left alone
+## while dashing.
+func step_integrate(frame: InputFrame) -> void:
+	if dash.is_active():
+		return
+	var data: TuningData = Tuning.data
+	var tps: float = Tuning.TICKS_PER_SECOND
+	var x: int = state.wall_lock_dir if state.wall_lock_ticks > 0 else frame.direction.x
+	var mult: float = 1.0 if state.grounded else data.air_control_mult
+	var target: float = x * data.run_max_speed_px_s
+	var vx: float = mover.velocity_x
+	if absf(vx) > data.run_max_speed_px_s and int(signf(vx)) == x:
+		vx = move_toward(vx, target, data.run_reduce_px_s2 * mult / tps)
+	else:
+		vx = move_toward(vx, target, data.run_accel_px_s2 * mult / tps)
+	mover.velocity_x = vx
+
+	var vy: float = mover.velocity_y
+	var gravity_mult: float = 1.0
+	if state.soft_apex and frame.jump_held and absf(vy) < data.apex_threshold_px_s:
+		gravity_mult = data.apex_gravity_mult
+	vy += data.gravity_px_s2 * gravity_mult / tps
+	if state.sustain_ticks > 0:
+		if frame.jump_held:
+			vy = minf(vy, -data.jump_speed_px_s)
+		else:
+			state.sustain_ticks = 0
+	vy = minf(vy, data.max_fall_speed_px_s)
+	mover.velocity_y = vy
+
+	if x != 0:
+		state.facing = x
+
+
+## Step 6: moves the body in whole pixels.
+func step_move() -> void:
+	_vy_before_move = mover.velocity_y
+	mover.move()
+
+
+## Step 7: grounded, landing, the ground refill, coyote and soft apex, walls and ceiling.
+func step_sense() -> void:
+	var was_grounded: bool = state.grounded
+	_sense_contacts()
+	if state.grounded and not was_grounded:
+		Trace.record("land", {"vx": mover.velocity_x, "vy_before": _vy_before_move})
+	if state.grounded and dash.refill_ground():
+		Trace.record("dash_refill", {"cause": "ground"})
+	if mover.ceiling_hit:
+		state.sustain_ticks = 0
+
+
+## Step 9: counts down the sustain, the wall-jump lock and the dash timers; applies the dash's
+## end velocity on its last tick (M-03).
+func step_timers() -> void:
+	if state.sustain_ticks > 0:
+		state.sustain_ticks -= 1
+	if state.wall_lock_ticks > 0:
+		state.wall_lock_ticks -= 1
+	if dash.tick_timers():
+		mover.velocity_x = dash.end_velocity_x()
+		mover.velocity_y = dash.end_velocity_y()
+		Trace.record("dash_end", {"vx": mover.velocity_x, "vy": mover.velocity_y,
+				"interrupted": false})
+
+
+## Step 10: true if the feet are below the room's failure line (bounds bottom + fall_margin_px).
+func fell() -> bool:
+	return mover.position.y > mover.grid.bounds.end.y + Tuning.data.fall_margin_px
+
+
+## Step 11: moves the node to the feet, so the screen shows the tick's result.
+func publish() -> void:
+	position = Vector2(mover.position)
+
+
+func _jump(kind: JumpResolver.Kind, frame: InputFrame, tick: int) -> void:
+	var data: TuningData = Tuning.data
+	var created: int = jump_buffer.spend(tick)
+	Trace.record("press_spent", {"action": "jump", "created_tick": created, "spent_on": tick})
+	state.coyote_ticks = 0
+	state.soft_apex = kind != JumpResolver.Kind.CHARGED
+	match kind:
+		JumpResolver.Kind.GROUND, JumpResolver.Kind.COYOTE:
+			mover.velocity_y = -data.jump_speed_px_s
+			if frame.direction.x != 0:
+				mover.velocity_x += data.jump_h_boost_px_s * frame.direction.x
+			state.sustain_ticks = Tuning.jump_sustain_ticks
+		JumpResolver.Kind.WALL:
+			# A wall jump never refills the dash (M-02).
+			var side: int = JumpResolver.wall_jump_side(state.wall_left, state.wall_right,
+					frame.direction.x, state.facing)
+			mover.velocity_x = -side * data.wall_jump_h_speed_px_s
+			mover.velocity_y = -data.jump_speed_px_s
+			state.sustain_ticks = Tuning.jump_sustain_ticks
+			state.wall_lock_ticks = Tuning.wall_jump_lock_ticks
+			state.wall_lock_dir = -side
+	Trace.record("jump", {"kind": JumpResolver.kind_name(kind), "vx": mover.velocity_x,
+			"vy": mover.velocity_y, "object": ""})
+
+
+# Senses grounded and walls; while grounded, refreshes the coyote window and the soft apex.
+func _sense_contacts() -> void:
+	state.grounded = mover.is_grounded()
+	state.wall_left = mover.wall_at(-1)
+	state.wall_right = mover.wall_at(1)
+	if state.grounded:
+		state.coyote_ticks = Tuning.coyote_ticks
+		state.soft_apex = true

@@ -9,3 +9,4 @@ One row per art, audio or font file in the game. `status` is `placeholder`, `own
 | `game/art/legacy/health.png` | Prototype health graphic; kept until the owner decides its use | owner draft | Pat Rosander | owner to confirm | — | 2026-10-17 |
 | `game/art/tiles/level_1_tiles.png` | Level 1 tile atlas: stone blocks (solid) and telephone-pole pieces (decoration); source of `game/tiles/level_tiles.tres` | owner draft | Pat Rosander | owner to confirm | — | 2026-10-18 |
 | `game/icon.svg` | Project and app icon (Godot's default icon, from project creation); replace when the owner supplies one | placeholder | Godot Engine contributors | MIT | https://github.com/godotengine/godot | 2026-10-18 |
+| `game/art/player/player_frames.png` | Player frames: default state (left) and flow state (right), one 20 × 20 frame each; source of `game/player/player_frames.tres` (spec slot name: `player_sheet.png`) | owner draft | Pat Rosander | owner to confirm | — | 2026-10-18 |

@@ -4,9 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M1 step 3, rule objects (`JumpResolver`, `DashState`), 2026-10-18. The owner chose to start M1 while the M0 checks below are still open.
-- **Next step:** M1 step 4, the player: `player.tscn`, `player.gd` with steps 1–10 wired into `World`, `player_visuals.gd`, `player_frames.tres` (`/step M1.4`). Nothing blocks it.
+- **Last completed:** M1 step 4, the player (`player.tscn`, `player.gd`, `player_visuals.gd`, `player_frames.tres`, World steps 1–10 wired), 2026-10-18.
+- **Next step:** M1 step 5, rooms: `room.gd`, `room_entrance.gd`, `room_entry.gd`, `room_catalog.gd`, `room_catalog.tres`, `World.load_room()` and the `gym.tscn` skeleton (`/step M1.5`). Ends with the owner painting the gym.
 - **Waiting on the owner:**
+    - Play the M1 step 4 test floor (M1 step 4 entry, "How to see it"): run, jump, wall jump off the pillar and side walls, dash in 8 directions, fall into the pit. If a key seems ignored, run the keyboard device check in the note below.
+    - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
     - Check the builds (M0 step 10 entry, "How to see it"): run `tools/export_all.sh`, launch the macOS app with `-- --debug-tools` and press backtick to see the build ID; open the web build through `tools/serve_web.sh` at `http://localhost:8000/?debug=1`; upload `TRI10NWARE_web.zip` to a draft itch.io page; on the Windows PC, run `TRI10NWARE.exe -- --debug-tools`.
     - Check the debug overlay (M0 step 8 entry, "How to see it"): run with `-- --debug-tools`, press backtick, and try 1, 2 and 3. Accept if Godot asks to re-save `main.tscn` or `debug_overlay.tscn`.
@@ -14,12 +16,9 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
     - M0 step 0 prerequisites, still needed: the itch.io project page and access to a Windows PC. Confirmed: Godot 4.5.1 at `/Applications/Godot 4.5.1 .app`, its export templates (installed), and the macOS bundle identifier `com.patrickrosander.tri10nware` (owner, 2026-10-18).
     - Confirm the license of `game/art/tiles/level_1_tiles.png` in `CREDITS.md`.
-- **Open questions:** none.
+- **Open questions:** the owner's player art is at `game/art/player/player_frames.png`, but the spec's slot is `player_sheet.png`: rename the file, or rename the slot in the spec? (decision log, section 5).
+- **Note for M1 step 5:** delete every line in `game/world/world.gd` marked `M1 step 4 only` (the `_TEST_*` constants, `_test_grid`, `_build_test_floor()`, and the test-floor calls in `_ready()` and `_step_outcomes()`); `load_room()` replaces them. Use `Player.respawn(feet, grid, facing)` with the entrance's position and `facing`; it already resets the player's interpolation, and World must still call `reset_physics_interpolation()` on the camera after `move_to()` (step 11 does this when `_teleported` is set). A fall then respawns at the current entrance and may log `respawn`.
 - **Note on diagnostics (2026-10-18):** headless runs never print GDScript warnings, so "no warnings in the headless run" proves nothing; check the diagnostics tool after editing scripts. It works now: VS Code's Godot Tools was looking on port 6008 while Godot 4.5 listens on 6005, and the owner set `godotTools.lsp.serverPort` to 6005. M1 steps 1–3 had left 13 editor warnings; they were cleared on 2026-10-18 (decision log, M1.1–3 Engine row), and all 26 scripts are clean.
-- **Note for M1 steps 4 and 5:** `PixelMover` turns velocity into movement as `velocity / ticks_per_second` (decision log, M1.2). Integrate acceleration the same way (`velocity += accel / Tuning.TICKS_PER_SECOND`), and pass `Tuning.TICKS_PER_SECOND` into `PixelMover.new()`.
-- **Note for M1 step 4 (M1.3 classes):** create `DashState.new(Tuning.dash_ticks, Tuning.dash_cooldown_ticks, data.dash_speed_px_s, data.dash_end_speed_px_s, data.dash_end_up_mult, data.charged_refill_clears_cooldown)`. Step 3: if the dash buffer can spend and `can_start()`, call `start(held, facing, tick)`, then set velocity from `start_velocity_x()/_y()` and cancel sustain and soft apex. Step 4: `JumpResolver.resolve(grounded, coyote > 0, false, wall_left or wall_right, dash.is_active(), jump_buffer.created_tick(), dash.start_tick)` (charged stays `false` until M2); for a wall jump, `wall_jump_side(wall_left, wall_right, held_x, facing)` is the wall left behind; log the kind with `kind_name()`. Step 7: `refill_ground()` on every grounded tick, logging `dash_refill` cause ground when it returns true. Step 9: `tick_timers()`; when it returns true, apply `end_velocity_x()/_y()` and log `dash_end`. Charged jumps (M2) call `interrupt()` then `refill_charged()`.
-- **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
-- **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
 
 ## Entry template
@@ -557,3 +556,50 @@ Refills follow the spec's two causes. `refill_ground()` runs on every grounded t
 - Decide and log (decision log, M1.3): the both-walls rule and dash velocities live in the core classes; a charged jump clears the cooldown even with a full charge, but `dash_refill` is reported only on 0 → 1; `interrupt()` leaves the cooldown running; the dash test uses constants, because `test_tuning.gd` already pins the tuning values (my plan had proposed a separate guard, which would only duplicate it).
 
 No questions for the owner.
+
+## M1 step 4: the player (2026-10-18)
+
+**What was built:**
+
+- `game/player/player.gd` and its `.uid` (new): `class_name Player`, the rule objects and the step methods.
+- `game/player/player.tscn` (new): `Player` → `InputSource` (live) and `Visuals` → `Sprite`.
+- `game/player/player_visuals.gd` and its `.uid` (new): picks the animation and facing each frame.
+- `game/player/player_frames.tres` (new): the eight animations, using the owner's `game/art/player/player_frames.png` (supplied during this step; committed with its `.import`).
+- `game/world/world.gd`: steps 1 and 3–11 wired to the player; the M0 temporary input source removed; a temporary test floor (marked `M1 step 4 only`).
+- `game/world/main.tscn`: a `Player` instance under `World`, between `RoomSlot` and `Camera`.
+- `docs/TRI10NWARE.md`: two owner-approved edits (below). `docs/decision_log.md`: thirteen M1.4 rows and one question. `CREDITS.md`: the owner's player art registered.
+
+**How it works:** `Player` is a thin adapter. Everything that changes during play lives in rule objects it owns: the `PixelMover` (feet, velocity, sub-pixel remainders), `DashState`, the jump and dash `PressBuffer`s, and a small `MoveState` record (sustain, soft apex, wall-jump lock, coyote, facing, and what step 7 last sensed). `respawn()` throws all of them away and makes new ones, so a reset can never forget a field (R-01). It then senses the ground and walls straight away, so a jump pressed on the very first tick is a ground jump.
+
+Each tick, `World` walks its checklist and calls one player method per step. Step 1 turns fresh presses into tokens, reporting expired tokens first. Step 3 spends a dash token if `DashState` allows it, sets the dash velocity and cancels the jump arc. Step 4 asks `JumpResolver` which jump fires, applies it (ground and coyote: up at 210 px/s plus an 80 px/s nudge toward a held direction; wall: 260 px/s away from the wall with a 10-tick steering lock), then counts coyote down. Step 5 is Celeste's run and gravity: accelerate toward the held speed (scaled by 0.65 in the air), apply gravity (halved near the top of a held jump), hold the rise at jump speed while the 12-tick sustain runs and jump is held, and cap the fall. Step 6 moves in whole pixels, step 7 senses landing, walls and ceilings and refills the dash on the ground, and step 9 runs the timers and ends the dash. Step 10 resets the player when they fall below the failure line. Step 11 copies the feet to the node and points the camera at them.
+
+Rooms arrive in step 5, so for now `World` paints a throwaway test floor out of real tiles at startup: a floor with a 4-tile pit, side walls, a small step, a tall pillar and a ledge. It reads that floor into a `SolidGrid` exactly as rooms will be read. Every line of it is marked `M1 step 4 only`, and step 5 deletes it.
+
+`player_visuals.gd` only reads the state: dash active shows `dash`, airborne shows `jump`, moving shows `run`, otherwise `idle`, all with the `default_` prefix until flow exists in M2. The owner's figure is 12 × 15 px, exactly the body size, and the sprite offset (−10, −20) lays it exactly over the body rectangle.
+
+**Why:** spec M1 build order step 4; "M1 files" (player rows); "The player scene"; "How movement works, step by step" (steps 1, 3–7, 9, 10); "Control locks" (wall-jump and dash rows); "Same-tick contract" (jump kinds, jump and dash on one tick, walls on both sides); ground rules 3, 4, 5, 7, 8 and 13. AC M-01 to M-07, R-01.
+
+**How to see it:** press F5. The player stands on the test floor. Use the arrow keys or WASD to run, jump (hold for higher, tap for lower), wall jump off the pillar or a side wall (holding toward the wall during the lock does not pull you back for 10 ticks), dash in 8 directions, and walk off the step or the pit edge and jump late (coyote). Fall into the pit to respawn at the start. With `-- --debug-tools`, the trace saved on close lists every `press`, `jump`, `dash_start`, `land` and `death` event.
+
+Verified:
+
+- Unit tests: 92 passed, 0 failed. A 120-frame headless run of the game prints no errors.
+- A throwaway headless check (scratchpad, not committed; owner decision) drove `World` tick by tick with a `ScriptedInputSource`. All 30 checks passed:
+    - A jump on tick 1 is a ground jump at −210 px/s, and the respawn logs no `land`.
+    - A held jump rises 54 px and a tapped one 18 px. A held direction adds 80 px/s.
+    - A jump pressed 6 ticks before the landing tick fires on it. One pressed 7 ticks before does not, and is logged expired on the landing tick.
+    - A coyote jump works on airborne decision tick 6, and nothing fires on tick 7.
+    - Wall jumps work off each side, and the lock carries the player away for 10 ticks. After an up-dash and a wall jump, the first refill comes only on the landing tick (M-02).
+    - The dash has 9 active ticks, runs 480 → 320 px/s, uses × 1/√2 on diagonals and × 0.75 on an upward end, works in all 8 directions, and refills on landing.
+    - Jump and dash pressed together give a clean dash, and the jump token expires on tick 8.
+    - A fall logs `death` cause `fell` and resets to the spawn point with fresh state.
+    - The same script run twice gives identical traces, and there are no `volts` events.
+- Diagnostics: the editor still showed "Could not find type Player" in `player_visuals.gd` before its class cache refreshed. Headless loading resolves the class (it is in `global_script_class_cache.cfg`); if the error remains after the editor rescans, tell the next session. The `pixel_mover.gd` integer-division warning is older than this step and its line already has `@warning_ignore`.
+
+**Decisions and questions:**
+
+- Owner decisions (plan review): the temporary test floor; the throwaway check script instead of a new test file; `respawn()` senses grounded, walls and coyote without logging `land`; the soft apex needs allowed + held + `abs(vy) < 80`; coyote uses `Tuning.coyote_ticks`; the camera's interpolation is reset after a fall reset; a Status note for step 5.
+- Owner-approved spec edits: the wall-jump and dash locks moved from build-order step 6 to step 4; step 9's "Expire stale tokens." now says tokens are expired in step 1.
+- Owner art: the owner supplied `player_frames.png` during the step. `player_frames.tres` uses it, and the developer's placeholder was removed before commit.
+- Decide and log (decision log, M1.4): air control on both acceleration and reduction; the facing rules; gravity on grounded ticks; `jump.object` is `""`; `land.vy_before`; replaced tokens logged as expired; the M1 fall reset without a `respawn` event.
+- Question: the art file is `player_frames.png`, but the spec slot is `player_sheet.png`. Rename the file, or rename the slot?

@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://player/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://input/live_input_source.gd" id="2_input"]
+[ext_resource type="Script" path="res://player/player_visuals.gd" id="3_visuals"]
+[ext_resource type="SpriteFrames" path="res://player/player_frames.tres" id="4_frames"]
+
+[node name="Player" type="Node2D"]
+script = ExtResource("1_player")
+
+[node name="InputSource" type="Node" parent="."]
+script = ExtResource("2_input")
+
+[node name="Visuals" type="Node2D" parent="."]
+script = ExtResource("3_visuals")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="Visuals"]
+sprite_frames = ExtResource("4_frames")
+animation = &"default_idle"
+centered = false
+offset = Vector2(-10, -20)

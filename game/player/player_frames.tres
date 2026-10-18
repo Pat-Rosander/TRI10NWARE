@@ -1,0 +1,78 @@
+[gd_resource type="SpriteFrames" load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://art/player/player_frames.png" id="1_sheet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 0, 20, 20)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_electric"]
+atlas = ExtResource("1_sheet")
+region = Rect2(20, 0, 20, 20)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default")
+}],
+"loop": true,
+"name": &"default_idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default")
+}],
+"loop": true,
+"name": &"default_run",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default")
+}],
+"loop": true,
+"name": &"default_jump",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default")
+}],
+"loop": true,
+"name": &"default_dash",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_electric")
+}],
+"loop": true,
+"name": &"electric_idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_electric")
+}],
+"loop": true,
+"name": &"electric_run",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_electric")
+}],
+"loop": true,
+"name": &"electric_jump",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_electric")
+}],
+"loop": true,
+"name": &"electric_dash",
+"speed": 5.0
+}]

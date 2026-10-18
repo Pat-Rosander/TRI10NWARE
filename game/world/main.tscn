@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://b5t7uyqi32r7p"]
+[gd_scene load_steps=6 format=3 uid="uid://b5t7uyqi32r7p"]
 
 [ext_resource type="Script" uid="uid://rr11rjck0x6d" path="res://world/main.gd" id="1_4f7fj"]
 [ext_resource type="Script" uid="uid://bop0qm0kf163p" path="res://world/world.gd" id="2_spvjk"]
 [ext_resource type="Script" uid="uid://cx5kg5dpydqek" path="res://world/camera_rig.gd" id="3_cmo1i"]
 [ext_resource type="PackedScene" path="res://debug/debug_overlay.tscn" id="4_dbgov"]
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="5_player"]
 
 [node name="Main" type="Node"]
 process_mode = 3
@@ -14,6 +15,8 @@ process_mode = 1
 script = ExtResource("2_spvjk")
 
 [node name="RoomSlot" type="Node2D" parent="World"]
+
+[node name="Player" parent="World" instance=ExtResource("5_player")]
 
 [node name="Camera" type="Camera2D" parent="World"]
 position = Vector2(320, 180)
