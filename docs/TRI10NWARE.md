@@ -1659,7 +1659,7 @@ Death to control takes 0.6 s, under the 1 s limit (R-02). **The player reset is 
 - default state, so default-only platforms are solid; `max_volts` volts; no countdown
 - no pending platform tiles
 - dash charge 1, no dash active, no cooldown, velocity 0
-- no sustain, soft apex reset, no wall-jump lock, coyote ticks 0, not grounded until sensed
+- no sustain, soft apex reset, no wall-jump lock; grounded, walls and coyote sensed at placement (coyote full when placed on the ground), with no `land` logged. `load_room()` also starts scenarios and debug jumps, which have no respawn lock, so the first tick's decisions must see the real state (owner, 2026-10-18; built in M1 step 4)
 - all tokens cleared; held jump, dash and switch stale
 - `reset_physics_interpolation()` called on the player and the camera
 
