@@ -59,6 +59,8 @@ func parse_args(args: PackedStringArray) -> void:
 ## (title bar and borders), fits inside [param usable].
 static func window_scale(usable: Vector2i, decorations: Vector2i, base: Vector2i) -> int:
 	var room: Vector2i = usable - decorations
+	# Whole multiples only: the remainder is meant to be dropped.
+	@warning_ignore("integer_division")
 	return maxi(1, mini(room.x / base.x, room.y / base.y))
 
 
