@@ -950,7 +950,7 @@ Docs: [Input](https://docs.godotengine.org/en/4.5/classes/class_input.html), [Us
 | File | What it is | Why it exists |
 | --- | --- | --- |
 | `game/world/main.tscn` | The main scene. In M0 it holds `Main` → `World` → `RoomSlot` and `Camera`, plus `DebugOverlay` | The persistent game screen (never replaced) |
-| `game/world/main.gd` | Script on `Main` (a `Node`). Reads command-line user arguments, enables debug tools, sizes the window at launch, toggles fullscreen, handles pause and focus notifications (from M3), and wires overlays | Keeps app-level concerns out of the simulation |
+| `game/world/main.gd` | Script on `Main` (a `Node`). Reads command-line user arguments, enables debug tools, sizes the window at launch, toggles fullscreen, handles pause and focus notifications (from M3), and wires overlays. When debug tools are enabled, and not on the web, it saves the trace with `Trace.save_to_disk()` on window close and before any quit it triggers itself; normal player runs never write trace files | Keeps app-level concerns out of the simulation |
 | `game/world/world.gd` | Script on `World` (a `Node2D`). The only `_physics_process` in the project | The referee: runs the tick and (from M1) loads rooms |
 | `game/world/camera_rig.gd` | Script on `Camera` (a `Camera2D`). Its target is set during the tick (step 11) and it moves on the physics step, so physics interpolation smooths it together with the player. Clamped to the current room's bounds; from M6, slides between rooms | The camera must not follow the player past room edges, must show crossings, and must not jitter against the player |
 
@@ -1052,7 +1052,7 @@ Docs: [Exporting projects](https://docs.godotengine.org/en/4.5/tutorials/export/
 - [ ] Running the project with `--debug-tools` shows a blank screen with the debug overlay (backtick) counting ticks at 60 per second.
 - [ ] `tools/run_tests.sh` passes all four M0 unit-test files.
 - [ ] `tools/export_all.sh` produces all three builds and the three itch.io files from a clean commit; each build launches on its target and shows the build ID. The web build loads over `tools/serve_web.sh` and in a draft (unpublished) itch.io page.
-- [ ] A trace file is written on quit and its header lists every tuning value.
+- [ ] Run with `--debug-tools`, a trace file is written on quit and its header lists every tuning value.
 
 ---
 

@@ -4,10 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M0 step 6, input stage, 2026-10-17.
-- **Next step:** M0 step 7, Main and World skeleton (`/step M0.7`).
+- **Last completed:** M0 step 7, Main and World skeleton, 2026-10-17.
+- **Next step:** M0 step 8, debug overlay (`/step M0.8`). Step 8 also adds the `DebugOverlay` instance to `world/main.tscn` (left out of step 7 because its scene did not exist yet), shown only when `Main.debug_tools` is true.
 - **Waiting on the owner:**
-    - Reopen Godot from `game/project.godot` (closed for steps 3–6). Check Project → Project Settings → Input Map: 13 actions, keys marked "(Physical)". Check the Globals → Autoload tab: `Tuning` first, `Trace` second. Until M0 step 7 creates `world/main.tscn`, the editor and the import step report that the main scene is missing; that is expected.
+    - Reopen Godot from `game/project.godot`. The missing-main-scene error is gone. Running the project (F5) shows a blank window, sized to the largest whole multiple of 640 × 360 that fits your screen. Please check three things: the window size; that Alt+Enter (Option+Enter) toggles fullscreen; and that a run with `-- --debug-tools` writes a file to `user://traces/` when you close the window, while a run without the flag writes none. These could not be checked automatically (see the M0 step 7 entry). If Godot asks to re-save `main.tscn`, accept: it adds the scripts' UIDs.
     - Push the tag: `git push origin prototype-v0`.
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
     - M0 step 0 prerequisites, still needed: the 4.5.1 export templates, the macOS bundle identifier, the itch.io project page, and access to a Windows PC. Godot 4.5.1 itself is confirmed at `/Applications/Godot 4.5.1 .app`.
@@ -15,6 +15,7 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 - **Open questions:** none.
 - **Note for M0 step 9 (spec updated 2026-10-17, owner decision):** step 9 now also adds `test_input_source.gd` and `test_trace.gd`, and `test_tuning.gd` checks every `tuning.tres` field against its start value. Rebuild the input-source and trace tests from the verification lists in the M0 step 5 and step 6 entries below; those scripts were not kept.
 - **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
+- **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note for M0 step 10:** `export_all.sh` must write `config/build_info.cfg` with section `[build]` and keys `version`, `commit`, `date`, the format `Trace` reads (see the M0 step 5 entry).
 
 ## Entry template
@@ -246,4 +247,53 @@ The import's only error is the expected missing `world/main.tscn`. The editor wa
 - *Decide and log:* **focus loss releases everything.** On `NOTIFICATION_APPLICATION_FOCUS_OUT` or `NOTIFICATION_WM_WINDOW_FOCUS_OUT`, the live source releases every held action, because the operating system may never deliver the key-up events.
 - *Decide and log:* **`press_expired` timing.** `PressBuffer.expire(tick)` reports on tick *t* + window + 1, the first tick the token can no longer be spent. `World` logs it then (M1). A replaced token is reported by `press()` at the moment it's replaced.
 - *Decide and log:* **scripted ticks are relative.** Scenario ticks count from the case start; `play()` takes the case's `start_tick`. Resolving tuning names such as `"jump_buffer_ticks+1"` stays in the M1 scenario runner.
+- No open questions.
+
+## M0 step 7: Main and World skeleton (2026-10-17)
+
+**What was built:**
+
+- `game/world/main.tscn` (new): `Main` (Node, `main.gd`, process mode Always) → `World` (Node2D, `world.gd`, process mode Pausable) → `RoomSlot` (Node2D) and `Camera` (Camera2D, `camera_rig.gd`, at (320, 180), physics process callback).
+- `game/world/main.gd`, `game/world/world.gd`, `game/world/camera_rig.gd` (new), with their `.uid` files.
+- `docs/TRI10NWARE.md` (owner-approved edit): the `main.gd` row of the M0 step 7 table now says who saves the trace on quit. The M0 done-when line now reads "Run with `--debug-tools`, a trace file is written on quit…".
+
+**How it works:** `Main` is the game screen. It is loaded once and never replaced. `World` is the referee and holds the project's only `_physics_process`. Godot calls it 60 times a second. Each call first decides whether a tick runs at all. Not if the simulation isn't running. Not if the debug freeze is on, unless one step was requested. In slow motion, only on every 2nd or 4th physics step, using a counter that resets whenever the speed changes. When a tick does run, `World` adds one to `tick`, copies it to `Trace.tick`, and calls the 11 step methods in their fixed order. In M0 only the first does anything. `_step_input` asks the input source for this tick's `InputFrame` and keeps it in `World.frame`. The other ten are empty, and each has a comment naming the milestone that fills it.
+
+Slow motion works by *skipping* ticks, never by shortening them. Every tick that runs is a full 1/60 s, so a jump at ¼× follows exactly the same arc, only more slowly. `Engine.time_scale` would shrink the delta every tick receives and change the results (ground rule 4).
+
+There is no Player yet, so `World` makes its own `LiveInputSource` child in `_ready()`. Those lines are marked `M0 only, replaced in M1 step 4`. `set_input_source()` is permanent: the M1 scenario runner will use it to plug in a `ScriptedInputSource`. When it replaces the source `World` made itself, it frees that one, so two sources never run at once.
+
+`Main` reads the arguments after `--` (`--debug-tools`, `--run-scenarios[=prefix]`, `--quit-when-done`, `--render-fps=<n>`) into public fields that step 8 and M1 will read. Any scenario flag also turns debug tools on. So does `?debug=1` on a web page served from this machine. `--render-fps` takes effect now: it caps `Engine.max_fps` and turns vsync off. On desktop, `Main` grows the window to the largest whole multiple of 640 × 360 that fits the screen's usable area, title bar included, and centers it. Alt+Enter toggles fullscreen. In debug runs only, and never on the web, closing the window saves the trace to `user://traces/`, as does any quit `Main` makes through `quit_game()`. With no title screen until M3, `Main` starts `World` at launch.
+
+`Main` runs with process mode **Always**, so fullscreen will still work while the game is paused (from M3). Children inherit their parent's process mode, so `World` is set to **Pausable** explicitly. Otherwise pausing would never stop the tick, and the countdown would keep running during pause (R-04).
+
+`camera_rig.gd` provides `set_bounds(rect)`, which sets the four camera limits, and `move_to(target)`, which centers the view on a whole-pixel point clamped inside those bounds. Both are called during the tick from M1, so the camera moves on the physics step and physics interpolation smooths it in step with the player. The `Camera2D` uses the physics process callback. Godot forces this anyway when physics interpolation is on, and prints a warning if the scene says otherwise.
+
+**Why:** spec "M0 step 7: Main and World skeleton", "What happens on every tick", "Names used in this plan", ground rules 2–5, 12 and 16, and the "Determinism contract". AC D-04/D-05 (one tick order; slow motion and freeze never change tick length; `--render-fps` for frame-rate runs), R-04 (World pausable), D-07 (fullscreen, window size), V-01 (integer window multiple; the camera never shows past room bounds).
+
+**How to see it:** reopen Godot and press F5. You get a blank window. Nothing draws yet; step 8's overlay will show the tick counter. Verified headless with a throwaway script (not committed; the test runner arrives in step 9), 35 passes, 0 fails:
+
+- Tree shape, node types and process modes; the camera at (320, 180) with the physics callback.
+- `World` makes its own `LiveInputSource`; `Main` starts `World`.
+- With `--fixed-fps 60`: 60 physics steps give 60 ticks, and `Trace.tick` follows. Not running gives 0 ticks. Frozen gives 0 ticks over 10 steps, and `request_step()` exactly 1. Slow ½ gives 20 ticks over 40 steps, and ¼ gives 10. A slow divisor of 3 is rejected.
+- After `set_input_source(scripted)`, `World`'s own source is freed. A scripted jump press arrives exactly once, on start + 5, and `frame.tick` always equals `World.tick`.
+- Argument parsing: no arguments, each flag, `=prefix`, bad `--render-fps` values ignored with an error, and scenario flags enabling debug tools.
+- Window multiples: 1366 × 768 with a taskbar and title bar → 1×, bare → 2×; 1080p → 2×; 1440p → 3×; 4K → 6×; tiny screen → 1×.
+- Camera clamping at both corners and inside, and its limits.
+
+`_physics_process` appears only in `world.gd`. The import step now runs with no errors (the missing-main-scene error is gone). A real headless run with `--debug-tools` for 120 frames and a real windowed run both printed no errors or warnings. **Not verified automatically:** the real window size, the fullscreen toggle and the trace save on window close. The windowed test needed macOS Accessibility permission to measure and close the window, which it did not have. These are listed under "Waiting on the owner". The editor was closed, so VS Code showed no diagnostics; the headless runs compiled all three scripts with no errors.
+
+**Decisions and questions:**
+
+- *Decide and log:* **`DebugOverlay` is added to `main.tscn` in step 8**, not step 7: its scene is created in step 8.
+- *Decide and log:* **`Main` starts `World` in `_ready()`** in M0, because there is no title screen yet. M3's Title state replaces this call.
+- *Owner decision:* **World makes its own `LiveInputSource` in M0.** It is marked `M0 only, replaced in M1 step 4`; `set_input_source()` is permanent (see the Status note for M1 step 4).
+- *Decide and log:* **window sizing** counts the title bar and borders, never goes below 1×, centers the window, and is skipped in headless runs, on the web, when embedded in the editor and when not windowed. Consequence: on a 1366 × 768 screen with a taskbar, the window is 1× (640 × 360), because 2× plus the title bar is taller than the usable area. Fullscreen (Alt+Enter) still gives 2× there.
+- *Decide and log:* **`?debug=1`** counts only when the page host is `localhost` or `127.0.0.1`.
+- *Decide and log:* **process modes:** `Main` is Always and `World` is Pausable, set explicitly in the scene.
+- *Decide and log:* **slow motion and freeze:** the slow-motion counter resets when the speed changes. A requested single step while frozen always runs exactly one tick, whatever the slow-motion setting. A slow divisor other than 1, 2 or 4 is rejected with an error.
+- *Decide and log:* **`--quit-when-done` counts as a scenario flag** and also turns debug tools on. An unknown argument prints a warning. An invalid `--render-fps` prints an error and is ignored.
+- *Decide and log:* **the `Camera2D` uses the physics process callback**, avoiding Godot's warning under physics interpolation.
+- *Owner decision (2026-10-17):* **trace on quit** happens only with debug tools on, and never on the web, where the debug overlay's download covers it (step 8). The spec's `main.gd` row and the M0 done-when line were updated with approval.
+- *Note:* `main.tscn` was written by Godot's `ResourceSaver` from a headless script, like `tuning.tres` in step 4. The scripts are referenced by path, with no `uid=`. The editor adds UIDs the next time it saves the scene.
 - No open questions.
