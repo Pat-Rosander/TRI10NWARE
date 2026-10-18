@@ -65,7 +65,7 @@ stage="$BUILDS/itch/macos_stage"
 mkdir -p "$stage"
 ditto -x -k "$BUILDS/macos/TRI10NWARE.zip" "$stage"
 cp "$ROOT/README.md" "$ROOT/CREDITS.md" "$stage/"
-ditto -c -k --sequesterRsrc "$stage" "$BUILDS/itch/TRI10NWARE_macos.zip"
+ditto -c -k --norsrc --noextattr "$stage" "$BUILDS/itch/TRI10NWARE_macos.zip"
 rm -rf "$stage"
 
 # Windows: the single executable (the .pck is embedded) plus the documents.
