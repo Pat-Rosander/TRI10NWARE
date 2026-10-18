@@ -643,7 +643,7 @@ tri10nware/
     │   └── unit/                  13 unit-test files
     └── art/                       17 slots across the folders below, each listed in its milestone; the owner adds more freely
         ├── player/                player_sheet.png, switch_burst.png
-        ├── tiles/                 tiles.png
+        ├── tiles/                 level_1_tiles.png
         ├── objects/               charged_object.png, charged_glow.png, power_root.png,
         │                          power_root_glow.png, collectible.png
         ├── backdrop/              level_1_backdrop.png
@@ -1064,7 +1064,7 @@ Docs: [Exporting projects](https://docs.godotengine.org/en/4.5/tutorials/export/
 
 M1 is built in these numbered steps, one session each (`/step M1.1` and so on). The sections below this list are the specification each step implements.
 
-1. **Tile set and `SolidGrid`:** `level_tiles.tres` with the `solidity` custom data layer, using the owner's legacy tile set (`game/art/legacy/world_tileset.png`) as the placeholder atlas until the owner supplies `tiles.png`; `solid_grid.gd`; `test_solid_grid.gd`.
+1. **Tile set and `SolidGrid`:** `level_tiles.tres` with the `solidity` custom data layer, using the owner's atlas `game/art/tiles/level_1_tiles.png` (owner decision 2026-10-18; it replaced the legacy placeholder); `solid_grid.gd`; `test_solid_grid.gd`.
 2. **`PixelMover` without assists:** `pixel_mover.gd`, `test_pixel_mover.gd`.
 3. **Rule objects:** `jump_resolver.gd`, `dash_state.gd`, `test_jump_resolver.gd`, `test_dash_state.gd`.
 4. **The player:** `player.tscn`, `player.gd` with steps 1–10 wired into `World`, `player_visuals.gd`, `player_frames.tres` (placeholder frames until the owner's sheet arrives).
@@ -1094,7 +1094,7 @@ M1 is built in these numbered steps, one session each (`/step M1.1` and so on). 
 | `game/core/pixel_mover.gd` | `class_name PixelMover extends RefCounted`. Whole-pixel position, sub-pixel remainder, the pixel-by-pixel move, and the movement assists (below) | All collision in one deterministic, testable place |
 | `game/core/solid_grid.gd` | `class_name SolidGrid extends RefCounted`. Which 16 px cells are solid, one-way or open, built from a room's tile layers; answers "is this rectangle blocked for this state?" | The mover's view of the world, with no physics engine |
 | `game/tiles/level_tiles.tres` | The single `TileSet`, 16 × 16 tiles, with one custom data layer, `solidity` (below) | Every room paints with it, so collision is identical everywhere |
-| `game/art/tiles/tiles.png` | Tile atlas made by the owner: ordinary ground and walls first, platform tiles from M4. A plain placeholder until it arrives | Source for `level_tiles.tres` |
+| `game/art/tiles/level_1_tiles.png` | Tile atlas made by the owner: ordinary ground and walls first, platform tiles from M4. A plain placeholder until it arrives | Source for `level_tiles.tres` |
 | `game/rooms/room.gd` | `class_name Room extends Node2D`, marked `@tool` so it can draw its bounds in the editor. Exports `room_id`; reads its bounds from the catalog; provides lookups for entrances, charged objects, networks and goal zones | Every room scene uses it; `World` talks to rooms only through it |
 | `game/rooms/room_entrance.gd` | `class_name RoomEntrance extends Marker2D`. Exports `entrance_id` and `facing`. Its position is where the player's feet appear | Spawn points and checkpoints |
 | `game/rooms/room_entry.gd` | `class_name RoomEntry extends Resource`: `room_id`, `scene` (a `PackedScene`) and `world_rect` (a `Rect2i` in pixels: the room's place and size on the world map) | One record per room: what to build and where it sits |
@@ -1599,7 +1599,7 @@ Files extended in M3:
 | `main.gd` | Pause on the `pause` action and on `NOTIFICATION_APPLICATION_FOCUS_OUT`, except while the scenario runner is active |
 | `main.tscn` | Adds `TitleOverlay`, `PauseMenu`, `CompletionOverlay`, `Sfx`, `World/FlowPresentation`, `World/Effects` |
 | `camera_rig.gd` | Follows the player, clamped to the room's bounds, no smoothing; moved on the physics step |
-| `player_sheet.png`, `tiles.png` | The owner's art, when it arrives, at the same paths |
+| `player_sheet.png`, `level_1_tiles.png` | The owner's art, when it arrives, at the same paths |
 | `room_catalog.tres` | Adds `level_1` and makes it the start room |
 | `debug_world_draw.gd` | Draws goal zones |
 | `README.md`, `docs/*` | Level 1 gate evidence |
@@ -1713,7 +1713,7 @@ Files extended in M4:
 
 | File | Change |
 | --- | --- |
-| `tiles.png` | Platform tile art, visually distinct by family in shape as well as color |
+| `level_1_tiles.png` | Platform tile art, visually distinct by family in shape as well as color |
 | `level_tiles.tres` | Platform tiles with `solidity` 2 (default-only) or 3 (flow-only) |
 | `flow_controller.gd` | Applies the overlap policy on every switch |
 | `player.gd` | Re-checks pending tiles every tick in step 7 |

@@ -14,8 +14,8 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
     - M0 step 0 prerequisites, still needed: the itch.io project page and access to a Windows PC. Confirmed: Godot 4.5.1 at `/Applications/Godot 4.5.1 .app`, its export templates (installed), and the macOS bundle identifier `com.patrickrosander.tri10nware` (owner, 2026-10-18).
     - Before M1 step 2: accept or replace the two remaining proposed answers under "Decide before step 2" in the M1 build order (sub-pixel rounding, wall-check distance).
-    - Confirm the license of `game/art/level_1_tiles.png` in `CREDITS.md`.
-- **Open questions:** approve or change the spec update for the tile atlas slot path, M1 step 1's text, and the accepted corner-cell rule (`docs/decision_log.md`, section 5).
+    - Confirm the license of `game/art/tiles/level_1_tiles.png` in `CREDITS.md`.
+- **Open questions:** approve marking the corner-cell rule accepted in the spec (`docs/decision_log.md`, section 5).
 - **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
 - **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
@@ -475,7 +475,7 @@ Verification done in this session: `run_tests.sh` exits 0. `export_all.sh`, run 
 
 **What was built:**
 
-- `game/tiles/level_tiles.tres` (new): the single `TileSet`. Tiles are 16 × 16, there are no physics layers, and one integer custom data layer is named `solidity`. Its one atlas source is your `game/art/level_1_tiles.png`, with 19 tiles. The 15 stone blocks are `1`; the four telephone-pole and wire pieces are `0`.
+- `game/tiles/level_tiles.tres` (new): the single `TileSet`. Tiles are 16 × 16, there are no physics layers, and one integer custom data layer is named `solidity`. Its one atlas source is your `game/art/tiles/level_1_tiles.png`, with 19 tiles. The 15 stone blocks are `1`; the four telephone-pole and wire pieces are `0`.
 - `game/core/solid_grid.gd` and its `.uid` (new): `class_name SolidGrid`, the collision view of one room.
 - `game/tests/unit/test_solid_grid.gd` and its `.uid` (new): 14 tests.
 - `CREDITS.md`: a row for `level_1_tiles.png` (owner draft; please confirm the license).
@@ -497,4 +497,4 @@ The tests build their own four-tile tile set in code, so they keep working whate
 
 - Owner decisions: start M1 now; use `level_1_tiles.png` with the pole as decoration; accept the corner-cell rule.
 - Decide-and-log choices: `add_layer()` reads only the layer it is given; room edges count as walls; unknown `solidity` values raise an error; pending-tile tests come in M4.
-- **Open (needs your approval):** a spec update. The slot `game/art/tiles/tiles.png` should become `game/art/level_1_tiles.png`, or you move the file to the slot path. M1 step 1's text still names the legacy atlas. The corner-cell proposal should be marked accepted.
+- **Spec update (approved by the owner, 2026-10-18):** the owner moved the atlas to `game/art/tiles/level_1_tiles.png` in the Godot editor, which kept its UID and updated `level_tiles.tres`. The spec slot, the repository layout, M1 step 1 and the M3/M4 rows now name that file. **Still open:** marking the corner-cell proposal accepted in the spec.

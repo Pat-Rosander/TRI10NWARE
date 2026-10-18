@@ -129,7 +129,7 @@ Kind: **D&L** = decide and log; **Owner** = owner decision; **Engine** = workaro
 | M0.11 | 2026-10-18 | D&L | `game/icon.svg` (Godot's default icon) registered in `CREDITS.md` as a placeholder | Every art file is registered (D-08) | `CREDITS.md` |
 | M0.11 | 2026-10-18 | D&L | Decisions from M0 steps 1–10 copied here from the build journal; this log is the record from now on | One place for AC page 9's log | This file |
 | M1.1 | 2026-10-18 | Owner | M1 starts while some M0 owner checks are still open | Step 1 does not depend on them; they stay listed in Status | — |
-| M1.1 | 2026-10-18 | Owner | `level_tiles.tres` uses the owner's `game/art/level_1_tiles.png` (6 × 4 tiles), not the legacy tile set. Solidity 1: atlas (0–5, 0), (0–5, 1), (0, 2), (1, 2), (2, 2). Solidity 0: the telephone pole and wire pieces (3, 2), (4, 2), (5, 2), (0, 3), because the pole becomes the charged object | Owner art arrived before the step | `test_level_tiles_resource` |
+| M1.1 | 2026-10-18 | Owner | `level_tiles.tres` uses the owner's `game/art/tiles/level_1_tiles.png` (6 × 4 tiles), not the legacy tile set. Solidity 1: atlas (0–5, 0), (0–5, 1), (0, 2), (1, 2), (2, 2). Solidity 0: the telephone pole and wire pieces (3, 2), (4, 2), (5, 2), (0, 3), because the pole becomes the charged object | Owner art arrived before the step | `test_level_tiles_resource` |
 | M1.1 | 2026-10-18 | Owner | Cells outside a room's corners: at or below the bottom edge they are open (a pit), otherwise solid. This accepts the "Decide before step 2" proposal for rooms without neighbors; the neighbor part waits for M6 | Walking off a bottom corner falls into the pit, not onto an invisible wall | `test_corner_cells` |
 | M1.1 | 2026-10-18 | D&L | `SolidGrid.add_layer()` reads only the `TileMapLayer` it is given: no scene tree, no autoloads | Reconciles ground rule 8 (core touches no nodes) with "SolidGrid reads every used cell of the three layers" | `test_add_layer_reads_solidity` |
 | M1.1 | 2026-10-18 | D&L | Room-edge cells count as ordinary solid, so they also count as walls for wall jumps | The spec calls them walls the mover stops at | `test_edges_are_walls_and_the_bottom_is_a_pit` |
@@ -156,4 +156,4 @@ Regression and extra scenarios added without a plan update (spec, "Implementatio
 
 | Date | Question | Raised in | Answer |
 | --- | --- | --- | --- |
-| 2026-10-18 | Spec update awaiting approval. (1) Rename the `game/art/tiles/tiles.png` slot (M1 files, repository layout, M4 files) to `game/art/level_1_tiles.png`, or move the file to the slot path. (2) Update M1 build order step 1, which still names the legacy atlas. (3) Mark the "Cells outside a room's corners" proposal accepted for rooms without neighbors | M1 step 1 | Open |
+| 2026-10-18 | Spec update awaiting approval: mark the "Cells outside a room's corners" proposal accepted for rooms without neighbors (accepted by the owner on 2026-10-18; the spec text still reads as a proposal) | M1 step 1 | Open |
