@@ -135,6 +135,8 @@ Kind: **D&L** = decide and log; **Owner** = owner decision; **Engine** = workaro
 | M1.1 | 2026-10-18 | D&L | Room-edge cells count as ordinary solid, so they also count as walls for wall jumps | The spec calls them walls the mover stops at | `test_edges_are_walls_and_the_bottom_is_a_pit` |
 | M1.1 | 2026-10-18 | D&L | A tile with an unknown `solidity` value raises an error and is ignored; tiles painted outside the room are ignored | Painting mistakes surface; the edge rules alone decide outside cells | `test_unknown_solidity_is_an_error`, `test_cells_painted_outside_the_room_are_ignored` |
 | M1.1 | 2026-10-18 | D&L | The pending-tile tests in `test_solid_grid.gd` come with M4 | The spec adds pending tiles to `solid_grid.gd` in M4 | — |
+| M1.2 | 2026-10-18 | Owner | Sub-pixel rounding: round to nearest (`roundi`, halves away from zero) with a per-axis remainder, reset on a block and on respawn, kept through room crossings. Velocity and remainder are separate 64-bit `float` values per axis, never a `Vector2`. Spec "Decide before step 2" proposal accepted with that addition | Celeste's method; symmetric left and right; repeatable jump heights. A `Vector2` would store 32-bit floats. Alternatives rejected in the spec's Technical approach table | `test_pixel_mover.gd` (rounding tests) |
+| M1.2 | 2026-10-18 | Owner | Wall check: one overlap test at the full `wall_check_px`, as a `PixelMover` query; a guard test keeps `wall_check_px` below 16 | Celeste's method; exact while every solid is a 16 px tile. Alternatives rejected in the spec's Technical approach table | `test_pixel_mover.gd` (wall query and guard) |
 
 ## 3. Disclosed deviations
 
@@ -156,4 +158,4 @@ Regression and extra scenarios added without a plan update (spec, "Implementatio
 
 | Date | Question | Raised in | Answer |
 | --- | --- | --- | --- |
-| 2026-10-18 | Spec update awaiting approval: mark the "Cells outside a room's corners" proposal accepted for rooms without neighbors (accepted by the owner on 2026-10-18; the spec text still reads as a proposal) | M1 step 1 | Open |
+| 2026-10-18 | Spec update awaiting approval: mark the "Cells outside a room's corners" proposal accepted for rooms without neighbors (accepted by the owner on 2026-10-18; the spec text still reads as a proposal) | M1 step 1 | Approved 2026-10-18: the spec marks it accepted, with the M1 step 2 rounding and wall-check items |

@@ -350,6 +350,13 @@ These were chosen while planning the implementation; each was weighed against th
 | Buffering the switch button like jump and dash | A switch fires on its own tick or is refused | A delayed switch could spend a volt the player no longer wanted |
 | Relying on the engine's built-in glow for the flow look | Hand-made glow sprites and dimming | The web build's renderer may not match it |
 | Godot's physics bodies for the player (`CharacterBody2D`, `move_and_slide()`) | A custom whole-pixel mover against the tile grid | Determinism across CPUs and the web, Celeste-style assists, per-tile overlap rules (owner, 2026-10-16) |
+| Sub-pixel movement rounded toward zero (truncation) | Round to the nearest pixel, keeping a remainder (M1, **Decide before step 2**) | Truncation lags the true position by up to a full pixel, and slow starts move a tick or two late (owner, 2026-10-18) |
+| Sub-pixel movement rounded down (`floori`) | Same: round to nearest | Rounding down is biased: leftward motion starts sooner than rightward, so mirrored moves stop mirroring (owner, 2026-10-18) |
+| A floating-point player position, rounded only for collision and drawing | Whole-pixel position plus a remainder | Two sources of truth; after every collision the float must be snapped anyway (owner, 2026-10-18) |
+| Fixed-point integer positions and velocities | 64-bit floats using only the operations of ground rule 15 | Much more conversion code for a gain the **Determinism contract** does not need (owner, 2026-10-18) |
+| Velocity and remainder stored in a `Vector2` | Separate 64-bit `float` values per axis | A `Vector2` holds 32-bit floats in standard builds: tuning values get silently shortened and traces show values like 0.6499999761581421 (owner, 2026-10-18) |
+| A pixel-by-pixel sweep, or tile-column math, for the wall check | One overlap test at the full `wall_check_px`, guarded below 16 by a unit test | Celeste's method; exact while every solid is a 16 px tile. A sweep matters only for solids thinner than a tile, and there are none (owner, 2026-10-18) |
+| A wall that must run alongside a minimum height of the body | Any overlap counts | Celeste allows wall jumps off a corner sliver; the narrow-chamber climb does not need the restriction, and adding it would change a rule (owner, 2026-10-18) |
 | A level-complete screen between levels | Each level's goal opens into the next level, with a banner | Keeps the world connected for backtracking (owner, 2026-10-16) |
 | Debug tools available to every player | Enabled only by a launch argument or a local URL parameter | The debug menu would be a level select (owner, 2026-10-16) |
 
@@ -1074,11 +1081,14 @@ M1 is built in these numbered steps, one session each (`/step M1.1` and so on). 
 8. **Scenarios:** `scenario_runner.gd` and `m01`–`m08`, run against the painted gym.
 9. **Done-when:** the owner's feel playtest, the interpolation and jitter check, and the M1 summary in the build journal.
 
-**Decide before step 2** (open items 7, 9 and 10 from the 2026-10-17 specification review). Each has a proposed answer; until the owner accepts or replaces it, a session reaching it stops and asks:
+**Decide before step 2** (open items 7, 9 and 10 from the 2026-10-17 specification review). All three were accepted by the owner on 2026-10-18; each item below is now the rule:
 
-- **Sub-pixel rounding:** each tick, per axis, `remainder += velocity × tick length`; `move = roundi(remainder)` (round to nearest, halves away from zero); `remainder -= move`. The remainder resets to 0 when that axis is blocked and on respawn, and is kept through room crossings.
-- **Cells outside a room's corners:** a cell outside the current room belongs to another room if it is inside that room's `world_rect`; otherwise it is open if it is at or below the current room's bottom edge (a pit), and solid if not.
-- **Wall-check distance:** a single overlap test at the full `wall_check_px` is enough, because every solid cell is 16 px wide. `wall_check_px` must therefore stay below 16, checked by a unit test.
+- **Sub-pixel rounding** (accepted by the owner, 2026-10-18; Celeste's method): each tick, per axis, `remainder += velocity × tick length`; `move = roundi(remainder)` (round to nearest, halves away from zero); `remainder -= move`, so the remainder stays between −0.5 and 0.5. The remainder resets to 0 when that axis is blocked and on respawn, and is kept through room crossings. Resetting on a block makes every ground jump start from remainder 0, so the same jump always reaches the same height.
+    - **Storage:** velocity and remainder are kept per axis as GDScript `float` values (64-bit), never in a `Vector2`. In standard Godot builds a `Vector2` holds 32-bit floats, which would silently shorten tuning values (0.65 becomes 0.6499999761581421 in every trace line) and move the arithmetic into engine code instead of one GDScript operation at a time.
+    - **Halves:** `roundi` rounds exact halves away from zero; Celeste's C# `Math.Round` rounds them to even. Exact halves almost never occur at these speeds, and the rule is the same on every target, so the difference is accepted.
+    - Rejected alternatives are listed in **Rejected: options considered and decided against** (Technical approach).
+- **Cells outside a room's corners** (accepted by the owner, 2026-10-18): a cell outside the current room belongs to another room if it is inside that room's `world_rect`; otherwise it is open if it is at or below the current room's bottom edge (a pit), and solid if not. M1 step 1 built the rule for rooms without neighbors (`test_corner_cells`), so walking off a bottom corner falls into the pit instead of meeting an invisible wall. The neighbor part arrives with crossings in M6.
+- **Wall-check distance** (accepted by the owner, 2026-10-18; Celeste's method, its 3 px check doubled): a single overlap test of the body shifted the full `wall_check_px` left or right is enough. The shifted body covers the whole gap beside the player while `wall_check_px` is no wider than the body, and even beyond that a 16 px solid cell cannot fit inside the uncovered part while `wall_check_px` stays below 16. One-way tops and state-dependent platforms never count as walls, and tiles are always 16 px, so no thinner solid exists. The check is a `PixelMover` query, built in step 2 and used by the player in step 7. A guard test in `test_pixel_mover.gd` fails if `tuning.tres` sets `wall_check_px` to 16 or more. Rejected alternatives are listed in **Rejected: options considered and decided against** (Technical approach).
 
 #### M1 files
 
@@ -1105,7 +1115,7 @@ M1 is built in these numbered steps, one session each (`/step M1.1` and so on). 
 | `game/verification/scenario_runner.gd` | `class_name ScenarioRunner extends Node`. Runs scenario files against the real game and writes results (below) | Deterministic, repeatable evidence on every target |
 | `game/tests/unit/test_jump_resolver.gd` | Every combination of ground, coyote, charged and wall eligibility, with and without an active dash, returns the documented winner | Precedence must never drift |
 | `game/tests/unit/test_dash_state.gd` | Start, duration, cooldown, a refill on every grounded tick, no refill mid-dash | M-03, M-04 |
-| `game/tests/unit/test_pixel_mover.gd` | Against a small hand-made grid: stopping at walls, floors and ceilings at every speed up to dash speed; one-way tops blocking only from above; each assist, including when it must *not* apply | Collision correctness |
+| `game/tests/unit/test_pixel_mover.gd` | Against a small hand-made grid: stopping at walls, floors and ceilings at every speed up to dash speed; one-way tops blocking only from above; sub-pixel rounding (mirrored left and right moves give mirrored positions, an exact half, the remainder reset on a block, no drift over many ticks at constant speed); the wall query at the full `wall_check_px`, and a guard that `tuning.tres` keeps `wall_check_px` below 16; each assist, including when it must *not* apply | Collision correctness |
 | `game/tests/unit/test_solid_grid.gd` | Building from tile data, state-dependent solidity, edge walls and pits, pending tiles | Collision correctness |
 | `game/verification/scenarios/m01_ordinary_jump.json` … `m08_no_volt_cost.json` | 8 scenario files, listed below | Evidence for M-01 to M-08 |
 
@@ -1185,7 +1195,7 @@ If a kind is chosen, the token is spent and logged, and:
 
 **Step 6, move.** `PixelMover` moves the player by velocity × tick length, in whole pixels:
 
-1. Add the movement to the sub-pixel remainder; move by its whole-pixel part and keep the fraction for later ticks.
+1. Add the movement to the sub-pixel remainder; move by the remainder rounded to the nearest whole pixel and keep what is left for later ticks (the exact rule, and how velocity and remainder are stored, are in **Decide before step 2**, "Sub-pixel rounding").
 2. **Horizontal first, one pixel at a time.** Before each pixel, check whether the body would overlap a cell that is solid for the player right now. One-way platform tops never block sideways movement. If blocked, apply the **dash corner correction** if it fits (below); otherwise stop, set horizontal velocity and remainder to 0, and note a wall contact.
 3. **Then vertical, one pixel at a time.** Moving down, the body is blocked by solid cells and by one-way tops exactly at the feet (the feet were at or above the top before the step). Moving up, only solid cells block. If an upward move is blocked, apply the **corner correction** if it fits; otherwise stop, set vertical velocity and remainder to 0, and note a ceiling contact.
 
