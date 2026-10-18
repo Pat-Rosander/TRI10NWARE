@@ -4,8 +4,8 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M0 step 8, debug overlay, 2026-10-17.
-- **Next step:** M0 step 9, unit-test runner (`/step M0.9`). See the step 9 note below.
+- **Last completed:** M0 step 9, unit-test runner, 2026-10-17. Run the tests with `"$GODOT" --headless --path game res://tests/test_runner.tscn` (44 pass).
+- **Next step:** M0 step 10, delivery path (`/step M0.10`). See the step 10 note below.
 - **Waiting on the owner:**
     - Check the debug overlay (M0 step 8 entry, "How to see it"): run with `-- --debug-tools`, press backtick, and try 1, 2 and 3. Accept if Godot asks to re-save `main.tscn` or `debug_overlay.tscn`.
     - Reopen Godot from `game/project.godot`. The missing-main-scene error is gone. Running the project (F5) shows a blank window, sized to the largest whole multiple of 640 × 360 that fits your screen. Please check three things: the window size; that Alt+Enter (Option+Enter) toggles fullscreen; and that a run with `-- --debug-tools` writes a file to `user://traces/` when you close the window, while a run without the flag writes none. These could not be checked automatically (see the M0 step 7 entry). If Godot asks to re-save `main.tscn`, accept: it adds the scripts' UIDs.
@@ -14,11 +14,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - M0 step 0 prerequisites, still needed: the 4.5.1 export templates, the macOS bundle identifier, the itch.io project page, and access to a Windows PC. Godot 4.5.1 itself is confirmed at `/Applications/Godot 4.5.1 .app`.
     - Before M1 step 2: accept or replace the three proposed answers under "Decide before step 2" in the M1 build order.
 - **Open questions:** none.
-- **Note for M0 step 9 (spec updated 2026-10-17, owner decision):** step 9 now also adds `test_input_source.gd` and `test_trace.gd`, and `test_tuning.gd` checks every `tuning.tres` field against its start value. Rebuild the input-source and trace tests from the verification lists in the M0 step 5 and step 6 entries below; those scripts were not kept.
 - **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
 - **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
 - **Note for M0 step 10:** `export_all.sh` must write `config/build_info.cfg` with section `[build]` and keys `version`, `commit`, `date`, the format `Trace` reads (see the M0 step 5 entry).
+- **Note for M0 step 10:** the export presets must exclude `tests/*` (spec, M0 step 9: unit tests run in the editor build only). `run_tests.sh` runs `"$GODOT" --headless --path game res://tests/test_runner.tscn` and passes its exit code on (0 = all passed, 1 = any failure or no tests found).
 
 ## Entry template
 
@@ -338,4 +338,48 @@ A real headless run with `--debug-tools` for 120 frames exited 0 with nothing on
 - *Decide and log:* **without debug tools, `Main` frees the overlay** rather than hiding it, so its keys cannot work.
 - *Decide freely:* the readout is a single `Label` with the default font at size 8, offset 4 px from the top-left corner. It is a placeholder for testing, not an art decision.
 - *Correction to the step 7 entry:* that entry says the overlay's trace download covers the web build "(step 8)". The spec puts "save or download the current trace" in the **M1 debug menu** (M1 build order step 7), so step 8 adds no download. Until M1, web runs keep no trace file.
+- No open questions.
+
+## M0 step 9: unit-test runner (2026-10-17)
+
+**What was built:**
+
+- `game/tests/test_case.gd` (new): `class_name TestCase extends RefCounted`, the base for every unit test: `assert_eq`, `assert_true`, `assert_false`, `assert_near`, plus `add_node()` and `take_errors()`.
+- `game/tests/test_runner.gd` (new): finds and runs the tests, prints results, and exits with code 0 or 1. It includes `ErrorCapture`, an inner `Logger` class.
+- `game/tests/test_runner.tscn` (new): one `Node`, `TestRunner`, running `test_runner.gd`.
+- `game/tests/unit/test_tuning.gd` (new): 6 tests.
+- `game/tests/unit/test_press_buffer.gd` (new): 7 tests.
+- `game/tests/unit/test_input_source.gd` (new): 20 tests.
+- `game/tests/unit/test_trace.gd` (new): 11 tests.
+- The six scripts' `.uid` files, generated by Godot.
+- `game/project.godot`: unchanged. A stray uncommitted `[editor] run/main_run_args="-- --debug-tools"` line was reverted at the start of the step, on the owner's instruction.
+
+**How it works:** one command, `"$GODOT" --headless --path game res://tests/test_runner.tscn`, opens the project with no window. It runs the test scene instead of the game, so the `Tuning` and `Trace` autoloads exist but `Main` and `World` do not. The runner lists `res://tests/unit/`, keeps every `test_*.gd`, and sorts them. In each file it runs every method whose name starts with `test_`, in the order they are written. Each method gets a brand-new instance of its test class, so nothing one test sets up can leak into the next. The runner prints `PASS` or `FAIL` for each method, with the failure messages under it, and ends with a count. The exit code is 0 only when everything passed, which is what step 10's `run_tests.sh` checks. Finding no tests at all is also a failure, so a mistyped folder can't look like success.
+
+A test is a script that `extends TestCase` and calls the asserts. Each assert records a message naming the test and saying what was expected and what came instead, for example `test_derived_ticks: coyote_ticks: expected 6, got 7`. `assert_eq` also requires the same *type*: `6` and `6.0` are different. That matters for `test_tuning`, where an `int` field typed as a `float` by mistake would otherwise pass. `add_node()` puts a node into the scene tree for the test, so its `_ready` runs, and frees it when the test ends.
+
+GDScript has no exceptions. When a line inside a test crashes (calling a method on `null`, say), Godot prints an error and that function simply stops, and the runner carries on as if nothing happened. A crashed test with no failed asserts would look like a pass. To stop that, the runner installs a `Logger`, a Godot 4.5 feature that receives every error the engine prints. Any error raised while a test runs is recorded against that test, and an error the test didn't expect fails it. Some tests cause errors on purpose: Trace's catalog check and the scripted source's bad-entry check both work by printing errors. Those tests call `take_errors()` to collect and check them. The console still shows those `ERROR:` lines (the engine prints them before the logger sees them), so the summary ends with "The 8 ERROR messages above were caused on purpose and checked by the tests."
+
+What the four test files check:
+
+- **`test_tuning`:** `seconds_to_ticks` (0.1 s → 6, 3.0 s → 180, 0.15 s → 9); all 12 tick values against hard-coded numbers; and every one of the 46 `tuning.tres` fields against its value *and type* in the spec's step 4 table. It also checks that the resource has no fields outside the table, and that `Tuning` is the first autoload. A field dropped from the `.tres` silently loads as 0, and fails here by name.
+- **`test_press_buffer`:** a token is spendable on *t* through *t* + 6 but not before or after; `expire()` reports exactly once, on *t* + 7; a new press replaces an old token and reports it; a token is spent once; tick 0 is valid; `clear()` is silent.
+- **`test_input_source`:** the step 6 verification list, rebuilt. *Scripted:* a press on its tick, no repeat while held, press and release on one tick give one press, a skipped tick loses nothing, most recent wins on both axes with fallback, stale until release, directions never stale, `play()` resets, the `start_tick` offset, and five kinds of malformed entry rejected. *Live*, fed synthetic key events: echoes ignored, two keys on one action (Space and C), two taps in one frame give one press, arrows and WASD mixed, `mark_all_stale()` discards an unread press, focus loss releases everything, unbound keys ignored, process mode Always, the deadzone read from `Tuning`, and digital input beating the stick. *Snapping:* every sector on both sides of each 22.5° boundary (stick ratios 0.40 and 0.43 against tan 22.5° ≈ 0.414), and the round deadzone's edges on the axis and the diagonal.
+- **`test_trace`:** each test makes its own private copy of the Trace script, so the real `Trace` autoload is never touched. It covers: the header (build `0.1.0-dev`, target, tick rate 60, all 46 tuning values); `begin_session()` resetting tick, room and events; `record()` stamping the tick and room and emitting once; three kinds of catalog error, each still recorded; the ring (limit 3 keeps ticks 2, 3, 4 and the header) and keep-everything mode (200 kept); file names with no colon and the `YYYYMMDD-HHMMSS_<build>.jsonl` shape; two saves in one second getting distinct names (the test deletes both files); and JSON Lines (every line parses, the header first, key order tick, room, event, data, vectors and colors written as arrays). It also checks that `Trace` is the second autoload.
+
+**Why:** spec "M0 step 9: unit-test runner" (including the owner's 2026-10-17 additions of `test_input_source.gd`, `test_trace.gd` and the full-table `test_tuning.gd`), and ground rules 1 (no add-ons), 2, 8 (each `core/` rule has a unit test) and 12. It re-proves what the step 4–6 throwaway scripts checked. AC served: M-03, M-05, M-06, M-07, C-07, R-01, R-04, S-03 through the code under test; D-04 and D-05 through the trace tests; D-08 (the project tests itself from the repository alone).
+
+**How to see it:** in a terminal, `"$GODOT" --headless --path game res://tests/test_runner.tscn`, then `echo $?`. Expect `44 passed, 0 failed.` and `0`. In the Godot editor you can also open `tests/test_runner.tscn` and press F6 (Run Current Scene); the results appear in the Output panel and the window closes by itself.
+
+Verification: the import step runs clean. The full run gives 44 passed, 0 failed, exit code 0, with no warnings or script errors. To prove the runner can fail, a temporary file (deleted afterward, never committed) held four broken tests: a wrong value, `6` against `6.0`, a call on `null`, and a stray `push_error`. All four were reported as `FAIL` with readable messages, and the exit code was 1. VS Code's Problems panel showed nothing for the new files: the Godot language server only checks files open in the editor. The headless runs loaded all seven scripts under the untyped-declaration Error rule with no errors.
+
+**Decisions and questions:**
+
+- *Decide and log:* **any engine error during a test fails it**, unless the test collects it with `take_errors()`. The capture uses Godot 4.5's `Logger` (`OS.add_logger`); warnings are ignored.
+- *Decide and log:* **each test method gets a fresh instance** of its test class, and test files and methods run in a fixed order (files sorted by name, methods in source order).
+- *Decide and log:* **finding zero tests is a failure** (exit code 1).
+- *Decide and log:* **`assert_eq` requires the same type** as well as an equal value.
+- *Decide and log:* **the trace tests use private instances** of `autoload/trace.gd`, so the real autoload's log is never wiped or filled. The ring test sets `Tuning.data.trace_memory_limit` to 3 for one `begin_session()` call and restores it at once.
+- *Decide freely:* `TestCase` gains `add_node()`, `take_errors()`, `claimed_errors` and two runner hooks (`capture_error()`, `free_nodes()`) beyond the four asserts the spec names. The snap test uses hand-picked stick ratios around tan 22.5° instead of computing angles.
+- *Note:* the M0 step 8 entry's "How to see it" says to set Main Run Args to `-- --debug-tools`. Doing that in Project Settings writes exactly the `[editor]` line reverted here. If it comes back, that is where it comes from. Setting it is the owner's choice; it is just not committed.
 - No open questions.
