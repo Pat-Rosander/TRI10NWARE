@@ -4,8 +4,8 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M0 step 11, project documents, 2026-10-18. M0's files are all in place. `docs/decision_log.md` now records every decide-and-log choice; the journal's own decision notes are no longer the record.
-- **Next step:** M1 step 1, tile set and `SolidGrid` (`/step M1.1`). M0's "done when" list still has owner checks open (below); M1 should start only once they pass.
+- **Last completed:** M1 step 1, tile set and `SolidGrid`, 2026-10-18. The owner chose to start M1 while the M0 checks below are still open.
+- **Next step:** M1 step 2, `PixelMover` without assists (`/step M1.2`). It is blocked until the owner answers the two remaining "Decide before step 2" items (sub-pixel rounding, wall-check distance). The corner-cell item was accepted on 2026-10-18.
 - **Waiting on the owner:**
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
     - Check the builds (M0 step 10 entry, "How to see it"): run `tools/export_all.sh`, launch the macOS app with `-- --debug-tools` and press backtick to see the build ID; open the web build through `tools/serve_web.sh` at `http://localhost:8000/?debug=1`; upload `TRI10NWARE_web.zip` to a draft itch.io page; on the Windows PC, run `TRI10NWARE.exe -- --debug-tools`.
@@ -13,8 +13,9 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - Check the window size: with "Embed Game on Next Play" off, press F5. The window should be the largest whole multiple of 640 × 360 that fits the screen (on the MacBook Air, 1280 × 720, centered), with crisp, unblurred pixels. Already confirmed on 2026-10-17: Option+Return toggles fullscreen, and the trace is saved on window close with `--debug-tools`. Not yet checked: that a run *without* the flag writes no trace.
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
     - M0 step 0 prerequisites, still needed: the itch.io project page and access to a Windows PC. Confirmed: Godot 4.5.1 at `/Applications/Godot 4.5.1 .app`, its export templates (installed), and the macOS bundle identifier `com.patrickrosander.tri10nware` (owner, 2026-10-18).
-    - Before M1 step 2: accept or replace the three proposed answers under "Decide before step 2" in the M1 build order.
-- **Open questions:** none.
+    - Before M1 step 2: accept or replace the two remaining proposed answers under "Decide before step 2" in the M1 build order (sub-pixel rounding, wall-check distance).
+    - Confirm the license of `game/art/level_1_tiles.png` in `CREDITS.md`.
+- **Open questions:** approve or change the spec update for the tile atlas slot path, M1 step 1's text, and the accepted corner-cell rule (`docs/decision_log.md`, section 5).
 - **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
 - **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
@@ -469,3 +470,31 @@ Verification done in this session: `run_tests.sh` exits 0. `export_all.sh`, run 
 **How to see it:** read `README.md` and `docs/support_matrix.md`. When you test the Windows build or a browser, fill in its row in the support matrix. Verified: `tools/run_tests.sh` exits 0 (44 passed, no code changed). The ledger header matches the spec's exactly. The decision log has 46 tuning rows, matching `test_tuning.gd`. The README's controls match the `[input]` section of `project.godot` and the step 3 table.
 
 **Decisions and questions:** recorded in `docs/decision_log.md` (M0.11 rows): the README was rewritten rather than patched; `icon.svg` is registered as a placeholder; earlier decisions were copied into the log, which is now the record. No open questions. M0's done-when checks that need the owner's hands (window size, fullscreen, the trace on quit, the Windows and web launches) are still listed under "Waiting on the owner". Ask for the spec reviewer if you'd like M0 checked against the spec before starting M1.
+
+## M1 step 1: tile set and SolidGrid (2026-10-18)
+
+**What was built:**
+
+- `game/tiles/level_tiles.tres` (new): the single `TileSet`. Tiles are 16 × 16, there are no physics layers, and one integer custom data layer is named `solidity`. Its one atlas source is your `game/art/level_1_tiles.png`, with 19 tiles. The 15 stone blocks are `1`; the four telephone-pole and wire pieces are `0`.
+- `game/core/solid_grid.gd` and its `.uid` (new): `class_name SolidGrid`, the collision view of one room.
+- `game/tests/unit/test_solid_grid.gd` and its `.uid` (new): 14 tests.
+- `CREDITS.md`: a row for `level_1_tiles.png` (owner draft; please confirm the license).
+- `docs/decision_log.md`: M1.1 rows, and one open question (a spec update).
+
+**How it works:** the game uses no physics engine. Each tile carries one number, `solidity`: 0 decoration, 1 ordinary ground or wall, 2 and 3 the default-only and flow-only platforms that arrive in M4. When a room is built, `SolidGrid` walks the used cells of each of the room's tile layers once and copies each cell's number into its own dictionary, keyed by world cell. After that, collision questions never touch the engine's tile maps. This is why a freshly loaded room is solid on its very first tick.
+
+Each cell is stored as a set of flags (solid, default-top, flow-top) rather than a single number. If the same cell is painted on two layers, it keeps both meanings instead of the last layer overwriting the first. The grid answers two questions about a rectangle in world pixels. `blocks(rect)` asks whether the rectangle overlaps anything solid from every side; sideways moves, upward moves and wall checks use it, and platform tops never count. `platform_top_at(rect)` asks whether the rectangle's bottom sits exactly on the top edge of a platform that is solid in the current state; only the downward move will use it. `set_flow()` picks which platform family counts. The player is always in default until M2.
+
+Outside the room there are no tiles, so rules decide. Cells at or below the bottom edge are open, and the bottom is a pit. Every other outside cell (left, right, above, and the top corners) is solid, so those edges behave like walls. Converting pixels to cells uses floor division built from `posmod`. Plain integer `/` rounds toward zero, which would put pixel −1 in cell 0, and the gym may sit at negative coordinates.
+
+The tests build their own four-tile tile set in code, so they keep working whatever you do to the art. One extra test loads the real `level_tiles.tres` and checks its shape and the pole/block assignment.
+
+**Why:** spec M1 build order step 1, "M1 files" (`solid_grid.gd`, `level_tiles.tres`, `test_solid_grid.gd`), "The tile set", the "Room edges" paragraph of step 10, "Determinism contract" and ground rules 8 and 15. Collision basis for AC M-01, M-02 and M-03.
+
+**How to see it:** in Godot, open `tiles/level_tiles.tres`, go to the TileSet panel, choose Paint, and pick the `solidity` property: blocks show 1, pole pieces 0. Nothing in the running game changes yet. Verified: the unit tests run 58 passed, 0 failed (14 new), and the headless run reports no script warnings.
+
+**Decisions and questions:** recorded in `docs/decision_log.md` (M1.1 rows):
+
+- Owner decisions: start M1 now; use `level_1_tiles.png` with the pole as decoration; accept the corner-cell rule.
+- Decide-and-log choices: `add_layer()` reads only the layer it is given; room edges count as walls; unknown `solidity` values raise an error; pending-tile tests come in M4.
+- **Open (needs your approval):** a spec update. The slot `game/art/tiles/tiles.png` should become `game/art/level_1_tiles.png`, or you move the file to the slot path. M1 step 1's text still names the legacy atlas. The corner-cell proposal should be marked accepted.
