@@ -640,7 +640,7 @@ tri10nware/
     │   ├── test_runner.tscn
     │   ├── test_runner.gd
     │   ├── test_case.gd
-    │   └── unit/                  11 unit-test files
+    │   └── unit/                  13 unit-test files
     └── art/                       17 slots across the folders below, each listed in its milestone; the owner adds more freely
         ├── player/                player_sheet.png, switch_burst.png
         ├── tiles/                 tiles.png
@@ -687,7 +687,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | Milestone | New files |
 | --- | --- |
 | M0 prep (workflow, already in the repository) | 6 |
-| M0 Foundations | 45 |
+| M0 Foundations | 47 |
 | M1 Movement kit | 31 |
 | M2 Flow and charge | 32 |
 | M3 Level 1 room | 36 |
@@ -990,8 +990,10 @@ The project uses a small built-in test runner instead of a test add-on. Ground r
 | `game/tests/test_case.gd` | `class_name TestCase extends RefCounted` with `assert_eq`, `assert_true`, `assert_false` and `assert_near`, each recording failures with a message | The base every unit test extends |
 | `game/tests/test_runner.tscn` | A scene with one `Node` running `test_runner.gd` | Lets the runner be launched by path from the command line |
 | `game/tests/test_runner.gd` | Finds every `res://tests/unit/test_*.gd`, runs each method whose name starts with `test_`, prints results, and quits with exit code 0 or 1 | One command answers "do the rules still hold?" |
-| `game/tests/unit/test_tuning.gd` | Seconds-to-ticks conversion: 0.1 s → 6, 3.0 s → 180, 0.15 s → 9 | Every timer depends on it |
+| `game/tests/unit/test_tuning.gd` | Seconds-to-ticks conversion (0.1 s → 6, 3.0 s → 180, 0.15 s → 9), every derived tick value, and **every field of `tuning.tres` against its start value in the M0 step 4 table**, so a field missing from the `.tres` (which silently loads as 0) fails the test | Every timer and every movement value depends on it |
 | `game/tests/unit/test_press_buffer.gd` | Token lifetime, window edges, replacement, single spend | M-06, M-07 and C-07 depend on it |
+| `game/tests/unit/test_input_source.gd` | The shared input rules, through `ScriptedInputSource` and synthetic events fed to `LiveInputSource`: one press per press, no repeat while held, stale buttons until release, directions never stale, most-recent-wins with fallback, digital input beating the stick, focus loss releasing everything, and stick snapping (radial deadzone, equal 45° sectors) | M-03, M-07, R-01 and R-04 depend on it (added by owner decision 2026-10-17, after steps 2–6 verified this with scripts that were not kept) |
+| `game/tests/unit/test_trace.gd` | The session header and its fields, tick and room stamping, the catalog check, the ring buffer (oldest dropped, header kept, keep-everything mode), file names without colons and with unique suffixes, and the JSON Lines format (key order, vectors as arrays) | The trace is the evidence for D-04, D-05 and every scenario (added by owner decision 2026-10-17) |
 
 Command: `"$GODOT" --headless --path game --import`, then `"$GODOT" --headless --path game res://tests/test_runner.tscn`. The import step is needed on a fresh clone, where the `.godot/` cache does not exist yet. Unit tests run in the editor build only; they are excluded from exports (step 10).
 
@@ -1048,7 +1050,7 @@ Docs: [Exporting projects](https://docs.godotengine.org/en/4.5/tutorials/export/
 
 - [ ] The project opens with no errors or warnings in Godot 4.5.1.
 - [ ] Running the project with `--debug-tools` shows a blank screen with the debug overlay (backtick) counting ticks at 60 per second.
-- [ ] `tools/run_tests.sh` passes both unit-test files.
+- [ ] `tools/run_tests.sh` passes all four M0 unit-test files.
 - [ ] `tools/export_all.sh` produces all three builds and the three itch.io files from a clean commit; each build launches on its target and shows the build ID. The web build loads over `tools/serve_web.sh` and in a draft (unpublished) itch.io page.
 - [ ] A trace file is written on quit and its header lists every tuning value.
 
@@ -1128,7 +1130,7 @@ Docs: [2D sprite animation](https://docs.godotengine.org/en/4.5/tutorials/2d/2d_
 
 All velocities are in pixels per second; the tick length is a fixed 1/60 s. "Held" and "pressed" come from the `InputFrame`.
 
-**Step 1, input.** `World` reads the frame. A fresh `jump` press adds a token to the jump buffer and a fresh `dash` press to the dash buffer; each is logged as `press`.
+**Step 1, input.** `World` reads the frame. First it calls `expire()` on each press buffer and logs any expired token as `press_expired`; only then does a fresh `jump` press add a token to the jump buffer and a fresh `dash` press to the dash buffer, each logged as `press`. That order (owner decision 2026-10-17) means a token whose window already closed is always reported as expired, never as replaced by the new press.
 
 **Decision ticks.** Steps 3 and 4 make decisions using what step 7 sensed on the previous tick. Every window is counted in decision ticks:
 

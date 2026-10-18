@@ -13,6 +13,8 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - M0 step 0 prerequisites, still needed: the 4.5.1 export templates, the macOS bundle identifier, the itch.io project page, and access to a Windows PC. Godot 4.5.1 itself is confirmed at `/Applications/Godot 4.5.1 .app`.
     - Before M1 step 2: accept or replace the three proposed answers under "Decide before step 2" in the M1 build order.
 - **Open questions:** none.
+- **Note for M0 step 9 (spec updated 2026-10-17, owner decision):** step 9 now also adds `test_input_source.gd` and `test_trace.gd`, and `test_tuning.gd` checks every `tuning.tres` field against its start value. Rebuild the input-source and trace tests from the verification lists in the M0 step 5 and step 6 entries below; those scripts were not kept.
+- **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
 - **Note for M0 step 10:** `export_all.sh` must write `config/build_info.cfg` with section `[build]` and keys `version`, `commit`, `date`, the format `Trace` reads (see the M0 step 5 entry).
 
 ## Entry template
