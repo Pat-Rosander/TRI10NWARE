@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 Tuning="*res://autoload/tuning.gd"
+Trace="*res://autoload/trace.gd"
 
 [debug]
 
