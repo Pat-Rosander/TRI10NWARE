@@ -4,8 +4,8 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M1 step 1, tile set and `SolidGrid`, 2026-10-18. The owner chose to start M1 while the M0 checks below are still open.
-- **Next step:** M1 step 2, `PixelMover` without assists (`/step M1.2`). Ready: the owner accepted the sub-pixel rounding and wall-check items on 2026-10-18 (spec, M1 build order, "Decide before step 2"), including two additions: velocity and remainder are separate 64-bit `float` values per axis, never a `Vector2`; and the wall check is a `PixelMover` query with a guard test in `test_pixel_mover.gd`. The corner-cell item was accepted on 2026-10-18.
+- **Last completed:** M1 step 2, `PixelMover` without assists, 2026-10-18. The owner chose to start M1 while the M0 checks below are still open.
+- **Next step:** M1 step 3, rule objects: `jump_resolver.gd`, `dash_state.gd` and their tests (`/step M1.3`). Nothing blocks it.
 - **Waiting on the owner:**
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
     - Check the builds (M0 step 10 entry, "How to see it"): run `tools/export_all.sh`, launch the macOS app with `-- --debug-tools` and press backtick to see the build ID; open the web build through `tools/serve_web.sh` at `http://localhost:8000/?debug=1`; upload `TRI10NWARE_web.zip` to a draft itch.io page; on the Windows PC, run `TRI10NWARE.exe -- --debug-tools`.
@@ -14,7 +14,8 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
     - M0 step 0 prerequisites, still needed: the itch.io project page and access to a Windows PC. Confirmed: Godot 4.5.1 at `/Applications/Godot 4.5.1 .app`, its export templates (installed), and the macOS bundle identifier `com.patrickrosander.tri10nware` (owner, 2026-10-18).
     - Confirm the license of `game/art/tiles/level_1_tiles.png` in `CREDITS.md`.
-- **Open questions:** none. All three "Decide before step 2" items are accepted in the spec (2026-10-18).
+- **Open questions:** none.
+- **Note for M1 steps 4 and 5:** `PixelMover` turns velocity into movement as `velocity / ticks_per_second` (decision log, M1.2). Integrate acceleration the same way (`velocity += accel / Tuning.TICKS_PER_SECOND`), and pass `Tuning.TICKS_PER_SECOND` into `PixelMover.new()`.
 - **Note for M1 step 4:** `World` calls `expire()` on each press buffer before adding a new press (spec, M1 "Step 1, input").
 - **Note for M1 step 4:** World must switch to the Player's `InputSource` and delete the temporary LiveInputSource creation in `world.gd` (marked `M0 only, replaced in M1 step 4`, in `_ready()` and `set_input_source()`), so two input sources never run at once. `set_input_source()` itself stays: it is World's permanent way to swap sources, and the M1 scenario runner uses it.
 - **Note on keyboard device numbers (2026-10-17, owner check of M0 step 7):** an input-map binding matches a key press only when their device numbers agree, or when the binding uses "All Devices" (`-1`). Step 3 bound every keyboard key to device `0`. The step 3 and step 6 checks used synthetic events, which are device `0` by default, so they never proved that real Mac keyboards send device `0`. The owner changed only the `fullscreen` binding to `-1` (in the Input Map) to test two keyboards, and Option+Return now toggles fullscreen on both. That change is committed (owner decision): `fullscreen` is the one keyboard binding at `-1`. It shows that `-1` works but says nothing about device `0`. **Simple check, run only if a key ever seems ignored (most likely first in M1 step 4, when key presses first drive the player):** set `fullscreen` back to device `0` (Input Map, or `git checkout game/project.godot`, then Project → Reload Current Project), and press Option+Return in a non-embedded game window on each keyboard. If it works on both, device `0` is fine. If it fails on either, every keyboard binding must move to `-1`; propose that input-map change to the owner first (authority tiers: controls).
@@ -497,3 +498,32 @@ The tests build their own four-tile tile set in code, so they keep working whate
 - Owner decisions: start M1 now; use `level_1_tiles.png` with the pole as decoration; accept the corner-cell rule.
 - Decide-and-log choices: `add_layer()` reads only the layer it is given; room edges count as walls; unknown `solidity` values raise an error; pending-tile tests come in M4.
 - **Spec update (approved by the owner, 2026-10-18):** the owner moved the atlas to `game/art/tiles/level_1_tiles.png` in the Godot editor, which kept its UID and updated `level_tiles.tres`. The spec slot, the repository layout, M1 step 1 and the M3/M4 rows now name that file. **Still open:** marking the corner-cell proposal accepted in the spec.
+
+## M1 step 2: PixelMover without assists (2026-10-18)
+
+**What was built:**
+
+- `game/core/pixel_mover.gd` and its `.uid` (new): `class_name PixelMover`, the whole-pixel mover.
+- `game/tests/unit/test_pixel_mover.gd` and its `.uid` (new): 16 tests.
+- `docs/decision_log.md`: four M1.2 decide-and-log rows.
+
+**How it works:** the mover holds the player's feet position in whole pixels, plus, for each axis separately, a velocity and a sub-pixel remainder as 64-bit floats. Each tick, `move()` adds one tick's worth of velocity to the remainder, moves by the remainder rounded to the nearest pixel, and keeps what is left over, so the remainder always stays between −0.5 and 0.5. A speed of 100 px/s therefore moves 2, 1, 2, 2, 1, 2… pixels (5 px every 3 ticks), and after ten seconds the player is exactly 1,000 px further on: nothing drifts. Rounding to nearest, with halves rounded away from zero, makes left and right exact mirror images.
+
+The movement itself goes one pixel at a time: horizontal first, then vertical. Before each pixel it asks `SolidGrid` whether the body would overlap something solid there. If it would, that axis stops flush against the surface, its velocity and remainder become 0, and the move notes the contact (`wall_hit`, `ceiling_hit` or `floor_hit`) for the player to read in step 7. Because no pixel is ever skipped, nothing can tunnel through a tile, even at dash speed (8 px per tick). Stopping one axis leaves the other alone, so a diagonal dash into the floor slides along it.
+
+One-way platform tops block only a body moving down whose feet are exactly on the tile's top edge. A body rising through the tile, walking sideways through it, or whose feet are already inside the tile never meets that alignment, so it passes. Which platform family counts comes from `SolidGrid.set_flow()`. Two queries round it out. `is_grounded()` asks whether a one-pixel move down would be blocked. `wall_at(side)` makes one overlap test with the body shifted `wall_check_px` (6) to that side, so a wall counts within 0–5 px; only ordinary solid cells and room edges count, never platform tops.
+
+The mover touches no nodes and no autoloads: the grid, body size, wall-check distance and tick rate are passed in. It is plain arithmetic you can test in isolation, which is how the tests drive it, against small grids built in code.
+
+**Why:** spec M1 build order step 2; "M1 files" (`pixel_mover.gd`, `test_pixel_mover.gd`); "How movement works", step 6 (items 1–3) and step 7 ("grounded", "Walls"); "Decide before step 2" (sub-pixel rounding, storage, halves and wall-check distance); the "Room edges" paragraph; "Determinism contract"; ground rules 8 and 15. Collision basis for AC M-01, M-02 and M-03; repeatability for D-04 and D-05.
+
+**How to see it:** nothing visible yet; the player starts using the mover in step 4. Verified: the unit tests run 74 passed, 0 failed (16 new), and the headless run reports no script warnings. The flush-stop test alone runs 5,760 approaches (4 directions × 3 start gaps × every speed from 1 to 480 px/s) and checks that the body never overlaps a solid cell on any tick.
+
+**Decisions and questions:** recorded in `docs/decision_log.md` (M1.2 rows), all decide-and-log:
+
+- Integration divides by the tick rate rather than multiplying by 1/60. It is the same rule, but exact: 30 px/s gives exactly 0.5 px per tick.
+- Body geometry: the feet line is the rectangle's bottom edge.
+- Wall reach is 0 to `wall_check_px` − 1 px, exactly as the spec words it. My approved plan wrongly said "a gap of exactly 6 px is true"; the spec text governs, and the test follows it.
+- Contacts are fields reset on each move; the mover logs no trace events until step 6.
+
+No questions for the owner.
