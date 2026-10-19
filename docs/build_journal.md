@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M1 step 6, assists, 2026-10-18. M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
-- **Next step:** M2. **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks. The owner's gym feel playtest is done: movement feels good, no tuning changes. **Before `/step M2.1`:** M2 has no numbered build order yet; the owner approves one first.
+- **Last completed:** M2 step 1, rule objects, 2026-10-19 (M2 build order approved and added to the spec). M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
+- **Next step:** M2 step 2, flow in the player (`/step M2.2`). **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
 - **Waiting on the owner:**
+    - Focus the Godot editor once (or Project → Reload Current Project) so it registers the new `Geometry`, `FlowLedger` and `EncounterTracker` classes; until then VS Code shows false "Could not find type FlowLedger" errors in `test_flow_ledger.gd`.
     - **Finish the gym** before the postponed M1 step 8 (painting guide in the M1 step 5 entry; details in the M1 step 6 entry, "Gym check"). Move the `WallShaft` marker (x 976) and the `CornerCeiling` marker (x 1480) out of the solid tiles. Give `dash_chamber`, `coyote_ledge` and `buffer_drop` their floors (from column 100 on, row 26 is open to the pit), and finish `corner_ceiling` and the 12 × 8 dash chamber box. While `gym.tscn` is open in the editor, no session may edit it.
     - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
@@ -677,3 +678,32 @@ The mover is a pure rule class and may not touch `Trace` (ground rule 8), so it 
 - Decide and log (decision log, M1.6): what "fits" means for each correction; which dashes get the dash corner correction; once per move; the one-way help's conditions and its place in step 7; the post-dash snap's floor rule and its landing timing (sensed on the next tick's step 7, one tick later than Celeste); the meaning of `assist` dx/dy; and the tie-break and once-per-move cases that only a wider limit can reach.
 - **Gym check (owner):** the gym committed in `54b8164` is only partly painted. Columns 0–89 are painted (`start` through `chimney`). The `wall_shaft` marker (x 976) and the `corner_ceiling` marker (x 1480) sit inside solid tiles, so a player sent there is stuck. `dash_chamber`, `coyote_ledge` and `buffer_drop` have no floor: from column 100 on, row 26 is open to the pit. The box at columns 91–115, rows 18–24, and the blocks at rows 10–14 look unfinished. None of this affects step 6 or 7, but M1 step 8's scenarios need every station.
 - Note: `54b8164` also added `[editor] movie_writer/movie_file` with an absolute path under `/Users/patrickrosander/` to `project.godot`. It's harmless, but machine-specific. Left as is.
+
+## M2 step 1: rule objects (2026-10-19)
+
+**What was built:**
+
+- `game/core/geometry.gd`: `Geometry`, static overlap tests: `rects_overlap`, `circle_overlaps_rect`, `inflate`.
+- `game/core/flow_ledger.gd`: `FlowLedger`, the state, volts and zero-volt countdown.
+- `game/core/encounter_tracker.gd`: `EncounterTracker`, one charged object's outside / armed / spent state.
+- `game/tests/unit/test_geometry.gd`, `test_flow_ledger.gd`, `test_encounter_tracker.gd`: 40 new tests (145 unit tests in total).
+- `docs/TRI10NWARE.md`: the new **M2 build order** (owner approval of the plan, 2026-10-19).
+- `docs/decision_log.md`: the M2 build-order row and five M2.1 rows.
+
+**How it works:** these are M2's three rule classes. Like `DashState` and `JumpResolver` in M1, they are plain objects with no nodes, so they can be tested alone. Nothing in the game uses them yet; step 2 wires the ledger into the player and step 3 wires the other two into the charged object.
+
+**`FlowLedger`** is the only thing allowed to change the player's state (default or flow), volts, or the countdown (ground rule 6). Its `request_switch()` follows the **FlowLedger rules** table. Entering flow costs a volt, and spending the last one starts a 180-tick countdown. At 0 volts entry is refused. Leaving flow is free, and the countdown keeps running (the AC setting). `tick()` runs once per tick in step 9 and returns true exactly once, when the countdown runs out. `recharge()` (used by M5's power sources) refills the volts and cancels the countdown, and `reset()` is the respawn. A rule class may not call `Trace` itself, so every change *returns* the trace events it caused, for example `switch`, then `volts`, then `countdown_start`. Step 2's `FlowController` just writes them out. A test checks every one of them against `Trace`'s catalog, so a misspelled field fails a test instead of printing an error at runtime.
+
+**`EncounterTracker`** is what makes "one charged jump per visit" work. Step 7 gives it two yes/no answers each tick: does the region touch the player, and does a 1 px larger region touch the player? Outside becomes armed on the first answer. Armed or spent becomes outside only when even the larger region no longer touches, so a player hovering exactly on the edge can't flicker back to armed and get a second jump. A charged jump calls `spend()`. The tracker never hears about state switches, so toggling flow inside a region can't re-arm it.
+
+**`Geometry`** does those overlap tests in whole-pixel integers. The circle test finds the point of the player's rectangle nearest the circle's center and compares squared distances (`dx² + dy² < r²`), with no square roots or floats, so it gives the same answer on every computer and in the browser.
+
+**Why:** spec **M2 files** (the three classes and their tests), **FlowLedger rules**, **Charged objects, step by step** (step 7 sensing), the **Same-tick contract** rows on regions and on recharge versus expiry, and ground rules 6, 8 and 15. Serves S-02, S-03, S-04, C-03, C-04 and M-08.
+
+**How to see it:** run the unit tests (`"$GODOT" --headless --path game res://tests/test_runner.tscn`, or `tools/run_tests.sh`). The three new files' blocks are `test_encounter_tracker.gd`, `test_flow_ledger.gd` and `test_geometry.gd`. Nothing changes in the game yet.
+
+**Decisions and questions:**
+
+- Decide and log (decision log, M2.1): touching never counts as overlap; the trace values `switch`, `recharge`, `default` and `zero_volts`; how the non-AC `pause` and `stop` countdown modes behave; entering flow at 0 when the flag allows it (free, and it never restarts a running countdown); and returning events instead of logging them.
+- Skipped because it waits for the postponed M1 steps: nothing in this step.
+- The editor's diagnostics still show stale "Could not find type FlowLedger" errors, because the editor hasn't rescanned since these files were created outside it. The headless run compiles all six files and every test passes. `geometry.gd`, `encounter_tracker.gd` and the other two test files haven't been analyzed by the editor yet; check them after the rescan (Status block).

@@ -1436,6 +1436,17 @@ Docs: [Command line tutorial](https://docs.godotengine.org/en/4.5/tutorials/edit
 
 **Goal:** default and flow states, volts, the zero-volt countdown, and the always-powered charged object, proven in the gym.
 
+#### M2 build order
+
+M2 is built in these numbered steps, one session each (`/step M2.1` and so on; owner approval 2026-10-19). The sections below this list are the specification each step implements. Work that waits for the postponed M1 steps (**Postponed work**) is skipped and named in each step's journal entry.
+
+1. **Rule objects:** `geometry.gd`, `flow_ledger.gd`, `encounter_tracker.gd`, `test_geometry.gd`, `test_flow_ledger.gd`, `test_encounter_tracker.gd`. Pure `core/` classes; no nodes.
+2. **Flow in the player:** `flow_controller.gd` and the `FlowController` node in `player.tscn`; step 2 (switch, platform family, coyote re-check), the step 9 countdown and the step 10 countdown death (an M1-style reset at the entrance until M3); the `switch`, `switch_refused`, `volts` and `countdown_*` trace events.
+3. **Charged object:** `charged_object.tscn`, `charged_object.gd` (ring drawn with `draw_arc()`), placeholders at `charged_object.png` and `charged_glow.png`, the room's charged-object lookup, step 7 sensing (`encounter` events) and the step 4 charged jump in `player.gd`.
+4. **Gym charged stations:** the six M2 stations' objects and entrances in `gym.tscn`. **Owner hand-off:** the owner paints their tiles.
+5. **HUD and switch visuals:** `hud.tscn`, `hud.gd`, `theme.tres`, `HUD` in `main.tscn`, `Visuals/SwitchFX` and the `electric_` animations, with placeholders at the font and UI art slots until the owner's files arrive.
+6. **Done-when:** the HUD check in the gym. Items that need scenarios or the debug overlay stay unchecked until the postponed M1 steps run; the M2 scenario files, the `m0x` additions and the `debug_world_draw.gd` regions wait with them.
+
 #### M2 files
 
 | File | What it is | Why it exists |
