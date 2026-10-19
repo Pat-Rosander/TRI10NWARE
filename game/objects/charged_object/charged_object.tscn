@@ -1,8 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=5 format=3 uid="uid://b3w62b5bepfyq"]
 
-[ext_resource type="Script" path="res://objects/charged_object/charged_object.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://art/objects/charged_object.png" id="2_sprite"]
-[ext_resource type="Texture2D" path="res://art/objects/charged_glow.png" id="3_glow"]
+[ext_resource type="Script" uid="uid://bxs2bcrr48d6s" path="res://objects/charged_object/charged_object.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dxanr1rvhtunq" path="res://art/objects/charged_object.png" id="2_sprite"]
+[ext_resource type="Texture2D" uid="uid://b20j0vs0goqs4" path="res://art/objects/charged_glow.png" id="3_glow"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
 blend_mode = 1

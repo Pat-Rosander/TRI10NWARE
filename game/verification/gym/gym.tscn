@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=4 uid="uid://blkx4f3r5foj8"]
+[gd_scene load_steps=5 format=4 uid="uid://blkx4f3r5foj8"]
 
 [ext_resource type="Script" uid="uid://c77marlx58f6c" path="res://rooms/room.gd" id="1_room"]
 [ext_resource type="TileSet" uid="uid://b65vntye0tecc" path="res://tiles/level_tiles.tres" id="2_tiles"]
 [ext_resource type="Script" uid="uid://cbr2itwxp42qq" path="res://rooms/room_entrance.gd" id="3_entrance"]
+[ext_resource type="PackedScene" uid="uid://b3w62b5bepfyq" path="res://objects/charged_object/charged_object.tscn" id="4_charged"]
 
 [node name="Gym" type="Node2D"]
 script = ExtResource("1_room")
@@ -21,6 +22,28 @@ tile_set = ExtResource("2_tiles")
 tile_set = ExtResource("2_tiles")
 
 [node name="Objects" type="Node2D" parent="."]
+
+[node name="ChargedCeiling" parent="Objects" instance=ExtResource("4_charged")]
+position = Vector2(4000, 320)
+
+[node name="ChargedOverlapA" parent="Objects" instance=ExtResource("4_charged")]
+position = Vector2(3632, 320)
+
+[node name="ChargedOverlapB" parent="Objects" instance=ExtResource("4_charged")]
+position = Vector2(3696, 320)
+
+[node name="ChargedPairA" parent="Objects" instance=ExtResource("4_charged")]
+position = Vector2(3136, 320)
+
+[node name="ChargedPairB" parent="Objects" instance=ExtResource("4_charged")]
+position = Vector2(3296, 320)
+
+[node name="ChargedTest" parent="Objects" instance=ExtResource("4_charged")]
+position = Vector2(2752, 320)
+
+[node name="UnpoweredObject" parent="Objects" instance=ExtResource("4_charged")]
+position = Vector2(4320, 320)
+always_powered = false
 
 [node name="Collectibles" type="Node2D" parent="."]
 
@@ -75,3 +98,33 @@ entrance_id = &"coyote_ledge"
 position = Vector2(2280, 320)
 script = ExtResource("3_entrance")
 entrance_id = &"buffer_drop"
+
+[node name="ChargedTest" type="Marker2D" parent="Entrances"]
+position = Vector2(2584, 416)
+script = ExtResource("3_entrance")
+entrance_id = &"charged_test"
+
+[node name="ChargedPair" type="Marker2D" parent="Entrances"]
+position = Vector2(2968, 416)
+script = ExtResource("3_entrance")
+entrance_id = &"charged_pair"
+
+[node name="ChargedOverlap" type="Marker2D" parent="Entrances"]
+position = Vector2(3480, 416)
+script = ExtResource("3_entrance")
+entrance_id = &"charged_overlap"
+
+[node name="ChargedCeiling" type="Marker2D" parent="Entrances"]
+position = Vector2(3864, 416)
+script = ExtResource("3_entrance")
+entrance_id = &"charged_ceiling"
+
+[node name="UnpoweredObject" type="Marker2D" parent="Entrances"]
+position = Vector2(4184, 416)
+script = ExtResource("3_entrance")
+entrance_id = &"unpowered_object"
+
+[node name="ZeroVoltLane" type="Marker2D" parent="Entrances"]
+position = Vector2(4504, 416)
+script = ExtResource("3_entrance")
+entrance_id = &"zero_volt_lane"

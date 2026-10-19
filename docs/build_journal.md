@@ -4,10 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M2 step 3, charged object, 2026-10-19. M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
-- **Next step:** M2 step 4, gym charged stations (`/step M2.4`). It edits `gym.tscn`, so **close the gym's scene tab in the editor first**; after it, the owner paints the six stations' tiles. **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
+- **Last completed:** M2 step 4, gym charged stations, 2026-10-19. The gym now has its six M2 stations' objects and entrances; their tiles are **not painted yet** (painting guide in the M2 step 4 entry). M1 step 5's gym is still **partly painted** (owner commit `54b8164`); the rest is listed below.
+- **Next step:** M2 step 5, HUD and switch visuals (`/step M2.5`). It does not need the M2 stations painted. **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
 - **Waiting on the owner:**
-    - Focus the Godot editor once so it registers the new `ChargedObject` class, then open `game/objects/charged_object/charged_object.gd` and `game/tests/unit/test_charged_jump.gd` once so the editor analyzes them (the headless run compiles both and every test passes). Then open `charged_object.tscn` and check the ring is drawn at radius 64 around the placeholder square.
+    - **Paint the six M2 gym stations** (columns 160–319), following the painting guide in the M2 step 4 entry. The gym is now 5120 px wide, and the orange bounds outline shows the new area. Open `charged_object.tscn` once and check the ring still shows at 64 px: its `region_radius_px` is back to −1 (tuning). If not done yet, also open `charged_object.gd` and `game/tests/unit/test_charged_jump.gd` once so the editor analyzes them.
     - `CREDITS.md` lists `game/art/player/player_frames.png`, but the owner's commit `a29f319` renamed it to `player_sheet_v1.png` (`player_frames.tres` points there): update that row (and the slot-name question below may now be answered).
     - **Finish the gym** before the postponed M1 step 8 (painting guide in the M1 step 5 entry; details in the M1 step 6 entry, "Gym check"). Move the `WallShaft` marker (x 976) and the `CornerCeiling` marker (x 1480) out of the solid tiles. Give `dash_chamber`, `coyote_ledge` and `buffer_drop` their floors (from column 100 on, row 26 is open to the pit), and finish `corner_ceiling` and the 12 × 8 dash chamber box. While `gym.tscn` is open in the editor, no session may edit it.
     - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
@@ -769,3 +769,44 @@ Timing falls out of the tick order. A region entered during the move of tick *N*
 - Note: the test drives the player with its own copy of World's steps 1–9 (`_tick()`), because nothing can run a whole World headless until the scenario runner exists. That copy does not log `press` or `press_expired`; the test checks the buffer directly.
 - Skipped because it waits for the postponed M1 steps: scenarios `c01`–`c08`, the `m05` ledge-into-region case (M1.8), and the region drawing in `debug_world_draw.gd` (M1.7).
 - Left for later steps: the gym's charged stations (M2.4), and the glow's faint-in-default, full-in-flow behavior and ring visibility by state, which belong to `flow_presentation.gd` (M3).
+
+## M2 step 4: gym charged stations (2026-10-19)
+
+**What was built:**
+
+- `game/verification/gym/gym.tscn`: seven `ChargedObject` instances under `Objects` (`ChargedTest`, `ChargedPairA`, `ChargedPairB`, `ChargedOverlapA`, `ChargedOverlapB`, `ChargedCeiling`, and `UnpoweredObject` with `always_powered` off), and six entrances under `Entrances` (`charged_test`, `charged_pair`, `charged_overlap`, `charged_ceiling`, `unpowered_object`, `zero_volt_lane`).
+- `game/rooms/room_catalog.tres`: the gym's `world_rect` is now 5120 × 512 (320 × 32 tiles), up from 2560 × 512.
+- `game/objects/charged_object/charged_object.tscn`: keeps the UID stamps the editor added, and drops the `region_radius_px = 64` the editor re-save had left on it (owner decision).
+- `docs/decision_log.md`: five M2.4 rows.
+
+**How it works:** nothing new in the rules. This step only places things in the gym, so each M2 rule has a spot of its own to try it in. Each station has its own entrance, so the debug menu and (later) the scenarios can start right there. Each object is an instance of the step 3 scene. It keeps the default radius of −1, so all seven follow `charged_region_radius_px` in `tuning.tres`. If the radius is retuned, every ring and every region changes together.
+
+The heights come from the current tuning. A held jump rises about 56 px, so from the floor (feet at y 416) the head peaks around y 345. Every object's center is at y 320, six tiles above the floor, so its region reaches down to y 384. A player standing on the floor (head at y 401) is outside every region, and a jump carries the head well inside. That lets a jump with a run-up meet the region's edge while rising, at the top, or on the way down, depending on where it starts. That is what `charged_test` (C-01, C-05, C-07) needs. In `charged_pair`, the two regions are 32 px apart, enough room for the 12 px body plus the 1 px exit margin on each side, so the player can truly be outside both between them. In `charged_overlap`, the two regions share 64 px, so one jump inside both must spend both. `charged_ceiling` needs a ceiling whose underside is two tiles above the object's center, so a charged launch hits it while still in the region (C-06: a ceiling hit must not re-arm). `zero_volt_lane` is just a long floor: 39 tiles, more than the about 540 px a 3-second countdown covers at full run.
+
+The gym had only six spare columns, so it grew to the right. The new stations continue the same single row, with the same floor height as M1's.
+
+**Why:** spec **M2 build order** step 4, **Gym stations added in M2**, **Gym stations in M1** (one entrance per station; the developer states tuning-dependent sizes before the owner paints), **Room scene convention**, **Same-tick contract** (unique node names, so the order is fixed). Prepares C-01 to C-08 and S-03, S-04.
+
+**How to see it:** open `game/verification/gym/gym.tscn` and scroll right past column 160 (x 2560). You'll see seven grey squares with light-blue rings in the air above where the floor will go, and six entrance markers on the floor line. Until the stations are painted, a player sent there falls into the pit. With `-- --debug-tools`, the debug menu can't jump to them yet (that's the postponed M1.7).
+
+**Painting guide for the owner.** Columns and rows are tiles from the gym's top-left corner. As before, every station's floor top is row 26 (y 416), with floor tiles from row 26 down, on `WorldTiles`. Each entrance marker already sits on its floor. Add divider walls between stations wherever they help, but keep each station's columns between the object and its entrance open, since that space is the run-up.
+
+| Entrance | Columns | Object centers (px; row 20 = y 320) | Paint |
+| --- | --- | --- | --- |
+| `charged_test` | 160–183 | x 2752 (column 172) | Open floor under the object. Three **height marks** as decoration (solidity 0, or backdrop art), beside the region at the heights a jump enters it: row 23 (the region's bottom edge, y 384), row 21 (the top of a held jump, head at about y 345) and row 20 (the region's center). They're visual aids only; place them however reads best |
+| `charged_pair` | 184–215 | x 3136 and 3296 | Open floor; nothing between the objects |
+| `charged_overlap` | 216–239 | x 3632 and 3696 | Open floor |
+| `charged_ceiling` | 240–259 | x 4000 | Open floor, and a **ceiling on row 17** (its underside at y 288) spanning at least columns 246–253, above the object. Leave rows 18–25 open beneath it |
+| `unpowered_object` | 260–279 | x 4320 | Open floor |
+| `zero_volt_lane` | 280–319 | none | Flat floor across the whole lane, with a wall at column 319 (the room's right edge) |
+
+Columns 154–159 (left over from M1) can simply continue the floor.
+
+**Decisions and questions:**
+
+- Owner decisions (plan review): the `charged_test` markers are painted decoration, not entrances (a scenario file has one entrance); `charged_object.tscn` keeps its UIDs and loses the `region_radius_px = 64` override.
+- Decide and log (decision log, M2.4): the wider gym `world_rect`; the station columns and entrance positions; the object heights and spacings, and the `charged_ceiling` ceiling row.
+- Check run: import clean; 162 unit tests pass. A throwaway scene (not committed) loaded the gym. It found 16 entrances, and 7 charged objects in node-name order, all at radius 64 from tuning, only `UnpoweredObject` unpowered, none armed, with bounds 5120 × 512. No script changed, so there was nothing new for the diagnostics tool.
+- No new unit-test file: this step wires no rules into the player (standing rule, **Postponed work**).
+- Skipped because it waits for the postponed M1 steps: scenarios `c01`–`c08` and `s01`–`s04` (M1.8), which will run at these stations, and the region drawing in `debug_world_draw.gd` (M1.7).
+- If `charged_region_radius_px`, the jump or the body size is retuned, recheck the object height (y 320) and the `charged_pair` gap.
