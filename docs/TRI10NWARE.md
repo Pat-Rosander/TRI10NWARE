@@ -373,6 +373,29 @@ Where a setting offers values other than the AC's (for example `countdown_in_def
 | OD-3 | **Volts as health.** Design page 6 calls volts health, but only entering flow spends them. Should anything else cost volts, and should the HUD call them health? Decide together with the spikes package: do spikes kill or cost a volt? | Only entering flow spends volts | `FlowLedger`, `hud.gd` |
 | OD-4 | **Dash freeze and delayed aim.** Celeste briefly freezes the game when a dash starts and reads its direction at the end of the freeze, which forgives sloppy diagonals. Add either? A freeze would be a documented control lock (AC page 3) | Neither: the dash starts and aims on its press tick | `DashState`, step 3 |
 
+## Postponed work
+
+Work the owner has postponed to make faster progress (owner, 2026-10-19). Each item stays fully specified where it was. It is **not** dropped: run it when the owner asks, for example after noticing a bug in playtesting. Until then, no session builds it, and a step that depends on it skips that part and says so in its journal entry.
+
+### Postponed M1 steps
+
+These were M1 build-order steps 7–9. Each runs as its own session with its old name (`/step M1.7`, `/step M1.8`, `/step M1.9`), and the M1 sections still specify them.
+
+| Step | What it builds | Specified in |
+| --- | --- | --- |
+| **M1.7 Debug tools** | `debug_world_draw.gd`, and the debug menu's room and station list, including saving or downloading the current trace (the web build's only way to get a trace out) | M1 files; "Main gains a Player instance" paragraph; M0 step 5 |
+| **M1.8 Scenarios** | `scenario_runner.gd` and `m01`–`m08`, run against the painted gym. Needs the gym fully painted | M1 files; **Scenario files**; **Gym stations in M1** |
+| **M1.9 Done-when** | The interpolation and jitter check at 60 Hz and 144 Hz, and the M1 summary in the build journal. (The owner's feel playtest is done: 2026-10-19) | **M1 done when** |
+
+### What waits with them
+
+Later milestones assume these steps exist. Until they run:
+
+- **Every scenario file waits for M1.8,** because nothing can run one without `scenario_runner.gd`. That covers new files (M2's `c01`–`c08` and `s01`–`s04`, M3's `l1_*` and `r0*`, and later milestones' scenarios) and every "adds cases to `m0x`" row. Sessions write and test rule code with unit tests only.
+- **Every extension of `debug_world_draw.gd` waits for M1.7** (M2 regions, M3 goal zones, M4 pending tiles, M5 contact areas, M6 openings), and so does M2's done-when item about the debug overlay showing region boundaries.
+- **Done-when items that need scenarios** (M2's "all M1 and M2 scenarios pass headless", and the same line in later milestones) are left unchecked, not passed.
+- **The Level 1 gate cannot pass without M1.8.** Its steps 1, 3 and 4 run the scenarios on every target and file their results as evidence (AC page 9). Run M1.7–M1.9 and the waiting scenarios before the gate.
+
 ## Implementation plan
 
 This section is the build manual. It is written for a developer, human or AI, who starts with nothing but this document. Read the whole document first, especially **Parked ideas and rejected decisions** and **Open decisions**, then build in the order **How work is delivered** sets. Do not start a milestone until the previous one's **Done when** checks all pass.
@@ -395,7 +418,7 @@ Files Godot generates itself are exempt: the `.godot/` cache folder, `.import` f
 
 The code is written by an AI developer working from this document. Each working session follows these rules:
 
-1. **Read before writing.** Read the ground rules, **Parked ideas and rejected decisions**, **Open decisions**, and the whole milestone being worked on.
+1. **Read before writing.** Read the ground rules, **Parked ideas and rejected decisions**, **Open decisions**, **Postponed work**, and the whole milestone being worked on.
 2. **One numbered step at a time.** After each step, run `tools/run_tests.sh` (and the scenarios that step affects), and commit with a message naming the milestone and step, such as `M1 step: pixel mover`.
 3. **Never invent.** Decide only what the authority tiers below allow. Never create an unlisted code file, change a rule, change an AC value, or add a feature. If one seems needed, stop and propose the change to this document; the owner decides.
 4. **Ask instead of guessing.** Where this document is ambiguous, contradicts itself or contradicts the engine, stop, describe the problem, and record the question in `docs/decision_log.md`.
@@ -1077,9 +1100,7 @@ M1 is built in these numbered steps, one session each (`/step M1.1` and so on). 
 4. **The player:** `player.tscn`, `player.gd` with steps 1–10 wired into `World`, `player_visuals.gd`, `player_frames.tres` (placeholder frames until the owner's sheet arrives), plus the wall-jump and dash rows of **Control locks**.
 5. **Rooms:** `room.gd`, `room_entrance.gd`, `room_entry.gd`, `room_catalog.gd`, `room_catalog.tres`, `World.load_room()`, and `gym.tscn` as a **skeleton**: the room node, its three empty tile layers, one entrance per station, and its `RoomEntry`. **Owner hand-off:** the owner paints each station's tiles in the Godot editor, following the gym station table. The step is complete when the painted gym is committed.
 6. **Assists:** corner correction, dash corner correction, one-way platform help and post-dash floor snap in `PixelMover`, with their unit tests.
-7. **Debug tools:** `debug_world_draw.gd`, and the debug menu's room and station list.
-8. **Scenarios:** `scenario_runner.gd` and `m01`–`m08`, run against the painted gym.
-9. **Done-when:** the owner's feel playtest, the interpolation and jitter check, and the M1 summary in the build journal.
+Steps 7 (debug tools), 8 (scenarios) and 9 (done-when) are **postponed** (owner, 2026-10-19) and listed under **Postponed work**. After step 6, work moves on to M2.
 
 **Decide before step 2** (open items 7, 9 and 10 from the 2026-10-17 specification review). All three were accepted by the owner on 2026-10-18; each item below is now the rule:
 
@@ -1404,10 +1425,10 @@ Docs: [Command line tutorial](https://docs.godotengine.org/en/4.5/tutorials/edit
 
 #### M1 done when
 
-- [ ] All M0 and M1 unit tests pass.
-- [ ] All eight M1 scenario files pass headless.
-- [ ] Physics interpolation and pixel snapping together show no shimmer or camera jitter in the gym at 60 Hz and 144 Hz; otherwise the chosen fix is in the decision log.
-- [ ] The owner has played the gym and recorded first feel notes and any tuning changes in `docs/decision_log.md`.
+- [x] All M0 and M1 unit tests pass.
+- [ ] All eight M1 scenario files pass headless. *Postponed with step 8 (**Postponed work**).*
+- [ ] Physics interpolation and pixel snapping together show no shimmer or camera jitter in the gym at 60 Hz and 144 Hz; otherwise the chosen fix is in the decision log. *Postponed with step 9.*
+- [x] The owner has played the gym and recorded first feel notes and any tuning changes in `docs/decision_log.md` (2026-10-19: movement feels good; no tuning changes).
 
 ---
 

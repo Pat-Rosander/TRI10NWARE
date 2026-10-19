@@ -12,7 +12,7 @@ Its authorities are `docs/reference/TRI10NWARE_design.pdf` (the design) and `doc
 
 1. The **Status** block at the top of `docs/build_journal.md`: where work stands and what is next.
 2. In the spec, **"How an AI developer works from this document"**: the session rules and the **authority tiers** (what you may decide alone, what you decide and log, what needs the owner).
-3. **"Ground rules for the code"** and **"Determinism contract"**.
+3. **"Ground rules for the code"**, **"Determinism contract"** and **"Postponed work"** (owner-postponed steps: never build them unless asked, and skip what depends on them).
 4. The step you were asked to do (for example "M0 step 4" or "M1 build order", step 3), plus every section that step names.
 5. When relevant: **"Same-tick contract"** (in M1), **"Open decisions"**, **"Parked ideas and rejected decisions"**, **"Repository layout"**.
 
