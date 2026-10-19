@@ -4,10 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M1 step 4, the player, 2026-10-18. **M1 step 5 code is committed** (rooms, the catalog, `World.load_room()`, the gym skeleton), but the step finishes only when the owner's painted gym is committed.
-- **Next step:** owner paints the gym (M1 step 5 entry, "Painting guide"), then M1 step 6, assists (`/step M1.6`).
+- **Last completed:** M1 step 6, assists, 2026-10-18. M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
+- **Next step:** M1 step 7, debug tools (`/step M1.7`). It doesn't need the rest of the gym. M1 step 8 (scenarios) does.
 - **Waiting on the owner:**
-    - **Paint the gym** in `game/verification/gym/gym.tscn`, following the painting guide in the M1 step 5 entry, and commit it (or ask a session to commit it). Until then, F5 drops the player into the pit and respawns them forever. While `gym.tscn` is open in the editor, no session may edit it.
+    - **Finish the gym** before M1 step 8 (painting guide in the M1 step 5 entry; details in the M1 step 6 entry, "Gym check"). Move the `WallShaft` marker (x 976) and the `CornerCeiling` marker (x 1480) out of the solid tiles. Give `dash_chamber`, `coyote_ledge` and `buffer_drop` their floors (from column 100 on, row 26 is open to the pit), and finish `corner_ceiling` and the 12 × 8 dash chamber box. While `gym.tscn` is open in the editor, no session may edit it.
     - Play the M1 step 4 test floor (M1 step 4 entry, "How to see it"): run, jump, wall jump off the pillar and side walls, dash in 8 directions, fall into the pit. If a key seems ignored, run the keyboard device check in the note below.
     - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
@@ -647,3 +647,34 @@ Columns 154–159 are spare.
 - Decide and log (decision log, M1.5): the gym's `world_rect`; the station layout and entrance positions; the provisional chimney width; deferring the catalog's point and neighbor lookups to M6; reading the catalog with `load()`, not `preload`.
 - Check run: 92 unit tests pass; import and a 300-frame headless run printed no errors. A throwaway script (not committed) confirmed `room_enter gym start` at tick 0, then `death`/`respawn` pairs only, one room under `RoomSlot`, and the feet at the gym's world offset.
 - The owner's art rename (`player_frames.png` → `player_sheet_v1.png`, with `player_frames.tres` re-saved) was left untouched by this step; the owner committed it separately (`a29f319`). The slot-name question stays open: the spec's slot is still `player_sheet.png`.
+
+## M1 step 6: assists (2026-10-18)
+
+**What was built:**
+
+- `game/core/pixel_mover.gd`: the four movement assists. The constructor now also takes `corner_correction_px`, `dash_corner_correction_px`, `oneway_assist_px`, `post_dash_snap_px` and `apex_threshold_px_s`. `move()` takes the facing and the active dash's direction. New: `corner_shift` and `dash_corner_shift` (what the last move did), `oneway_help()` and `post_dash_snap()`.
+- `game/player/player.gd`: passes the new tuning to the mover, calls each assist in its step, and logs `assist` events.
+- `game/tests/unit/test_pixel_mover.gd`: 13 assist tests (105 unit tests in total).
+- `docs/decision_log.md`: seven M1.6 rows.
+
+**How it works:** the assists are small, forgiving nudges, all borrowed from Celeste. Each one moves the player only into empty space, never into a tile.
+
+The two *corrections* happen inside the move itself (step 6). When a rising player's head clips the edge of a ceiling, the mover looks up to 8 px left and right for a spot where the head would clear it. It takes the nearest one, slides there and keeps rising, so a jump that just catches a corner isn't killed. The **dash corner correction** is the sideways version. When a horizontal or up-diagonal dash would hit a ledge lip in the bottom 8 px of the body, the mover lifts the body up to 8 px and the dash carries on over the lip. Each correction can happen at most once per move. Corner correction shifts the horizontal position during the vertical pass, and dash corner correction shifts the vertical position during the horizontal pass, so this gives exactly the spec's "one correction per axis per tick".
+
+The two *snaps* happen outside the move. **One-way platform help** runs at the start of step 7. A player rising slowly (near the top of a jump) whose feet are within 8 px below a one-way platform's top is lifted onto it and stops rising. The normal sensing that follows sees the player standing there and logs `land`, so it counts as a real landing. One-way platforms arrive in M4, so for now only the unit tests use this. The **post-dash floor snap** runs in step 9, when a dash ends. If the dash was horizontal or downward and the floor is within 6 px below the feet, the player is moved down onto it, so a dash that ends just above the ground doesn't leave a floaty little fall.
+
+The mover is a pure rule class and may not touch `Trace` (ground rule 8), so it only reports what it did. `Player` writes the `assist` event, with `kind` set to `corner`, `dash_corner`, `oneway` or `dash_snap`, and `dx`, `dy` set to the nudge in pixels.
+
+**Why:** spec "How movement works, step by step" (the **Movement assists** table and **Assist precedence**), the "Several assists could apply" and "Corner correction fits both ways" rows of the **Same-tick contract**, and "M1 files" (`pixel_mover.gd`, `test_pixel_mover.gd`). Serves M-01 to M-03 (forgiving, consistent movement) and D-04/D-05 (all whole-pixel, deterministic).
+
+**How to see it:**
+
+- Run `tools/run_tests.sh`: the new tests are in the `test_pixel_mover.gd` block.
+- In the gym, with `-- --debug-tools`: dash sideways into a ledge lip so the dash starts just below the lip's top. The player hops onto it instead of stopping, and the saved trace shows `assist` with `kind` `dash_corner`. A throwaway check against the painted gym (not committed) found lips at columns 91–115 where this fires, with lifts of 1–8 px.
+- Corner correction can't be seen in the gym yet, because the `corner_ceiling` station isn't finished (Status block).
+
+**Decisions and questions:**
+
+- Decide and log (decision log, M1.6): what "fits" means for each correction; which dashes get the dash corner correction; once per move; the one-way help's conditions and its place in step 7; the post-dash snap's floor rule and its landing timing (sensed on the next tick's step 7, one tick later than Celeste); the meaning of `assist` dx/dy; and the tie-break and once-per-move cases that only a wider limit can reach.
+- **Gym check (owner):** the gym committed in `54b8164` is only partly painted. Columns 0–89 are painted (`start` through `chimney`). The `wall_shaft` marker (x 976) and the `corner_ceiling` marker (x 1480) sit inside solid tiles, so a player sent there is stuck. `dash_chamber`, `coyote_ledge` and `buffer_drop` have no floor: from column 100 on, row 26 is open to the pit. The box at columns 91–115, rows 18–24, and the blocks at rows 10–14 look unfinished. None of this affects step 6 or 7, but M1 step 8's scenarios need every station.
+- Note: `54b8164` also added `[editor] movie_writer/movie_file` with an absolute path under `/Users/patrickrosander/` to `project.godot`. It's harmless, but machine-specific. Left as is.

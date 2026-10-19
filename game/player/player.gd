@@ -42,7 +42,9 @@ var _vy_before_move: float = 0.0
 ## first tick's decisions see the real state.
 func respawn(feet: Vector2i, grid: SolidGrid, facing: int = 1) -> void:
 	var data: TuningData = Tuning.data
-	mover = PixelMover.new(grid, data.body_size_px, data.wall_check_px, Tuning.TICKS_PER_SECOND)
+	mover = PixelMover.new(grid, data.body_size_px, data.wall_check_px, Tuning.TICKS_PER_SECOND,
+			data.corner_correction_px, data.dash_corner_correction_px, data.oneway_assist_px,
+			data.post_dash_snap_px, data.apex_threshold_px_s)
 	mover.position = feet
 	dash = DashState.new(Tuning.dash_ticks, Tuning.dash_cooldown_ticks, data.dash_speed_px_s,
 			data.dash_end_speed_px_s, data.dash_end_up_mult, data.charged_refill_clears_cooldown)
@@ -122,15 +124,23 @@ func step_integrate(frame: InputFrame) -> void:
 		state.facing = x
 
 
-## Step 6: moves the body in whole pixels.
+## Step 6: moves the body in whole pixels, with the corner and dash corner corrections.
 func step_move() -> void:
 	_vy_before_move = mover.velocity_y
-	mover.move()
+	mover.move(state.facing, dash.direction if dash.is_active() else Vector2i.ZERO)
+	if mover.dash_corner_shift != 0:
+		_log_assist("dash_corner", 0, mover.dash_corner_shift)
+	if mover.corner_shift != 0:
+		_log_assist("corner", mover.corner_shift, 0)
 
 
-## Step 7: grounded, landing, the ground refill, coyote and soft apex, walls and ceiling.
+## Step 7: the one-way platform help, then grounded, landing, the ground refill, coyote and soft
+## apex, walls and ceiling. A lift onto a platform counts as a landing.
 func step_sense() -> void:
 	var was_grounded: bool = state.grounded
+	var lift: int = mover.oneway_help()
+	if lift != 0:
+		_log_assist("oneway", 0, lift)
 	_sense_contacts()
 	if state.grounded and not was_grounded:
 		Trace.record("land", {"vx": mover.velocity_x, "vy_before": _vy_before_move})
@@ -141,7 +151,7 @@ func step_sense() -> void:
 
 
 ## Step 9: counts down the sustain, the wall-jump lock and the dash timers; applies the dash's
-## end velocity on its last tick (M-03).
+## end velocity and the post-dash floor snap on its last tick (M-03).
 func step_timers() -> void:
 	if state.sustain_ticks > 0:
 		state.sustain_ticks -= 1
@@ -152,6 +162,9 @@ func step_timers() -> void:
 		mover.velocity_y = dash.end_velocity_y()
 		Trace.record("dash_end", {"vx": mover.velocity_x, "vy": mover.velocity_y,
 				"interrupted": false})
+		var drop: int = mover.post_dash_snap(dash.direction.y)
+		if drop != 0:
+			_log_assist("dash_snap", 0, drop)
 
 
 ## Step 10: true if the feet are below the room's failure line (bounds bottom + fall_margin_px).
@@ -187,6 +200,10 @@ func _jump(kind: JumpResolver.Kind, frame: InputFrame, tick: int) -> void:
 			state.wall_lock_dir = -side
 	Trace.record("jump", {"kind": JumpResolver.kind_name(kind), "vx": mover.velocity_x,
 			"vy": mover.velocity_y, "object": ""})
+
+
+func _log_assist(kind: String, dx: int, dy: int) -> void:
+	Trace.record("assist", {"kind": kind, "dx": dx, "dy": dy})
 
 
 # Senses grounded and walls; while grounded, refreshes the coyote window and the soft apex.

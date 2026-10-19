@@ -1,6 +1,6 @@
 # Tests PixelMover against small hand-made grids: stopping flush at walls, floors and ceilings at
 # every speed up to dash speed, one-way tops, sub-pixel rounding, the grounded and wall queries,
-# and the wall_check_px guard. Assist tests are added with M1 step 6.
+# the wall_check_px guard, and each movement assist, including where it must not apply.
 # Serves AC M-01, M-02, M-03, D-04, D-05.
 extends TestCase
 
@@ -9,6 +9,12 @@ const TICKS: int = 60
 const BODY: Vector2i = Vector2i(12, 15)
 const WALL_CHECK: int = 6
 const DASH_SPEED: int = 480
+# The assist values of tuning.tres.
+const CORNER: int = 8
+const DASH_CORNER: int = 8
+const ONEWAY: int = 8
+const SNAP: int = 6
+const APEX_THRESHOLD: float = 80.0
 # A one-screen room at the origin: 40 x 23 tiles.
 const ROOM: Rect2i = Rect2i(0, 0, 640, 368)
 # The box built by _make_box(): its open inside, in pixels.
@@ -274,10 +280,231 @@ func test_tuning_keeps_wall_check_below_one_tile() -> void:
 			% [data.wall_check_px, T] + "M1, Decide before step 2, Wall-check distance)")
 
 
-func _make_mover(grid: SolidGrid, feet: Vector2i) -> PixelMover:
-	var mover: PixelMover = PixelMover.new(grid, BODY, WALL_CHECK, TICKS)
+# Corner correction. The ceiling tile (10, 5) spans x 160-175 and ends at y 96; feet at y 111
+# put the head exactly under it.
+
+func test_corner_correction_shifts_a_head_that_clips_an_edge() -> void:
+	var grid: SolidGrid = _grid_with([Vector2i(10, 5)])
+	# The body spans x 173-184: its left 3 px are under the tile.
+	var mover: PixelMover = _make_mover(grid, Vector2i(179, 111))
+	mover.velocity_y = -60.0
+	mover.move()
+	assert_eq(mover.corner_shift, 3, "shifted right 3 px")
+	assert_eq(mover.position, Vector2i(182, 110), "clear of the tile and 1 px higher")
+	assert_false(mover.ceiling_hit, "no ceiling contact")
+	assert_eq(mover.velocity_y, -60.0, "keeps rising")
+	# The mirror case: the body's right 2 px under the tile shift left, even facing right.
+	mover = _make_mover(grid, Vector2i(156, 111))
+	mover.velocity_y = -60.0
+	mover.move(1)
+	assert_eq(mover.corner_shift, -2, "the smallest shift wins")
+
+
+func test_corner_correction_reaches_exactly_its_limit() -> void:
+	var grid: SolidGrid = _grid_with([Vector2i(10, 5)])
+	var mover: PixelMover = _make_mover(grid, Vector2i(176 - 8 + 6, 111))
+	mover.velocity_y = -60.0
+	mover.move()
+	assert_eq(mover.corner_shift, CORNER, "an 8 px overlap is corrected")
+	mover = _make_mover(grid, Vector2i(176 - 9 + 6, 111))
+	mover.velocity_y = -60.0
+	mover.move()
+	assert_eq(mover.corner_shift, 0, "a 9 px overlap is not")
+	assert_true(mover.ceiling_hit, "it hits the ceiling")
+	assert_eq(mover.position, Vector2i(173, 111), "and stops flush")
+	assert_eq(mover.velocity_y, 0.0, "vertical velocity stopped")
+
+
+func test_corner_correction_never_moves_into_a_solid_cell() -> void:
+	# Tile (11, 5) beside it: the 3 px shift that cleared tile (10, 5) now meets another.
+	var grid: SolidGrid = _grid_with([Vector2i(10, 5), Vector2i(11, 5)])
+	var mover: PixelMover = _make_mover(grid, Vector2i(179, 111))
+	mover.velocity_y = -60.0
+	mover.move()
+	assert_eq(mover.corner_shift, 0, "no shift")
+	assert_true(mover.ceiling_hit, "ceiling contact")
+
+
+func test_corner_correction_only_applies_when_rising() -> void:
+	# Falling on to a floor tile's edge with the same 3 px overlap: an ordinary landing.
+	var grid: SolidGrid = _grid_with([Vector2i(10, 10)])
+	var mover: PixelMover = _make_mover(grid, Vector2i(179, 10 * T - 1))
+	mover.velocity_y = 120.0
+	mover.move()
+	assert_eq(mover.corner_shift, 0, "no shift")
+	assert_true(mover.floor_hit, "landed")
+	assert_eq(mover.position, Vector2i(179, 10 * T), "on the edge, not shifted")
+
+
+func test_corner_correction_tie_prefers_velocity_then_facing() -> void:
+	# Centered under the tile, both ways need 14 px: a tie only a wider limit can reach (the
+	# tuning's 8 px never ties with 16 px tiles and a 12 px body).
+	var grid: SolidGrid = _grid_with([Vector2i(10, 5)])
+	var cases: Array[Array] = [[1.0, -1, 14], [-1.0, 1, -14], [0.0, 1, 14], [0.0, -1, -14]]
+	for c: Array in cases:
+		var mover: PixelMover = _make_mover(grid, Vector2i(168, 111), 14)
+		mover.velocity_y = -60.0
+		# Horizontal speed below half a pixel per tick, so the body does not move sideways.
+		mover.velocity_x = c[0] * 10.0
+		mover.move(c[1])
+		assert_eq(mover.corner_shift, c[2], "velocity %s, facing %d" % [c[0], c[1]])
+
+
+func test_corner_correction_applies_at_most_once_per_move() -> void:
+	# After clearing tile (10, 5) to the right, the body meets tile (11, 4) 15 px higher. A wider
+	# limit would let a second correction (10 px right) fit; it must not be used.
+	var grid: SolidGrid = _grid_with([Vector2i(10, 5), Vector2i(11, 4)])
+	var mover: PixelMover = _make_mover(grid, Vector2i(179, 111), 20)
+	mover.velocity_y = -1200.0
+	mover.move()
+	assert_eq(mover.corner_shift, 3, "the first correction")
+	assert_true(mover.ceiling_hit, "the second block stops the body")
+	assert_eq(mover.position, Vector2i(182, 95), "flush under tile (11, 4)")
+
+
+# Dash corner correction. The lip is tile (11, 10): x 176-191, top at y 160. The body starts
+# with its right edge at x 175, its feet [param below] px under the lip's top.
+
+func test_dash_corner_correction_lifts_a_dash_over_a_lip() -> void:
+	for below: int in [1, 4, DASH_CORNER]:
+		var mover: PixelMover = _dash_at_lip(_grid_with([Vector2i(11, 10)]), below,
+				Vector2i(1, 0))
+		assert_eq(mover.dash_corner_shift, -below, "%d px below: lifted" % below)
+		assert_eq(mover.position, Vector2i(169 + 8, 160), "%d px below: on the top" % below)
+		assert_eq(mover.wall_hit, 0, "%d px below: no wall contact" % below)
+		assert_eq(mover.velocity_x, float(DASH_SPEED), "%d px below: keeps dashing" % below)
+	var up: PixelMover = _dash_at_lip(_grid_with([Vector2i(11, 10)]), 4, Vector2i(1, -1))
+	assert_eq(up.dash_corner_shift, -4, "an up-diagonal dash is lifted too")
+
+
+func test_dash_corner_correction_refusals() -> void:
+	var lip: SolidGrid = _grid_with([Vector2i(11, 10)])
+	var mover: PixelMover = _dash_at_lip(lip, DASH_CORNER + 1, Vector2i(1, 0))
+	assert_eq(mover.dash_corner_shift, 0, "9 px below: not lifted")
+	assert_eq(mover.wall_hit, 1, "9 px below: wall contact")
+	assert_eq(mover.position, Vector2i(170, 169), "9 px below: stopped flush")
+	mover = _dash_at_lip(lip, 4, Vector2i.ZERO)
+	assert_eq(mover.wall_hit, 1, "not dashing: no lift")
+	mover = _dash_at_lip(lip, 4, Vector2i(1, 1))
+	assert_eq(mover.wall_hit, 1, "a down-diagonal dash: no lift")
+	# A wall two tiles tall: lifting onto tile (11, 10) would put the body into tile (11, 9).
+	mover = _dash_at_lip(_grid_with([Vector2i(11, 10), Vector2i(11, 9)]), 4, Vector2i(1, 0))
+	assert_eq(mover.dash_corner_shift, 0, "a wall, not a lip: no lift")
+	assert_eq(mover.wall_hit, 1, "a wall: wall contact")
+
+
+func test_dash_corner_correction_applies_at_most_once_per_move() -> void:
+	# Two steps 16 px apart: lifted over the first, then stopped by the second, which a wider
+	# limit could otherwise lift over too.
+	var grid: SolidGrid = _grid_with([Vector2i(11, 10), Vector2i(12, 9)])
+	var mover: PixelMover = PixelMover.new(grid, BODY, WALL_CHECK, TICKS, CORNER, 20, ONEWAY,
+			SNAP, APEX_THRESHOLD)
+	mover.position = Vector2i(169, 164)
+	mover.velocity_x = 1200.0
+	mover.move(1, Vector2i(1, 0))
+	assert_eq(mover.dash_corner_shift, -4, "the first lift")
+	assert_eq(mover.wall_hit, 1, "the second step stops the body")
+	assert_eq(mover.position, Vector2i(186, 160), "flush against tile (12, 9)")
+
+
+# One-way platform help. The platform is tile (10, 10): x 160-175, top at y 160.
+
+func test_oneway_help_lifts_a_slow_rising_body_onto_the_top() -> void:
+	for below: int in [1, 5, ONEWAY]:
+		var mover: PixelMover = _make_mover(_grid_with([Vector2i(10, 10)],
+				SolidGrid.DEFAULT_ONLY), Vector2i(168, 160 + below))
+		mover.velocity_y = -50.0
+		mover.remainder_y = -0.3
+		assert_eq(mover.oneway_help(), -below, "%d px below: lifted" % below)
+		assert_eq(mover.position, Vector2i(168, 160), "%d px below: on the top" % below)
+		assert_eq(mover.velocity_y, 0.0, "%d px below: vertical speed 0" % below)
+		assert_eq(mover.remainder_y, 0.0, "%d px below: remainder 0" % below)
+		assert_true(mover.is_grounded(), "%d px below: grounded" % below)
+	var edge: PixelMover = _oneway_at(SolidGrid.DEFAULT_ONLY, 5, -APEX_THRESHOLD + 1.0)
+	assert_eq(edge.oneway_help(), -5, "just under the apex threshold")
+
+
+func test_oneway_help_refusals() -> void:
+	assert_eq(_oneway_at(SolidGrid.DEFAULT_ONLY, 5, -APEX_THRESHOLD).oneway_help(), 0,
+			"rising at the apex threshold")
+	assert_eq(_oneway_at(SolidGrid.DEFAULT_ONLY, 5, -200.0).oneway_help(), 0, "rising fast")
+	assert_eq(_oneway_at(SolidGrid.DEFAULT_ONLY, 5, 0.0).oneway_help(), 0, "not moving")
+	assert_eq(_oneway_at(SolidGrid.DEFAULT_ONLY, 5, 50.0).oneway_help(), 0, "falling")
+	assert_eq(_oneway_at(SolidGrid.DEFAULT_ONLY, ONEWAY + 1, -50.0).oneway_help(), 0,
+			"9 px below")
+	assert_eq(_oneway_at(SolidGrid.DEFAULT_ONLY, 0, -50.0).oneway_help(), 0,
+			"feet already on the top")
+	assert_eq(_oneway_at(SolidGrid.FLOW_ONLY, 5, -50.0).oneway_help(), 0,
+			"a platform of the inactive family")
+	assert_eq(_oneway_at(SolidGrid.ORDINARY, 5, -50.0).oneway_help(), 0, "an ordinary tile")
+	# Room above: an ordinary tile directly on top of the platform.
+	var grid: SolidGrid = _grid_with([Vector2i(10, 10)], SolidGrid.DEFAULT_ONLY)
+	grid.set_cell(Vector2i(10, 9), SolidGrid.ORDINARY)
+	var mover: PixelMover = _make_mover(grid, Vector2i(168, 165))
+	mover.velocity_y = -50.0
+	assert_eq(mover.oneway_help(), 0, "no room for the body above")
+	assert_eq(mover.position, Vector2i(168, 165), "not moved")
+
+
+# Post-dash floor snap. The floor is tile (10, 10): top at y 160.
+
+func test_post_dash_snap_moves_down_onto_a_near_floor() -> void:
+	for above: int in range(1, SNAP + 1):
+		var mover: PixelMover = _make_mover(_grid_with([Vector2i(10, 10)]),
+				Vector2i(168, 160 - above))
+		assert_eq(mover.post_dash_snap(0), above, "%d px above: snapped" % above)
+		assert_eq(mover.position.y, 160, "%d px above: on the floor" % above)
+	var down: PixelMover = _make_mover(_grid_with([Vector2i(10, 10)]), Vector2i(168, 157))
+	assert_eq(down.post_dash_snap(1), 3, "a downward dash snaps too")
+	var top: PixelMover = _make_mover(_grid_with([Vector2i(10, 10)], SolidGrid.DEFAULT_ONLY),
+			Vector2i(168, 157))
+	assert_eq(top.post_dash_snap(0), 3, "on to an active one-way top")
+
+
+func test_post_dash_snap_refusals() -> void:
+	var grid: SolidGrid = _grid_with([Vector2i(10, 10)])
+	var mover: PixelMover = _make_mover(grid, Vector2i(168, 160 - SNAP - 1))
+	assert_eq(mover.post_dash_snap(0), 0, "7 px above: no snap")
+	assert_eq(mover.position.y, 160 - SNAP - 1, "7 px above: not moved")
+	mover = _make_mover(grid, Vector2i(168, 160))
+	assert_eq(mover.post_dash_snap(0), 0, "already grounded")
+	mover = _make_mover(grid, Vector2i(168, 157))
+	assert_eq(mover.post_dash_snap(-1), 0, "an upward dash")
+	assert_eq(mover.position.y, 157, "an upward dash: not moved")
+
+
+func _make_mover(grid: SolidGrid, feet: Vector2i, corner: int = CORNER,
+		dash_corner: int = DASH_CORNER) -> PixelMover:
+	var mover: PixelMover = PixelMover.new(grid, BODY, WALL_CHECK, TICKS, corner, dash_corner,
+			ONEWAY, SNAP, APEX_THRESHOLD)
 	mover.position = feet
 	return mover
+
+
+# One dash-speed move toward the lip tile (11, 10) from feet [param below] px under its top,
+# the body's right edge at x 175, with the active dash direction [param dash_dir].
+func _dash_at_lip(grid: SolidGrid, below: int, dash_dir: Vector2i) -> PixelMover:
+	var mover: PixelMover = _make_mover(grid, Vector2i(169, 160 + below))
+	mover.velocity_x = DASH_SPEED
+	mover.move(1, dash_dir)
+	return mover
+
+
+# A body rising at [param vy] with its feet [param below] px under the top of tile (10, 10),
+# painted with [param solidity].
+func _oneway_at(solidity: int, below: int, vy: float) -> PixelMover:
+	var mover: PixelMover = _make_mover(_grid_with([Vector2i(10, 10)], solidity),
+			Vector2i(168, 160 + below))
+	mover.velocity_y = vy
+	return mover
+
+
+# A grid in ROOM with [param solidity] painted at each of [param cells].
+func _grid_with(cells: Array[Vector2i], solidity: int = SolidGrid.ORDINARY) -> SolidGrid:
+	var grid: SolidGrid = SolidGrid.new(ROOM)
+	for cell: Vector2i in cells:
+		grid.set_cell(cell, solidity)
+	return grid
 
 
 # A closed box of ordinary tiles around BOX, one tile thick, inside ROOM.
