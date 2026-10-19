@@ -10,3 +10,5 @@ One row per art, audio or font file in the game. `status` is `placeholder`, `own
 | `game/art/tiles/level_1_tiles.png` | Level 1 tile atlas: stone blocks (solid) and telephone-pole pieces (decoration); source of `game/tiles/level_tiles.tres` | owner draft | Pat Rosander | owner to confirm | — | 2026-10-18 |
 | `game/icon.svg` | Project and app icon (Godot's default icon, from project creation); replace when the owner supplies one | placeholder | Godot Engine contributors | MIT | https://github.com/godotengine/godot | 2026-10-18 |
 | `game/art/player/player_frames.png` | Player frames: default state (left) and flow state (right), one 20 × 20 frame each; source of `game/player/player_frames.tres` (spec slot name: `player_sheet.png`) | owner draft | Pat Rosander | owner to confirm | — | 2026-10-18 |
+| `game/art/objects/charged_object.png` | Charged object sprite (slot); centered on the region center | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
+| `game/art/objects/charged_glow.png` | Charged object glow, drawn with additive blending (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |

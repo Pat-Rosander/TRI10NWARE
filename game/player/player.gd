@@ -1,7 +1,8 @@
 # The player: holds the movement rule objects (PixelMover, DashState, the press buffers and a
 # small movement-state record) and the step methods World calls each tick; its FlowController
-# holds state, volts and the countdown. No _physics_process.
-# Serves AC M-01, M-02, M-03, M-04, M-05, M-06, M-07, R-01, S-01.
+# holds state, volts and the countdown. Senses the room's charged objects and fires the charged
+# jump. No _physics_process.
+# Serves AC M-01, M-02, M-03, M-04, M-05, M-06, M-07, R-01, S-01, C-01 to C-08.
 class_name Player
 extends Node2D
 
@@ -30,6 +31,8 @@ var dash: DashState
 var jump_buffer: PressBuffer
 var dash_buffer: PressBuffer
 var state: MoveState
+## The current room's charged objects, sorted by node name; set on every respawn.
+var charged: Array[ChargedObject] = []
 
 ## The live input source in the scene; World reads it unless a scenario swaps in another.
 @onready var input_source: InputSource = $InputSource
@@ -42,8 +45,11 @@ var _vy_before_move: float = 0.0
 
 ## Places the feet at [param feet] in [param grid] with fresh rule objects (default state, full
 ## volts), facing [param facing]. Grounded, walls and coyote are sensed at once (no land is logged), so the
-## first tick's decisions see the real state.
-func respawn(feet: Vector2i, grid: SolidGrid, facing: int = 1) -> void:
+## first tick's decisions see the real state. [param charged_objects] are the room's charged
+## objects in node-name order (a rebuilt room brings fresh trackers).
+func respawn(feet: Vector2i, grid: SolidGrid, facing: int = 1,
+		charged_objects: Array[ChargedObject] = []) -> void:
+	charged = charged_objects
 	var data: TuningData = Tuning.data
 	mover = PixelMover.new(grid, data.body_size_px, data.wall_check_px, Tuning.TICKS_PER_SECOND,
 			data.corner_correction_px, data.dash_corner_correction_px, data.oneway_assist_px,
@@ -92,12 +98,11 @@ func step_dash(frame: InputFrame, tick: int) -> void:
 
 
 ## Step 4: at most one jump, chosen by JumpResolver; then the coyote countdown (M-01, M-02,
-## M-05, M-06).
+## M-05, M-06, C-01 to C-08).
 func step_jump(frame: InputFrame, tick: int) -> void:
 	if jump_buffer.can_spend(tick):
-		# Charged stays false until M2 supplies flow and an armed region.
 		var kind: JumpResolver.Kind = JumpResolver.resolve(state.grounded, state.coyote_ticks > 0,
-				false, state.wall_left or state.wall_right, dash.is_active(),
+				_charged_eligible(), state.wall_left or state.wall_right, dash.is_active(),
 				jump_buffer.created_tick(), dash.start_tick)
 		if kind != JumpResolver.Kind.NONE:
 			_jump(kind, frame, tick)
@@ -150,7 +155,8 @@ func step_move() -> void:
 
 
 ## Step 7: the one-way platform help, then grounded, landing, the ground refill, coyote and soft
-## apex, walls and ceiling. A lift onto a platform counts as a landing.
+## apex, walls and ceiling, then each charged object's encounter state in node-name order. A lift
+## onto a platform counts as a landing.
 func step_sense() -> void:
 	var was_grounded: bool = state.grounded
 	var lift: int = mover.oneway_help()
@@ -163,6 +169,9 @@ func step_sense() -> void:
 		Trace.record("dash_refill", {"cause": "ground"})
 	if mover.ceiling_hit:
 		state.sustain_ticks = 0
+	var body: Rect2i = mover.body_rect(mover.position)
+	for object: ChargedObject in charged:
+		object.sense(body, Tuning.data.charged_exit_margin_px)
 
 
 ## Step 9: counts down the sustain, the wall-jump lock, the dash timers and the zero-volt
@@ -199,6 +208,7 @@ func _jump(kind: JumpResolver.Kind, frame: InputFrame, tick: int) -> void:
 	Trace.record("press_spent", {"action": "jump", "created_tick": created, "spent_on": tick})
 	state.coyote_ticks = 0
 	state.soft_apex = kind != JumpResolver.Kind.CHARGED
+	var object_name: String = ""
 	match kind:
 		JumpResolver.Kind.GROUND, JumpResolver.Kind.COYOTE:
 			mover.velocity_y = -data.jump_speed_px_s
@@ -214,8 +224,57 @@ func _jump(kind: JumpResolver.Kind, frame: InputFrame, tick: int) -> void:
 			state.sustain_ticks = Tuning.jump_sustain_ticks
 			state.wall_lock_ticks = Tuning.wall_jump_lock_ticks
 			state.wall_lock_dir = -side
+		JumpResolver.Kind.CHARGED:
+			object_name = _charged_jump()
 	Trace.record("jump", {"kind": JumpResolver.kind_name(kind), "vx": mover.velocity_x,
-			"vy": mover.velocity_y, "object": ""})
+			"vy": mover.velocity_y, "object": object_name})
+
+
+# The charged jump (C-05, C-06, C-08): cuts an active dash, keeping its horizontal speed; launches
+# at exactly charged_launch_speed_px_s with no variable height; spends every armed region in
+# node-name order; refills the dash. Returns the name of the object the jump is logged against.
+func _charged_jump() -> String:
+	var nearest: String = _nearest_charged_object()
+	if dash.is_active():
+		dash.interrupt()
+		Trace.record("dash_end", {"vx": mover.velocity_x, "vy": mover.velocity_y,
+				"interrupted": true})
+	mover.velocity_y = -Tuning.data.charged_launch_speed_px_s
+	state.sustain_ticks = 0
+	for object: ChargedObject in charged:
+		object.spend()
+	if dash.refill_charged():
+		Trace.record("dash_refill", {"cause": "charged"})
+	return nearest
+
+
+# True if a charged jump is possible now: in flow, airborne, and a powered object is armed.
+func _charged_eligible() -> bool:
+	if not flow.is_flow() or state.grounded:
+		return false
+	for object: ChargedObject in charged:
+		if object.offers_charged_jump():
+			return true
+	return false
+
+
+# Among the objects offering a charged jump, the one whose center is nearest the body's center
+# (squared distance, in doubled coordinates so it stays in integers); ties go to the lowest
+# node name, which comes first in the sorted list.
+func _nearest_charged_object() -> String:
+	var body: Rect2i = mover.body_rect(mover.position)
+	var body_center2: Vector2i = body.position * 2 + body.size
+	var best: String = ""
+	var best_d2: int = -1
+	for object: ChargedObject in charged:
+		if not object.offers_charged_jump():
+			continue
+		var offset: Vector2i = object.region_center() * 2 - body_center2
+		var d2: int = offset.x * offset.x + offset.y * offset.y
+		if best_d2 < 0 or d2 < best_d2:
+			best = String(object.name)
+			best_d2 = d2
+	return best
 
 
 func _log_assist(kind: String, dx: int, dy: int) -> void:

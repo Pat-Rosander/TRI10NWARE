@@ -98,7 +98,8 @@ func load_room(id: StringName, entrance_id: StringName, is_respawn: bool = false
 	room_id = id
 	checkpoint = entrance_id
 	Trace.room = String(id)
-	_player.respawn(entry.world_rect.position + entrance.feet(), grid, entrance.facing)
+	_player.respawn(entry.world_rect.position + entrance.feet(), grid, entrance.facing,
+			room.charged_objects())
 	if is_respawn:
 		_input_source.mark_all_stale()
 	_camera.set_bounds(room.bounds)
@@ -153,7 +154,7 @@ func _step_move() -> void:
 	_player.step_move()
 
 
-# Step 7: grounded, walls, charged-object areas (M2).
+# Step 7: grounded, walls, charged-object regions.
 func _step_sense() -> void:
 	_player.step_sense()
 

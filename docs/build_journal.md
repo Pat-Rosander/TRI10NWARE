@@ -4,10 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M2 step 2, flow in the player, 2026-10-19. M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
-- **Next step:** M2 step 3, charged object (`/step M2.3`). **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
+- **Last completed:** M2 step 3, charged object, 2026-10-19. M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
+- **Next step:** M2 step 4, gym charged stations (`/step M2.4`). It edits `gym.tscn`, so **close the gym's scene tab in the editor first**; after it, the owner paints the six stations' tiles. **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
 - **Waiting on the owner:**
-    - Focus the Godot editor once so it registers the new `FlowController` class, then open `game/player/flow_controller.gd` and `game/tests/unit/test_flow_controller.gd` once so the editor analyzes them (the diagnostics tool had not seen either yet; the headless run compiles both and every test passes).
+    - Focus the Godot editor once so it registers the new `ChargedObject` class, then open `game/objects/charged_object/charged_object.gd` and `game/tests/unit/test_charged_jump.gd` once so the editor analyzes them (the headless run compiles both and every test passes). Then open `charged_object.tscn` and check the ring is drawn at radius 64 around the placeholder square.
+    - `CREDITS.md` lists `game/art/player/player_frames.png`, but the owner's commit `a29f319` renamed it to `player_sheet_v1.png` (`player_frames.tres` points there): update that row (and the slot-name question below may now be answered).
     - **Finish the gym** before the postponed M1 step 8 (painting guide in the M1 step 5 entry; details in the M1 step 6 entry, "Gym check"). Move the `WallShaft` marker (x 976) and the `CornerCeiling` marker (x 1480) out of the solid tiles. Give `dash_chamber`, `coyote_ledge` and `buffer_drop` their floors (from column 100 on, row 26 is open to the pit), and finish `corner_ceiling` and the 12 × 8 dash chamber box. While `gym.tscn` is open in the editor, no session may edit it.
     - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
@@ -736,3 +737,35 @@ The countdown is split across two steps. Step 9 counts it down and, on the tick 
 - Decide and log (decision log, M2.2): a vanished floor makes the switch tick the first airborne decision tick, and a platform appearing under an airborne player waits for step 7; switch presses are not logged as `press`; the controller logs the ledger's events before the player's support re-check (the trace order is the same).
 - Skipped because it waits for the postponed M1 steps: scenarios `s01`–`s04` and the flow cases in `m02`, `m04`, `m05`, `m07`, `m08` (M1.8); `test_flow_controller.gd` checks the same rules with unit tests until then. A World-level check of the countdown death (step 10 calling `load_room`) belongs to `s04`, so it also waits.
 - Left for later M2 steps: the charged jump (step 3), and `Visuals/SwitchFX` and the `electric_` animations (step 5).
+
+## M2 step 3: charged object (2026-10-19)
+
+**What was built:**
+
+- `game/objects/charged_object/charged_object.gd` (new): `ChargedObject`, a `@tool` node with `region_radius_px` (−1 = tuning default), `always_powered`, `powered`, an `EncounterTracker`, step 7 sensing, spending, and the ring drawn with `draw_arc()`.
+- `game/objects/charged_object/charged_object.tscn` (new): `ChargedObject` → `Sprite`, `Glow` (additive `CanvasItemMaterial`).
+- `game/art/objects/charged_object.png`, `game/art/objects/charged_glow.png` (new placeholders), registered in `CREDITS.md`.
+- `game/rooms/room.gd`: `charged_objects()`, every charged object under `Objects` at any depth, sorted by node name.
+- `game/player/player.gd`: `respawn()` takes the room's objects; step 7 senses them; step 4 now supplies charged eligibility and performs the charged jump.
+- `game/world/world.gd`: `load_room()` passes `room.charged_objects()` to the player.
+- `game/tests/unit/test_charged_jump.gd` (new): 8 tests (162 unit tests in total).
+- `docs/TRI10NWARE.md`: the `test_charged_jump.gd` row in the **M2 files** table (owner approval, 2026-10-19).
+- `docs/decision_log.md`: seven M2.3 rows.
+
+**How it works:** a charged object is a circle whose center is the node's origin. Each tick, in step 7, the player hands every object in the room its body rectangle, in node-name order. The object asks `Geometry` two questions: does the circle overlap the body (entry), and would it still overlap with the radius 1 px bigger (still inside)? Its `EncounterTracker` turns those answers into outside, armed or spent, and every change is logged as `encounter`. The extra pixel on the way out stops a player resting exactly on the boundary from flickering in and out, which would otherwise re-arm the region.
+
+In step 4, a charged jump is possible when the player is in flow, airborne, and at least one powered object is armed. `JumpResolver` (built in M1) already ranks it after ground and coyote jumps, and lets it, alone, cut a dash whose start came before the press. When it fires, the player first notes which object it will be logged against (the one nearest the body's center), then cuts any active dash while keeping its horizontal speed, sets vertical speed to exactly −440 px/s, and turns off the sustain and the soft apex, so holding or releasing jump changes nothing. It spends every armed region the player is inside, so overlapping regions give one jump, not two, and refills the dash. Because the refill also clears the dash cooldown, a dash press that waited in its buffer on the same tick fires on the next tick: that is the charged dash (C-08).
+
+Timing falls out of the tick order. A region entered during the move of tick *N* is armed in step 7 of *N*, after step 4 has already run, so the first charged jump is on *N* + 1. A press buffered up to 6 ticks earlier is still valid then. The objects are rebuilt with the room on every respawn, so their trackers start fresh (R-01).
+
+**Why:** spec **M2 build order** step 3, **M2 files**, **Charged objects, step by step**, **Same-tick contract** (region entry and exit, overlapping regions, dash cutting), **How movement works, step by step** (decision ticks, step 4), **Room scene convention**, ground rules 3, 7, 8, 13 and 14. Serves C-01 to C-08 and V-03.
+
+**How to see it:** run the unit tests; the new block is `test_charged_jump.gd`, tick-exact cases first, as the owner asked. In Godot, open `game/objects/charged_object/charged_object.tscn`: a grey placeholder square with a light-blue ring at the tuning radius (64 px). Change `region_radius_px` in the Inspector and the ring follows. There is no charged object in the gym yet; that is step 4.
+
+**Decisions and questions:**
+
+- Owner decision: the new unit test file `test_charged_jump.gd`, added to the spec's M2 files table, with the tick-exact cases prioritized.
+- Decide and log (decision log, M2.3): the meaning of "nearest" for the `jump` log; every armed region is spent, powered or not; the trace order within a charged jump; the ring and glow until M3; the placeholders; reading the radius from `tuning.tres` in the editor.
+- Note: the test drives the player with its own copy of World's steps 1–9 (`_tick()`), because nothing can run a whole World headless until the scenario runner exists. That copy does not log `press` or `press_expired`; the test checks the buffer directly.
+- Skipped because it waits for the postponed M1 steps: scenarios `c01`–`c08`, the `m05` ledge-into-region case (M1.8), and the region drawing in `debug_world_draw.gd` (M1.7).
+- Left for later steps: the gym's charged stations (M2.4), and the glow's faint-in-default, full-in-flow behavior and ring visibility by state, which belong to `flow_presentation.gd` (M3).
