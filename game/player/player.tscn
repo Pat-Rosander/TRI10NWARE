@@ -1,15 +1,19 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://input/live_input_source.gd" id="2_input"]
 [ext_resource type="Script" path="res://player/player_visuals.gd" id="3_visuals"]
 [ext_resource type="SpriteFrames" path="res://player/player_frames.tres" id="4_frames"]
+[ext_resource type="Script" path="res://player/flow_controller.gd" id="5_flow"]
 
 [node name="Player" type="Node2D"]
 script = ExtResource("1_player")
 
 [node name="InputSource" type="Node" parent="."]
 script = ExtResource("2_input")
+
+[node name="FlowController" type="Node" parent="."]
+script = ExtResource("5_flow")
 
 [node name="Visuals" type="Node2D" parent="."]
 script = ExtResource("3_visuals")

@@ -1471,6 +1471,7 @@ M2 is built in these numbered steps, one session each (`/step M2.1` and so on; o
 | `game/tests/unit/test_flow_ledger.gd` | Every rule below, including flag variants | S-02, S-03, S-04 |
 | `game/tests/unit/test_encounter_tracker.gd` | Arm, spend, exit hysteresis, state switch does nothing | C-03, C-04 |
 | `game/tests/unit/test_geometry.gd` | Overlap edge cases, touching edges, zero sizes | Everything that uses overlap |
+| `game/tests/unit/test_flow_controller.gd` | Switch cost and refusal, platform family flip, coyote start when the floor vanishes, countdown death on the 180th tick, no change to position, velocity or an active dash (owner approval 2026-10-19) | S-01 to S-04, until their scenarios run |
 | `game/verification/scenarios/c01_activation_window.json` … `c08_refill_and_precedence.json` | 8 files, listed below | C-01 to C-08 |
 | `game/verification/scenarios/s01_switch_preserves_motion.json` … `s04_recharge_and_expiry.json` | 4 files, listed below | S-01 to S-04 |
 

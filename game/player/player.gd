@@ -1,6 +1,7 @@
 # The player: holds the movement rule objects (PixelMover, DashState, the press buffers and a
-# small movement-state record) and the step methods World calls each tick. No _physics_process.
-# Serves AC M-01, M-02, M-03, M-04, M-05, M-06, M-07, R-01.
+# small movement-state record) and the step methods World calls each tick; its FlowController
+# holds state, volts and the countdown. No _physics_process.
+# Serves AC M-01, M-02, M-03, M-04, M-05, M-06, M-07, R-01, S-01.
 class_name Player
 extends Node2D
 
@@ -32,13 +33,15 @@ var state: MoveState
 
 ## The live input source in the scene; World reads it unless a scenario swaps in another.
 @onready var input_source: InputSource = $InputSource
+## State, volts and the zero-volt countdown (M2).
+@onready var flow: FlowController = $FlowController
 
 # Vertical velocity before step 6's move, for land's vy_before.
 var _vy_before_move: float = 0.0
 
 
-## Places the feet at [param feet] in [param grid] with fresh rule objects, facing
-## [param facing]. Grounded, walls and coyote are sensed at once (no land is logged), so the
+## Places the feet at [param feet] in [param grid] with fresh rule objects (default state, full
+## volts), facing [param facing]. Grounded, walls and coyote are sensed at once (no land is logged), so the
 ## first tick's decisions see the real state.
 func respawn(feet: Vector2i, grid: SolidGrid, facing: int = 1) -> void:
 	var data: TuningData = Tuning.data
@@ -52,10 +55,22 @@ func respawn(feet: Vector2i, grid: SolidGrid, facing: int = 1) -> void:
 	dash_buffer = PressBuffer.new(Tuning.dash_buffer_ticks)
 	state = MoveState.new()
 	state.facing = facing
+	flow.reset(grid)
 	_vy_before_move = 0.0
 	_sense_contacts()
 	position = Vector2(feet)
 	reset_physics_interpolation()
+
+
+## Step 2: on a fresh switch press, switches state through the FlowController. If the floor
+## vanished with the old platform family, coyote time starts exactly as on walking off a ledge.
+## Position, velocity and an active dash are untouched (S-01).
+func step_switch(frame: InputFrame) -> void:
+	if not frame.switch_pressed or not flow.request_switch():
+		return
+	if state.grounded and not mover.is_grounded():
+		state.grounded = false
+		state.coyote_ticks = Tuning.coyote_ticks
 
 
 ## Step 3: starts a dash if the dash buffer holds a token and DashState allows a start (M-03).
@@ -150,8 +165,8 @@ func step_sense() -> void:
 		state.sustain_ticks = 0
 
 
-## Step 9: counts down the sustain, the wall-jump lock and the dash timers; applies the dash's
-## end velocity and the post-dash floor snap on its last tick (M-03).
+## Step 9: counts down the sustain, the wall-jump lock, the dash timers and the zero-volt
+## countdown; applies the dash's end velocity and the post-dash floor snap on its last tick (M-03).
 func step_timers() -> void:
 	if state.sustain_ticks > 0:
 		state.sustain_ticks -= 1
@@ -165,6 +180,7 @@ func step_timers() -> void:
 		var drop: int = mover.post_dash_snap(dash.direction.y)
 		if drop != 0:
 			_log_assist("dash_snap", 0, drop)
+	flow.step_timer()
 
 
 ## Step 10: true if the feet are below the room's failure line (bounds bottom + fall_margin_px).

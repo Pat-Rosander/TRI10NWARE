@@ -128,9 +128,9 @@ func _step_input() -> void:
 		_add_token(_player.dash_buffer, "dash")
 
 
-# Step 2: default and flow switch (M2).
+# Step 2: default and flow switch.
 func _step_switch() -> void:
-	pass
+	_player.step_switch(frame)
 
 
 # Step 3: dash.
@@ -163,15 +163,18 @@ func _step_contacts() -> void:
 	pass
 
 
-# Step 9: countdown (M2) and short timers.
+# Step 9: the countdown and short timers.
 func _step_timers() -> void:
 	_player.step_timers()
 
 
-# Step 10: goal (M3), countdown expiry (M2), falls. In M1 a fall resets the player at once;
-# M3 adds the full death sequence.
+# Step 10: goal (M3), countdown expiry, falls, in that order. Until M3 a death resets the player
+# at once; M3 adds the full death sequence.
 func _step_outcomes() -> void:
-	if _player.fell():
+	if _player.flow.countdown_expired:
+		Trace.record("death", {"cause": "countdown"})
+		load_room(room_id, checkpoint, true)
+	elif _player.fell():
 		Trace.record("death", {"cause": "fell"})
 		load_room(room_id, checkpoint, true)
 

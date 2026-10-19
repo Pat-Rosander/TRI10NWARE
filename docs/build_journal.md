@@ -4,10 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M2 step 1, rule objects, 2026-10-19 (M2 build order approved and added to the spec). M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
-- **Next step:** M2 step 2, flow in the player (`/step M2.2`). **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
+- **Last completed:** M2 step 2, flow in the player, 2026-10-19. M1 step 5's gym is **partly painted** (owner commit `54b8164`); the rest is listed below.
+- **Next step:** M2 step 3, charged object (`/step M2.3`). **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
 - **Waiting on the owner:**
-    - Focus the Godot editor once (or Project → Reload Current Project) so it registers the new `Geometry`, `FlowLedger` and `EncounterTracker` classes; until then VS Code shows false "Could not find type FlowLedger" errors in `test_flow_ledger.gd`.
+    - Focus the Godot editor once so it registers the new `FlowController` class, then open `game/player/flow_controller.gd` and `game/tests/unit/test_flow_controller.gd` once so the editor analyzes them (the diagnostics tool had not seen either yet; the headless run compiles both and every test passes).
     - **Finish the gym** before the postponed M1 step 8 (painting guide in the M1 step 5 entry; details in the M1 step 6 entry, "Gym check"). Move the `WallShaft` marker (x 976) and the `CornerCeiling` marker (x 1480) out of the solid tiles. Give `dash_chamber`, `coyote_ledge` and `buffer_drop` their floors (from column 100 on, row 26 is open to the pit), and finish `corner_ceiling` and the 12 × 8 dash chamber box. While `gym.tscn` is open in the editor, no session may edit it.
     - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
@@ -707,3 +707,32 @@ The mover is a pure rule class and may not touch `Trace` (ground rule 8), so it 
 - Decide and log (decision log, M2.1): touching never counts as overlap; the trace values `switch`, `recharge`, `default` and `zero_volts`; how the non-AC `pause` and `stop` countdown modes behave; entering flow at 0 when the flag allows it (free, and it never restarts a running countdown); and returning events instead of logging them.
 - Skipped because it waits for the postponed M1 steps: nothing in this step.
 - The editor's diagnostics still show stale "Could not find type FlowLedger" errors, because the editor hasn't rescanned since these files were created outside it. The headless run compiles all six files and every test passes. `geometry.gd`, `encounter_tracker.gd` and the other two test files haven't been analyzed by the editor yet; check them after the rescan (Status block).
+
+## M2 step 2: flow in the player (2026-10-19)
+
+**What was built:**
+
+- `game/player/flow_controller.gd` (new): `FlowController`, the `FlowLedger`'s adapter in the player scene.
+- `game/player/player.tscn`: a `FlowController` node beside `InputSource`.
+- `game/player/player.gd`: the step 2 method `step_switch()`, with the coyote re-check; `respawn()` gives the controller a fresh ledger; `step_timers()` counts the countdown.
+- `game/world/world.gd`: step 2 calls the player's switch step; step 10 checks countdown expiry before falls.
+- `game/tests/unit/test_flow_controller.gd` (new): 9 tests (154 unit tests in total).
+- `docs/TRI10NWARE.md`: the `test_flow_controller.gd` row in the **M2 files** table (owner approval, 2026-10-19).
+- `docs/decision_log.md`: four M2.2 rows.
+
+**How it works:** M2.1's `FlowLedger` decides everything about state, volts and the countdown, but it may not touch nodes or `Trace`. `FlowController` is the small node that connects it to the game. On a fresh switch press, the player asks the controller to switch. The controller asks the ledger, and if the state changed it tells the room's `SolidGrid` which platform family is now solid (default-only tops in default, flow-only tops in flow). It then writes the events the ledger returned (`switch`, `volts`, `countdown_start` or `switch_refused`) to the trace. Only `switch_pressed` reaches it, never `switch_held`, so holding the button can't spend two volts.
+
+After a successful switch, the player checks its floor again with the same 1 px downward probe step 7 uses. If the player was standing on a platform of the family that just stopped being solid, they become airborne at once, with the full 6-tick coyote window. Steps 3 and 4 run later in the same tick, so a jump pressed on the switch tick is already a coyote jump. That is exactly what happens on the first airborne tick after walking off a ledge. Nothing else about the player changes: position, velocity and an active dash are left alone (S-01).
+
+The countdown is split across two steps. Step 9 counts it down and, on the tick it reaches 0, logs `countdown_expire` and raises a flag. Step 10 reads the flag before checking falls (the spec's outcome order), logs `death` with cause `countdown`, and resets the player at the entrance, the same quick M1-style reset a fall uses until M3 adds the death sequence. Splitting it this way leaves room for M5: a recharge in step 8 cancels the countdown before step 9 can expire it, so the player is saved on the last tick. On every respawn the controller gets a brand-new ledger (default, 3 volts, no countdown) rather than a reset one (R-01).
+
+**Why:** spec **M2 build order** step 2, **FlowLedger rules** ("What the flow controller does after a successful switch"), **What happens on every tick** (steps 2, 9, 10), **How movement works, step by step** (step 10 order, decision ticks), **The player scene** ("Fresh state on every respawn"), ground rules 3, 5, 6 and 7. Serves S-01, S-02, S-03, S-04, M-08, R-01.
+
+**How to see it:** run the unit tests; the new block is `test_flow_controller.gd`. In the game, press the switch key (Z) with `-- --debug-tools`, then save the trace on window close. It shows `switch` and `volts` events. On the third entry into flow it shows `countdown_start`, and 180 ticks later `countdown_expire`, `death` (cause `countdown`) and `respawn`. Nothing is visible on screen yet: the gym has no platform tiles (M4), and the HUD and switch visuals arrive in M2 step 5.
+
+**Decisions and questions:**
+
+- Owner decision: the new unit test file `test_flow_controller.gd`, added to the spec's M2 files table.
+- Decide and log (decision log, M2.2): a vanished floor makes the switch tick the first airborne decision tick, and a platform appearing under an airborne player waits for step 7; switch presses are not logged as `press`; the controller logs the ledger's events before the player's support re-check (the trace order is the same).
+- Skipped because it waits for the postponed M1 steps: scenarios `s01`–`s04` and the flow cases in `m02`, `m04`, `m05`, `m07`, `m08` (M1.8); `test_flow_controller.gd` checks the same rules with unit tests until then. A World-level check of the countdown death (step 10 calling `load_room`) belongs to `s04`, so it also waits.
+- Left for later M2 steps: the charged jump (step 3), and `Visuals/SwitchFX` and the `electric_` animations (step 5).
