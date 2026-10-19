@@ -396,6 +396,15 @@ Later milestones assume these steps exist. Until they run:
 - **Done-when items that need scenarios** (M2's "all M1 and M2 scenarios pass headless", and the same line in later milestones) are left unchecked, not passed.
 - **The Level 1 gate cannot pass without M1.8.** Its steps 1, 3 and 4 run the scenarios on every target and file their results as evidence (AC page 9). Run M1.7–M1.9 and the waiting scenarios before the gate.
 
+### Standing rule: unit tests stand in for waiting scenarios
+
+Until M1.8 runs (owner, 2026-10-19):
+
+- **Each step that wires rules into the player adds one unit-test file** in `game/tests/unit/`, standing in for the scenarios of the area it builds (for example `test_flow_controller.gd` for `s01`–`s04`, M2 step 2). It tests through the real player scene on a small grid built in code.
+- **The owner approves these files in advance.** The session adds the file's row to its milestone's files table (that spec edit still shows for approval), naming the scenario files it stands in for. It does not stop to ask whether to add one.
+- **Tick-exact cases come first:** the tick a region arms, buffer windows at exactly *W* and *W* + 1 ticks, same-tick presses, the tick a timer expires. Speeds and distances need only one assertion each, since playtesting catches those.
+- **These files stay after M1.8 runs.** A unit test fails closer to the cause than a scenario does.
+
 ## Implementation plan
 
 This section is the build manual. It is written for a developer, human or AI, who starts with nothing but this document. Read the whole document first, especially **Parked ideas and rejected decisions** and **Open decisions**, then build in the order **How work is delivered** sets. Do not start a milestone until the previous one's **Done when** checks all pass.
