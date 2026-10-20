@@ -12,3 +12,9 @@ One row per art, audio or font file in the game. `status` is `placeholder`, `own
 | `game/art/player/player_frames.png` | Player frames: default state (left) and flow state (right), one 20 × 20 frame each; source of `game/player/player_frames.tres` (spec slot name: `player_sheet.png`) | owner draft | Pat Rosander | owner to confirm | — | 2026-10-18 |
 | `game/art/objects/charged_object.png` | Charged object sprite (slot); centered on the region center | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
 | `game/art/objects/charged_glow.png` | Charged object glow, drawn with additive blending (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
+| `game/art/fonts/pixel_font.ttf` | HUD pixel font (Pixel Operator HB 8), native size 8 px (slot) | owner draft | Jayvee Enaguas (Pixel Operator); added by Pat Rosander | owner to confirm (believed CC0) | owner to confirm | 2026-10-19 |
+| `game/art/player/switch_burst.png` | Switch burst effect, 4 frames of 32 × 32, left to right (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
+| `game/art/ui/volt_pip.png` | Volt pip: full, empty; 2 frames of 8 × 8 (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
+| `game/art/ui/dash_pip.png` | Dash pip: available (green), spent; 2 frames of 8 × 8 (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
+| `game/art/ui/state_icons.png` | State icons: default, flow, flow-at-0-volts warning; 3 frames of 12 × 12, colored squares (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
+| `game/art/ui/countdown_ring.png` | Countdown ring for the HUD's radial TextureProgressBar, 48 × 48 (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |

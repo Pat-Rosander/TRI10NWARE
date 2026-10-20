@@ -1475,7 +1475,7 @@ M2 is built in these numbered steps, one session each (`/step M2.1` and so on; o
 | `game/art/fonts/pixel_font.ttf` | The pixel font the owner chooses, imported with antialiasing off, hinting off and subpixel positioning disabled; license recorded in `CREDITS.md` | Readable text at 640 × 360 |
 | `game/art/ui/volt_pip.png` | Full and empty volt pip | HUD |
 | `game/art/ui/dash_pip.png` | Dash available and spent | HUD |
-| `game/art/ui/state_icons.png` | Default and flow icons | HUD; a non-color state cue |
+| `game/art/ui/state_icons.png` | Three frames, left to right: default, flow, and the flow-at-0-volts warning (owner decision 2026-10-19) | HUD; a non-color state cue |
 | `game/art/ui/countdown_ring.png` | Ring texture for a `TextureProgressBar` | HUD countdown |
 | `game/tests/unit/test_flow_ledger.gd` | Every rule below, including flag variants | S-02, S-03, S-04 |
 | `game/tests/unit/test_encounter_tracker.gd` | Arm, spend, exit hysteresis, state switch does nothing | C-03, C-04 |

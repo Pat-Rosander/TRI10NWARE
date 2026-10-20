@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M2 step 4, gym charged stations, 2026-10-19. The gym now has its six M2 stations' objects and entrances; their tiles are **not painted yet** (painting guide in the M2 step 4 entry). M1 step 5's gym is still **partly painted** (owner commit `54b8164`); the rest is listed below.
-- **Next step:** M2 step 5, HUD and switch visuals (`/step M2.5`). It does not need the M2 stations painted. Its `electric_` animation part is **already done** (owner request, 2026-10-19; decision log, M2.5 early): `player_visuals.gd` picks `electric_` in flow. M2.5 still builds the HUD, `theme.tres` and `Visuals/SwitchFX`. **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
+- **Last completed:** M2 step 5, HUD and switch visuals, 2026-10-19. The HUD (volt pips, state icon, dash pip, countdown) and the switch burst are in, with placeholder art; the font is the owner's (Pixel Operator HB 8, moved to the slot path `pixel_font.ttf`). The six M2 gym stations are **not painted yet** (painting guide in the M2 step 4 entry). M1 step 5's gym is still **partly painted** (owner commit `54b8164`); the rest is listed below.
+- **Next step:** M2 step 6, done-when (`/step M2.6`): the HUD check in the gym. Its scenario and debug-overlay items stay unchecked until the postponed M1 steps run. **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
 - **Waiting on the owner:**
+    - **M2.5 check:** open `game/ui/hud.gd` once so the editor analyzes it (diagnostics), then press F5 and press Z a few times: pips empty, the icon turns cyan, then red at 0 volts, a 3-second countdown appears top center, and a refused switch flashes the pips. Confirm the font's license (believed CC0) and source link in `CREDITS.md`. Replace the five M2.5 placeholders whenever you like (layouts in the M2 step 5 entry).
     - **Paint the six M2 gym stations** (columns 160–319), following the painting guide in the M2 step 4 entry. The gym is now 5120 px wide, and the orange bounds outline shows the new area. Open `charged_object.tscn` once and check the ring still shows at 64 px: its `region_radius_px` is back to −1 (tuning). If not done yet, also open `charged_object.gd` and `game/tests/unit/test_charged_jump.gd` once so the editor analyzes them.
     - `CREDITS.md` lists `game/art/player/player_frames.png`, but the owner's commit `a29f319` renamed it to `player_sheet_v1.png` (`player_frames.tres` points there): update that row (and the slot-name question below may now be answered).
     - **Finish the gym** before the postponed M1 step 8 (painting guide in the M1 step 5 entry; details in the M1 step 6 entry, "Gym check"). Move the `WallShaft` marker (x 976) and the `CornerCeiling` marker (x 1480) out of the solid tiles. Give `dash_chamber`, `coyote_ledge` and `buffer_drop` their floors (from column 100 on, row 26 is open to the pit), and finish `corner_ceiling` and the 12 × 8 dash chamber box. While `gym.tscn` is open in the editor, no session may edit it.
@@ -810,3 +811,38 @@ Columns 154–159 (left over from M1) can simply continue the floor.
 - No new unit-test file: this step wires no rules into the player (standing rule, **Postponed work**).
 - Skipped because it waits for the postponed M1 steps: scenarios `c01`–`c08` and `s01`–`s04` (M1.8), which will run at these stations, and the region drawing in `debug_world_draw.gd` (M1.7).
 - If `charged_region_radius_px`, the jump or the body size is retuned, recheck the object height (y 320) and the `charged_pair` gap.
+
+## M2 step 5: HUD and switch visuals (2026-10-19)
+
+**What was built:**
+
+- `game/ui/hud.tscn` (new): `HUD` CanvasLayer (layer 10) → `Root` (full screen, `theme.tres`) → `TopLeft` row (`VoltPips`, `StateIcon`, `DashPip`) and `Countdown` (`Ring` TextureProgressBar, `Numerals` Label).
+- `game/ui/hud.gd` (new): reads the player every frame; flashes the volt pips on `switch_refused`.
+- `game/ui/theme.tres` (new): the pixel font at its native 8 px.
+- `game/art/fonts/pixel_font.ttf` (+ `.import`): the owner's Pixel Operator HB 8, moved from `PixelOperatorHB8 copy.ttf` to the slot path (owner decision), imported with antialiasing, hinting and subpixel positioning off.
+- Placeholders: `game/art/player/switch_burst.png`, `game/art/ui/volt_pip.png`, `dash_pip.png`, `state_icons.png`, `countdown_ring.png`, all registered in `CREDITS.md` (plus the font's row).
+- `game/world/main.tscn`: adds `HUD`, its `player` pointed at `World/Player`.
+- `game/player/player.tscn`: adds `Visuals/SwitchFX` with an embedded `burst` animation.
+- `game/player/player_visuals.gd`: plays `SwitchFX` on each `switch` event.
+- `docs/TRI10NWARE.md`: the `state_icons.png` row now lists three frames (owner decision).
+- `docs/decision_log.md`: eight M2.5 rows.
+
+**How it works:** the HUD only reads. Every rendered frame, `hud.gd` asks the player's `FlowLedger` for volts, state and countdown, and asks `DashState` whether a charge is held, then picks the matching picture for each element. Nothing in it can change the game. It builds one pip per `max_volts`, so a retune to 4 volts would show 4 pips.
+
+Each art file is a strip of equal frames. `hud.gd` cuts a strip into frames by dividing its width by the frame count, so you can draw the final art at any size, as long as you keep the frame order: volt [full, empty], dash [available, spent], state [default, flow, warning]. The warning frame shows in flow at 0 volts, when switching back to default means certain death.
+
+The countdown appears only while it runs. The numerals are whole seconds rounded up (3, 2, 1). The ring is a radial progress bar whose value is the ticks left out of 180, so it drains smoothly while the numbers step. The numerals are drawn at 16 px, exactly twice the font's native 8 px, so they stay crisp.
+
+Two things are moments rather than states, so they listen to the trace signal (`Trace.event_logged`) instead of reading the player. A refused switch changes nothing, so the event is the only way to see it: the pips blink red three times in 0.4 s. A successful switch plays `SwitchFX`, a 4-frame burst drawn over the player sprite and hidden when it finishes. Both run on rendered time and never feed back into the simulation (**Visuals are a window, not a lever**).
+
+**Why:** spec **M2 build order** step 5, **M2 files**, **Files extended in M2**, **HUD layout**, **Visuals are a window, not a lever**, ground rules 3, 12 and 13, and level design rule 1 (the warning). Serves V-03 and V-04.
+
+**How to see it:** press F5. At the top left: three yellow pips, a grey square (default) and a green square (dash). Press Z: a pip empties, the square turns cyan, and a white burst flashes on the player. Press Z twice more, until you're in flow at 0 volts: the square turns red, and a ring with "3" appears at the top center and drains. Switch back and press Z again: the refusal flashes the pips red. Dash: the green pip goes dark until you land.
+
+**Decisions and questions:**
+
+- Owner decisions: the font, moved to the slot path and used at 8 px; three state-icon frames (spec row updated); colored-square placeholders for the state icons and a green dash pip.
+- Decide and log (decision log, M2.5): the sheet layouts and placeholder sizes; the dash pip ignores the cooldown; the countdown's rounding, its size and the ring's fill; the refusal flash timing; the HUD layer and positions; SwitchFX placement and its embedded frames.
+- Check run: import clean; 162 unit tests pass. A throwaway scene (not committed) loaded `main.tscn` and went through flow at 2, 1 and 0 volts, 61 countdown ticks, a return to default, a refusal and a spent dash. Every pip, icon and dash frame, the countdown's visibility, its numerals (3 → 2) and the ring (180 → 119 of 180) matched, and SwitchFX showed. Diagnostics: `player_visuals.gd` is clean; `hud.gd` hasn't been analyzed yet (the editor analyzes files once opened), so the owner should open it once.
+- No new unit-test file: this step wires no rules (standing rule, **Postponed work**).
+- Question: please confirm the font's license and source link in `CREDITS.md` (Pixel Operator by Jayvee Enaguas is believed to be CC0).
