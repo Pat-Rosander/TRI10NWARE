@@ -396,6 +396,17 @@ Later milestones assume these steps exist. Until they run:
 - **Done-when items that need scenarios** (M2's "all M1 and M2 scenarios pass headless", and the same line in later milestones) are left unchecked, not passed.
 - **The Level 1 gate cannot pass without M1.8.** Its steps 1, 3 and 4 run the scenarios on every target and file their results as evidence (AC page 9). Run M1.7–M1.9 and the waiting scenarios before the gate.
 
+### Postponed M3 gate evidence
+
+M3's build order (owner, 2026-10-19) ships a playable Level 1 first. The Level 1 gate's evidence waits, and runs before the gate is declared passed:
+
+- `bypass_search.gd`, and the six M3 scenario files (`l1_02` … `r03_repeated_retries.json`). Both need `scenario_runner.gd` (M1.8).
+- Level 1 gate steps 1 (`run_tests.sh` with scenarios), 3 (scenarios in each exported build), 4 (frame-rate runs), 6 (ledger and documents), and step 5's scenario-driven videos.
+- M3 done-when items 1–3.
+- `debug_world_draw.gd`'s goal zones (with M1.7).
+
+**Risk until then:** nothing automatic proves that ordinary jump and dash cannot cross Level 1's gap (`l1_03` and the bypass search). Only the owner's playtests check it, so they must try the ordinary-only crossing whenever the layout changes.
+
 ### Standing rule: unit tests stand in for waiting scenarios
 
 Until M1.8 runs (owner, 2026-10-19):
@@ -1454,7 +1465,7 @@ M2 is built in these numbered steps, one session each (`/step M2.1` and so on; o
 3. **Charged object:** `charged_object.tscn`, `charged_object.gd` (ring drawn with `draw_arc()`), placeholders at `charged_object.png` and `charged_glow.png`, the room's charged-object lookup, step 7 sensing (`encounter` events) and the step 4 charged jump in `player.gd`.
 4. **Gym charged stations:** the six M2 stations' objects and entrances in `gym.tscn`. **Owner hand-off:** the owner paints their tiles.
 5. **HUD and switch visuals:** `hud.tscn`, `hud.gd`, `theme.tres`, `HUD` in `main.tscn`, `Visuals/SwitchFX` and the `electric_` animations, with placeholders at the font and UI art slots until the owner's files arrive.
-6. **Done-when:** the HUD check in the gym. Items that need scenarios or the debug overlay stay unchecked until the postponed M1 steps run; the M2 scenario files, the `m0x` additions and the `debug_world_draw.gd` regions wait with them.
+6. **Done-when:** the HUD check, done by the owner during the M3 step 1 playtest; no session is needed (owner, 2026-10-19). Items that need scenarios or the debug overlay stay unchecked until the postponed M1 steps run; the M2 scenario files, the `m0x` additions and the `debug_world_draw.gd` regions wait with them.
 
 #### M2 files
 
@@ -1598,7 +1609,7 @@ Everything is readable with sound muted (V-04).
 #### M2 done when
 
 - [ ] All unit tests and all M1 and M2 scenarios pass headless.
-- [ ] The HUD shows volts, state, dash and countdown correctly in the gym, including with sound muted.
+- [ ] The HUD shows volts, state, dash and countdown correctly in the gym, including with sound muted. *Owner check during the M3 step 1 playtest; M2 step 6 needs no session (owner, 2026-10-19). The other two items stay postponed.*
 - [ ] The debug overlay shows each region's exact boundary and encounter state.
 
 ---
@@ -1606,6 +1617,16 @@ Everything is readable with sound muted (V-04).
 ### M3 — Level 1 room
 
 **Goal:** the Level 1 crossing, playable from a title screen, with death and retry, completion, pause, sound, final art, and all three builds. This milestone ends at the **Level 1 gate**.
+
+#### M3 build order
+
+M3 is built in these numbered steps, one session each (`/step M3.1` and so on; owner approval 2026-10-19). The order puts a playable Level 1 first, so the owner can playtest after step 1. "Level 1 done" means playable and shipped; the gate's evidence (bypass search, scenarios, ledger, frame-rate runs) is under **Postponed work** and runs before the gate is declared passed. The sections below this list are the specification each step implements.
+
+1. **Level 1, playable:** `level_1.tscn` following **Room scene convention**, with entrance `start`, one `ChargedObject` with `always_powered` on, and a `GoalZone` on the destination's top surface, placed from the tuned movement values (**What Level 1 must demonstrate**); `goal_zone.gd`; step 10's completion check, first in its fixed order, logging `room_complete` once (until step 2 builds the completion overlay, completion resets the player at `start`); `room_catalog.tres` gains `level_1`, `world_rect` (0, 0, 640, 368), as the start room. **Owner hand-off:** the owner paints the tiles and may move any node; the owner then playtests.
+2. **Play loop:** `world.gd`'s play states (Title, Playing, Dying, Respawning, Complete) with `death_freeze_s`, `respawn_s` and `control_return` (**Death, retry and completion in World**); `title_overlay.tscn`/`.gd`, `pause_menu.tscn`/`.gd`, `completion_overlay.tscn`/`.gd`, added to `main.tscn`; `main.gd` pauses on the `pause` action and on focus loss.
+3. **Flow visuals:** `flow_presentation.gd` (backdrop fade, glows, region rings, wire modes) as `World/FlowPresentation`; `wire.gd` and `wire_current.gdshader`; decorative wires in `level_1.tscn`; the title overlay's shader prewarm; `camera_rig.gd`'s follow. Placeholders at `wire_strip.png`, `level_1_backdrop.png` and `level_1_props.png` until the owner's files arrive.
+4. **Effects and sound:** `effects.gd` and `effects_frames.tres` as `World/Effects`, with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main, and `default_bus_layout.tres`; the 10 M3 sound slots as silent, registered placeholders until the owner's sounds arrive.
+5. **Ship:** `tools/export_all.sh` from a clean commit; the web build over `tools/serve_web.sh` and in a draft itch.io page (gate step 7); the web pause and focus check (**Pause and focus**); the README's first-launch and itch.io steps; the owner plays every build and records approval or requested changes (gate step 8, without its evidence).
 
 #### M3 files
 
