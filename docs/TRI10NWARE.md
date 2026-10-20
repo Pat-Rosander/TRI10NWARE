@@ -370,7 +370,7 @@ Where a setting offers values other than the AC's (for example `countdown_in_def
 | --- | --- | --- | --- |
 | OD-1 | **Zero-volt rules.** After the last volt is spent, does the countdown continue, pause or stop when the player returns to default? Can flow be entered at 0 volts? Design page 6 lists both as deferred | Countdown continues; flow entry at 0 is refused (AC S-03) | `countdown_in_default` and `allow_flow_entry_at_zero` in `tuning.tres`. Consequence of the current values: switching to default at 0 volts is certain death (level design rule 1) |
 | OD-2 | **Dash cue.** Hair color shows default versus flow (design page 8), but Celeste players read hair as dash availability. What on-character cue shows that a dash is available? | The HUD dash pip only | `player_visuals.gd`, `hud.gd` |
-| OD-3 | **Volts as health.** Design page 6 calls volts health, but only entering flow spends them. Should anything else cost volts, and should the HUD call them health? Decide together with the spikes package: do spikes kill or cost a volt? | Only entering flow spends volts | `FlowLedger`, `hud.gd` |
+| OD-3 | **Volts as health.** Design page 6 calls volts health, but only entering flow spends them. Should anything else cost volts, and should the HUD call them health? Spikes kill rather than cost a volt (owner, 2026-10-20), so they do not settle this | Only entering flow spends volts | `FlowLedger`, `hud.gd` |
 | OD-4 | **Dash freeze and delayed aim.** Celeste briefly freezes the game when a dash starts and reads its direction at the end of the freeze, which forgives sloppy diagonals. Add either? A freeze would be a documented control lock (AC page 3) | Neither: the dash starts and aims on its press tick | `DashState`, step 3 |
 
 ## Postponed work
@@ -545,7 +545,7 @@ These follow from the rules of the game and apply to every room. A room that bre
 5. **Networks never span rooms.** Only one room is active at a time, so a network's source and objects live in the same room.
 6. **Chaining networks is allowed.** One network's objects may carry the player to another network's source.
 7. **Decorative wiring must not look like a power source.** Once networks appear, players learn that wires lead from sources to objects.
-8. **Pits are the only hazard until a level adds spikes.** Spikes are a future feature package (**How work is delivered**).
+8. **Pits and spikes are the only hazards.** Spikes kill on contact in both states (M4, owner 2026-10-20). Their hitbox is smaller than the tile, but a spike still needs a readable approach: never place one where the player cannot see it before reaching it.
 
 ### Repository layout
 
@@ -685,7 +685,7 @@ tri10nware/
     │   ├── gym/
     │   │   ├── gym.tscn
     │   │   └── gym_annex.tscn
-    │   └── scenarios/             36 fixed scenario files plus one route file per room
+    │   └── scenarios/             37 fixed scenario files plus one route file per room
     ├── tests/
     │   ├── test_runner.tscn
     │   ├── test_runner.gd
@@ -719,11 +719,9 @@ Work is delivered level by level, the way AC page 1 frames it: a Level 1 gate, t
 
 | Package | Builds | Criteria it brings into scope | Built for |
 | --- | --- | --- | --- |
-| M4 Platforms | Default-only and flow-only platforms, the overlap policy | P-01 to P-04 | The first level that uses state-dependent platforms |
+| M4 Platforms and spikes | Default-only and flow-only platforms, the overlap policy, and spikes (owner, 2026-10-20) | P-01 to P-04; spike deaths reset like every death (R-01 to R-03) | The first level that uses state-dependent platforms or spikes |
 | M5 Networks | Power sources, networks, recharging | N-01 to N-04, and S-04's recharge cases | The first level that uses a power network |
 | M6 Rooms and progress | Crossings between rooms, collectibles, session progress | G-01, G-02 | The first level with more than one room, or with a collectible |
-| Hazards (spikes) | Specified when the first level with spikes is registered. Whether spikes kill or cost a volt is decided together with OD-3 | Defined with the package | The first level with spikes |
-
 **Levels** (one row per level, added when its mockup arrives):
 
 | Level | Rooms | Mockup | What it introduces | Packages it claims | Gate | Status |
@@ -741,7 +739,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M1 Movement kit | 31 |
 | M2 Flow and charge | 32 |
 | M3 Level 1 room | 36 |
-| M4 Platforms | 6 |
+| M4 Platforms and spikes | 7 |
 | M5 Networks | 10 |
 | M6 Rooms and progress | 13 |
 | M7 Adding a level | 2 per room, plus any art and mockup files the level needs |
@@ -909,6 +907,8 @@ Field names carry their unit as a suffix: `_px`, `_px_s` (pixels per second), `_
 | `charged_exit_margin_px` | 1 | Ours | Exit radius = entry radius + this |
 | `root_contact_margin_px` | 4 | Ours | How far a power source's contact area extends past its art |
 | `overlap_snap_px` | 6 | Ours | Overlap policy snap distance (P-04) |
+| `spike_depth_px` | 6 | Celeste | How deep a spike's hitbox reaches from its base (Celeste's 3 px, doubled); the rest of the tile is harmless (M4) |
+| `spike_inset_px` | 2 | Ours | How far a spike's hitbox stops short of each end of its base, so brushing a spike row's edge is forgiven (M4) |
 | `max_volts` | 3 | AC | Volt capacity |
 | `countdown_s` | 3.0 | AC S-03 | Zero-volt countdown |
 | `countdown_in_default` | `continue` | AC S-03; open decision OD-1 | What the countdown does after leaving flow: `continue`, `pause` or `stop` |
@@ -963,7 +963,7 @@ The event catalog is fixed. New events are added here first.
 | `overlap_snap` | family, dy | The player is snapped onto a platform top |
 | `network_activated` | network, members | A power source is activated |
 | `assist` | kind (corner, dash_corner, oneway, dash_snap), dx, dy | A movement assist moves the player |
-| `death` | cause (countdown, fell, restart) | Death latches |
+| `death` | cause (countdown, fell, restart, spike) | Death latches |
 | `respawn` | room, entrance | The room is rebuilt and the player placed |
 | `control_return` | none | Input is accepted again after a respawn |
 | `room_enter` | room, entrance | A room is built for play |
@@ -1282,9 +1282,10 @@ Every assist applies only where the body fits at the new position; none ever pus
 **Step 10, outcomes.** Checked in this fixed order; the first that applies wins and is the one logged:
 
 1. **Goal reached** (from M3): the player is grounded with their feet inside a goal zone. The goal counts even if the countdown expired this same tick, the same player-favorable tie as recharging (S-04).
-2. **Countdown expired** (from M2): death, cause `countdown`.
-3. **Fell:** the feet are below the room's failure line (`bounds` bottom + `fall_margin_px`) with no room below. Death, cause `fell`.
-4. **Crossing** (from M6): the body's center has left the room into a neighbor.
+2. **Spike** (from M4): step 6's move touched a spike hitbox. Death, cause `spike`.
+3. **Countdown expired** (from M2): death, cause `countdown`.
+4. **Fell:** the feet are below the room's failure line (`bounds` bottom + `fall_margin_px`) with no room below. Death, cause `fell`.
+5. **Crossing** (from M6): the body's center has left the room into a neighbor.
 
 In M1, a fall simply resets the player at the current entrance; M3 adds the full death sequence.
 
@@ -1327,7 +1328,7 @@ Every known case where two things meet on the same tick, in one place. A new cas
 | Several armed regions overlap the player | One charged jump spends them all, in node-name order; logged against the nearest | M2 |
 | Recharge and countdown expiry on one tick | Recharge wins (step 8 runs before step 9) | M2, M5 |
 | Two or more power sources touched on one tick | All activate, in node-name order; one recharge; one `volts` event if the count changed; one `countdown_cancel` if it was running | M5 |
-| Goal, countdown expiry, fall and crossing on one tick | The first that applies, in that order (step 10) | M1 step 10 |
+| Goal, spike, countdown expiry, fall and crossing on one tick | The first that applies, in that order (step 10): reaching the goal wins even if a spike was touched that tick | M1 step 10, M4 |
 | A collectible touched or carried on a tick the player dies | It never commits; commits are checked in step 10, after the death checks | M6 |
 | A room crossing begins | The tick stops advancing; presses during the slide are discarded; held buttons are read fresh when the rules resume | M6 |
 | Choosing the checkpoint after a crossing | The new room's entrance nearest the player's feet, among those within 48 px of the edge actually crossed; ties go to the lowest `entrance_id` | M6 |
@@ -1343,6 +1344,7 @@ The tile set has no physics layers. Instead, one **custom data layer** named `so
 | 1 | Ordinary ground or wall | Always, from every side, in both states |
 | 2 | Default-only platform (M4) | Only from above (its top edge), only in default |
 | 3 | Flow-only platform (M4) | Only from above (its top edge), only in flow |
+| 4, 5, 6, 7 | Spikes pointing up, down, left, right (M4) | Never; touching the hitbox at their base kills, in both states (**How spikes work**) |
 
 Every room has three `TileMapLayer` nodes, `WorldTiles`, `DefaultTiles` and `FlowTiles`, all using this tile set; the separate layers exist so each family can be drawn differently by state. When a room is built, `SolidGrid` reads every used cell of the three layers once (`get_cell_tile_data()`, then the `solidity` value) into its own lookup. It never waits on the engine's deferred tile updates, so a new room is solid on its first tick.
 
@@ -1769,11 +1771,11 @@ To support R-03, the `snapshot` event also records engine-wide counts: total nod
 
 ---
 
-### M4 — Platforms (feature package)
+### M4 — Platforms and spikes (feature package)
 
-**Built when** the first level that uses state-dependent platforms is registered (see **How work is delivered**).
+**Built when** the first level that uses state-dependent platforms or spikes is registered (see **How work is delivered**). Spikes were added to this package by the owner on 2026-10-20; a level that needs only spikes may build the spike parts alone.
 
-**Goal:** default-only and flow-only platforms with one-way support and the overlap policy, proven in the gym.
+**Goal:** default-only and flow-only platforms with one-way support and the overlap policy, and spikes that kill, proven in the gym.
 
 #### M4 files
 
@@ -1782,13 +1784,19 @@ To support R-03, the `snapshot` event also records engine-wide counts: total nod
 | `game/core/overlap_policy.gd` | `class_name OverlapPolicy extends RefCounted`. Given the tiles of the newly solid family that the body overlaps, where the feet are relative to their tops, the vertical speed and whether the body fits above, returns `solid`, `snap` or `pending` | The P-04 decision in one testable place |
 | `game/tests/unit/test_overlap_policy.gd` | Every branch, including the exact snap boundary | P-04 |
 | `game/verification/scenarios/p01_state_matrix.json` … `p04_overlap_policy.json` | 4 files, listed below | P-01 to P-04 |
+| `game/verification/scenarios/h01_spikes.json` | Listed below | Spikes kill exactly on hitbox contact; deaths reset like every death (R-01) |
 
 Files extended in M4:
 
 | File | Change |
 | --- | --- |
-| `level_1_tiles.png` | Platform tile art, visually distinct by family in shape as well as color |
-| `level_tiles.tres` | Platform tiles with `solidity` 2 (default-only) or 3 (flow-only) |
+| `level_1_tiles.png` | Platform tile art, visually distinct by family in shape as well as color; spike tiles in four directions |
+| `level_tiles.tres` | Platform tiles with `solidity` 2 (default-only) or 3 (flow-only); spike tiles with `solidity` 4–7 by direction |
+| `solid_grid.gd` | Spike cells and `touches_spike(rect)`, testing each spike's hitbox (**How spikes work**) |
+| `pixel_mover.gd` | Notes a spike contact at any pixel of a move, and at the start position |
+| `world.gd` | Step 10's spike death, after the goal and before the countdown |
+| `tuning_data.gd`, `tuning.tres`, `test_tuning.gd` | `spike_depth_px` and `spike_inset_px` |
+| `test_solid_grid.gd`, `test_pixel_mover.gd` | Spike hitboxes in all four directions at their exact edges; contact at any pixel of a fast move; spikes never block |
 | `flow_controller.gd` | Applies the overlap policy on every switch |
 | `player.gd` | Re-checks pending tiles every tick in step 7 |
 | `solid_grid.gd` | Pending tiles: a set of cells that stay passable for the player until the body clears them |
@@ -1807,6 +1815,19 @@ When a switch makes a platform family solid for the player:
 
 Nothing ever pushes the player sideways or down, so the policy cannot embed, teleport, crush or catapult (P-04).
 
+#### How spikes work
+
+Owner decisions (2026-10-20): spikes kill, they use their own `solidity` values, and their hitbox is smaller than the tile.
+
+- **A spike tile points one way:** `solidity` 4 up, 5 down, 6 left, 7 right. The atlas holds one tile per direction.
+- **Its hitbox is a strip at its base,** the side the spikes stand on: `spike_depth_px` deep (6), stopping `spike_inset_px` (2) short of each end. An up-pointing spike in a cell at (x, y) has the hitbox from (x + 2, y + 10) to (x + 14, y + 16). The rest of the tile is harmless, so grazing a spike's tips does not kill. The art should keep its points within the tile.
+- **Spikes never block movement.** The player passes into a spike cell and dies there; a spike cell is not solid, and spikes are never walls.
+- **Contact is checked during the move.** `PixelMover` tests the body against spike hitboxes at every pixel it moves, as it does for solids, and at the start position. So a dash cannot pass through a spike between ticks, and standing still on one kills.
+- **They kill in both states, from every direction,** whatever the player is doing, including mid-dash. There is no invulnerability. (State-dependent hazards stay parked.)
+- **Death:** step 10 logs `death` with cause `spike`, after the goal check and before the countdown check (**Step 10, outcomes**). The death and reset are the same as any other (M3).
+
+A spike placed on top of ground is two cells: the ground cell (`solidity` 1) and the spike cell above it.
+
 Docs: [TileMapLayer](https://docs.godotengine.org/en/4.5/classes/class_tilemaplayer.html), [TileData](https://docs.godotengine.org/en/4.5/classes/class_tiledata.html).
 
 #### Gym stations added in M4
@@ -1817,6 +1838,7 @@ Docs: [TileMapLayer](https://docs.godotengine.org/en/4.5/classes/class_tilemapla
 | `platform_oneway` | Platforms to jump up through and walk off sideways, at heights that exercise the one-way platform help | P-02 and the one-way help |
 | `platform_support` | A default-only platform over a pit, and a flow-only one over another | P-03 |
 | `platform_overlap` | Platforms placed across jump arcs and dash lines, for switching while inside them | P-04 |
+| `spikes` | Spikes in all four directions: on a floor, on a ceiling, and on both walls of a shaft, with clear floor beside each so a jump can graze their tips | Spike hitboxes and deaths |
 
 #### M4 scenario files
 
@@ -1826,11 +1848,13 @@ Docs: [TileMapLayer](https://docs.godotengine.org/en/4.5/classes/class_tilemapla
 | `p02_one_way.json` | Rising through from below and crossing sideways never collide; no wall jump off a platform's side; ordinary walls never change |
 | `p03_support_change.json` | Switching on a default-only platform: the player falls, with coyote time. Switch and jump on the same tick there: a coyote jump. Jump, then switch: the jump continues. The opposite family. Landings in midair after a switch |
 | `p04_overlap_policy.json` | Rising, falling, edge and mid-dash switches: no position change larger than the snap distance; no snap under a low ceiling; a pending tile never lets the player through a different platform; pending tiles become solid once clear; never embedded |
+| `h01_spikes.json` | Landing on, walking into and dashing through spikes in each direction gives one `death` with cause `spike`; grazing the tips outside the hitbox does not; spikes kill in both states; the reset after a spike death matches every other death |
 
 #### M4 done when
 
 - [ ] All unit tests and all M1–M4 scenarios pass.
 - [ ] The two platform families are distinguishable by shape, not only color, in both states (owner review).
+- [ ] Spikes read clearly as deadly, and their hitboxes feel fair in play (owner review).
 
 ---
 
