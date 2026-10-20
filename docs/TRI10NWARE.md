@@ -674,7 +674,7 @@ tri10nware/
     │   └── completion_overlay.gd
     ├── audio/
     │   ├── sfx.gd
-    │   └── sfx/                   13 sound files (10 in M3, 1 in M5, 2 in M6)
+    │   └── sfx/                   14 sound files (11 in M3, 1 in M5, 2 in M6)
     ├── debug/
     │   ├── debug_overlay.tscn
     │   ├── debug_overlay.gd
@@ -740,7 +740,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M2 Flow and charge | 32 |
 | M3 Level 1 room | 36 |
 | M4 Platforms and spikes | 7 |
-| M5 Networks | 10 |
+| M5 Networks | 13 |
 | M6 Rooms and progress | 13 |
 | M7 Adding a level | 2 per room, plus any art and mockup files the level needs |
 | M8 Reset sweep | 0 (evidence only) |
@@ -1626,9 +1626,9 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 
 1. **Level 1, playable:** `level_1.tscn` following **Room scene convention**, with entrance `start`, one `ChargedObject` with `always_powered` on, and a `GoalZone` on the destination's top surface, placed from the tuned movement values (**What Level 1 must demonstrate**); `goal_zone.gd`; step 10's completion check, first in its fixed order, logging `room_complete` once (until step 2 builds the completion overlay, completion resets the player at `start`); `room_catalog.tres` gains `level_1`, `world_rect` (0, 0, 640, 368), as the start room. **Owner hand-off:** the owner paints the tiles and may move any node; the owner then playtests.
 2. **Play loop:** `world.gd`'s play states (Title, Playing, Dying, Respawning, Complete) with `death_freeze_s`, `respawn_s` and `control_return` (**Death, retry and completion in World**); `title_overlay.tscn`/`.gd`, `pause_menu.tscn`/`.gd`, `completion_overlay.tscn`/`.gd`, added to `main.tscn`; `main.gd` pauses on the `pause` action and on focus loss.
-3. **Flow visuals:** `flow_presentation.gd` (backdrop fade, glows, region rings, wire modes) as `World/FlowPresentation`; `wire.gd` and `wire_current.gdshader`; decorative wires in `level_1.tscn`; the title overlay's shader prewarm; `camera_rig.gd`'s follow. Placeholders at `wire_strip.png`, `level_1_backdrop.png` and `level_1_props.png` until the owner's files arrive.
-4. **Effects and sound:** `effects.gd` and `effects_frames.tres` as `World/Effects`, with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main, and `default_bus_layout.tres`; the 10 M3 sound slots as silent, registered placeholders until the owner's sounds arrive.
-5. **Ship:** `tools/export_all.sh` from a clean commit; the web build over `tools/serve_web.sh` and in a draft itch.io page (gate step 7); the web pause and focus check (**Pause and focus**); the README's first-launch and itch.io steps; the owner plays every build and records approval or requested changes (gate step 8, without its evidence).
+3. **Flow visuals:** `flow_presentation.gd` (backdrop fade, glows, region rings; wire modes arrive with `Wire` in M5) as `World/FlowPresentation`; the title overlay's shader prewarm; `camera_rig.gd`'s follow. Placeholders at `level_1_backdrop.png` and `level_1_props.png` until the owner's files arrive.
+4. **Effects and sound:** `effects.gd` and `effects_frames.tres` as `World/Effects`, with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main, and `default_bus_layout.tres`; the 11 M3 sound slots. The owner's files for 8 of them (`jump`, `charged_jump`, `dash`, `charged_dash`, `switch_to_flow`, `switch_to_default`, `death`, `respawn`; 16-bit mono 44.1 kHz WAV) are already at their slot paths in `game/audio/sfx/` (owner, 2026-10-20); the session registers them in `CREDITS.md` as `owner draft`; `switch_refused`, `countdown_tick` and `room_complete` are silent, registered placeholders until the owner's files arrive.
+5. **Ship (the last step before the game ships):** `tools/export_all.sh` from a clean commit, producing the three builds and the `builds/itch/` upload files; the web build over `tools/serve_web.sh`; the web pause and focus check (**Pause and focus**); the README's first-launch steps; the owner plays every build and records approval or requested changes (gate step 8, without its evidence). **The owner makes the itch.io page and uploads the files** (gate step 7; owner, 2026-10-20), so no session does any itch.io work.
 
 #### M3 files
 
@@ -1636,9 +1636,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | --- | --- | --- |
 | `game/rooms/level_1/level_1.tscn` | The Level 1 room (layout below) | The first required room (L1-01) |
 | `game/objects/goal/goal_zone.gd` | `class_name GoalZone extends Node2D`, `@tool`. Exports a thin rectangle that sits on a platform's top surface | Completion means standing on the destination, not touching its side or flying past (L1-04) |
-| `game/objects/wire/wire.gd` | `class_name Wire extends Line2D`, `@tool`. Exports `decorative_powered`; holds `powered` and `flow_mode`; switches between the default look and the flow current | Level 1's visible electrical connections (L1-01), and (M5) the visible link between a power source and its objects |
-| `game/objects/wire/wire_current.gdshader` | Canvas-item shader: dashes scrolling along the line in flow; a `pulse_progress` uniform used from M5 | The animated current, using only features the Compatibility renderer supports |
-| `game/world/flow_presentation.gd` | Script on a new `FlowPresentation` node in `World`. Listens for `switch`, `room_enter` and `respawn`; fades the room's `Backdrop`, shows glows and region rings, sets wire modes | All flow visuals in one place; no rule depends on them (V-02) |
+| `game/world/flow_presentation.gd` | Script on a new `FlowPresentation` node in `World`. Listens for `switch`, `room_enter` and `respawn`; fades the room's `Backdrop`, shows glows and region rings; sets wire modes from M5 | All flow visuals in one place; no rule depends on them (V-02) |
 | `game/ui/title_overlay.tscn` | `CanvasLayer`: title, build ID, "press any key". On the web build it asks for a click or key press specifically | Starts play on a user gesture, which browsers need before audio (D-04). Gamepad buttons do not count as a gesture in browsers |
 | `game/ui/title_overlay.gd` | While shown, draws each flow-state material once off-screen so its shader compiles before play. On the first key or click: hides, starts `World`, marks inputs stale | No stall on the first switch into flow (worst on the web); the start key never becomes a jump |
 | `game/ui/pause_menu.tscn` | `CanvasLayer`, process mode **Always**: Resume, Restart room, Fullscreen, Sound on/off, Quit (Quit hidden on web) | R-04, D-07 and normal play |
@@ -1650,6 +1648,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/audio/sfx/jump.wav` | Ordinary, coyote and wall jumps | Feedback |
 | `game/audio/sfx/charged_jump.wav` | Charged jump | Feedback |
 | `game/audio/sfx/dash.wav` | Dash start | Feedback |
+| `game/audio/sfx/charged_dash.wav` | Dash start when the dash's charge came from a charged jump: the latest `dash_refill` before this `dash_start` had cause `charged` (the charged dash, C-08). Any other dash plays `dash.wav` (owner, 2026-10-20) | Feedback |
 | `game/audio/sfx/switch_to_flow.wav` | Entering flow | Feedback |
 | `game/audio/sfx/switch_to_default.wav` | Leaving flow | Feedback |
 | `game/audio/sfx/switch_refused.wav` | Flow refused at zero volts | Feedback |
@@ -1659,7 +1658,6 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/audio/sfx/room_complete.wav` | Completion | Feedback |
 | `game/art/backdrop/level_1_backdrop.png` | Level 1's background, made by the owner. If the owner splits it into layers, each layer file is added to this table before it is created | The part of the screen that dims in flow (V-02) |
 | `game/art/props/level_1_props.png` | Level 1's decorative props as one atlas, made by the owner | Decoration only; props never collide |
-| `game/art/props/wire_strip.png` | A 4 × 1 white texture | `Line2D` only generates the coordinates the current shader needs when it has a texture |
 | `game/world/effects.gd` | Script on a new `Effects` node in `World`. Plays one-shot visual effects at the right position in response to `Trace` events, through a small pool of `AnimatedSprite2D`s | Visible feedback for every important action (V-04), with no link to the rules |
 | `game/world/effects_frames.tres` | `SpriteFrames` with one animation per effect: `death`, `respawn`, `charged_jump`, `dash`, `land`, `goal` | One place that maps effect names to art |
 | `game/art/effects/effects.png` | The effects art, made by the owner (slot) | Source frames for `effects_frames.tres` |
@@ -1696,7 +1694,7 @@ The two original mockups (design document page 2) visualize this idea. Follow **
 | The gap | Cannot be crossed with ordinary movement alone |
 | Powered object | One `ChargedObject` with `always_powered` on, above the gap, placed so a jump from the start can reach its region and a charged jump from there can reach the destination |
 | Overhead geometry | Ordinary solid geometry above the gap, from which the object visibly hangs. Its shape and size are free, but it must not block the intended route |
-| Visible electrical connections | Decorative `Wire` nodes with `decorative_powered` on, showing the object belongs to an electrical system. Where they run and how they look is the owner's call |
+| Visible electrical connections | Telephone poles and wires painted by the owner as decoration tiles (`solidity` 0), showing the object belongs to an electrical system (owner, 2026-10-20). Where they run and how they look is the owner's call. Tiles are never dimmed in flow, so they stand out against the dimmed backdrop. Animated `Wire` nodes arrive in M5 and may be laid over them later |
 | Bounds | One screen; its `RoomEntry` has `world_rect` (0, 0, 640, 368), the minimum room size (40 × 23 tiles) |
 
 **Geometry follows the tuned movement, not the picture.** Once jump, dash and charged-jump values are tuned (M1, M2), place the start, the object and the destination so that:
@@ -1760,7 +1758,7 @@ To support R-03, the `snapshot` event also records engine-wide counts: total nod
 4. **Frame-rate independence (D-05):** on each desktop target, run the scenarios windowed with `--render-fps=30`, `60` and `120`; measured values must match tick for tick on the same target. Browsers set their own frame rate, so the web build runs at the browser's rate, which is recorded. Then hand-test the coyote and buffer edges with live input at 30 and 120 FPS on desktop: live input arrives once per rendered frame, so record where its edges differ by a tick as a sampling limit. Record any rate the hardware could not reach as a limitation, not a pass.
 5. **Video and screenshot evidence:** the L1-01 and V-01 comparison screenshots described under **What Level 1 must demonstrate**, and videos for L1-03, V-02 to V-04, R-04 and D-07. Godot's Movie Maker mode (`--write-movie`) records any scripted scenario at an exact frame rate. Docs: [Creating movies](https://docs.godotengine.org/en/4.5/tutorials/animation/creating_movies.html).
 6. **Documents:** fill `docs/evidence/ledger.csv` for every L1, M, C, S, R, V and D criterion on every target, with `failure_class` for every failed attempt in the feel playtest (AC page 3). Update `support_matrix.md`, `known_issues.md` and `decision_log.md`. Complete the README's first-launch and itch.io steps.
-7. **itch.io:** upload the three files from `builds/itch/` to the game's itch.io page (M0 step 10) and play the web build in the itch.io page on macOS and Windows browsers.
+7. **itch.io (owner):** the owner makes the game's itch.io page, uploads the three files from `builds/itch/`, and plays the web build in the itch.io page on macOS and Windows browsers (owner, 2026-10-20).
 8. The owner plays every build and records approval, or requested changes, for movement feel and visuals. The owner's art for every Level 1 slot must have arrived for this approval; `CREDITS.md` shows any placeholder still in use.
 
 #### M3 done when
@@ -1875,6 +1873,9 @@ Docs: [TileMapLayer](https://docs.godotengine.org/en/4.5/classes/class_tilemapla
 | `game/art/objects/power_root.png` | The source's sprite (an A.C. unit fits the design notes) | Art |
 | `game/art/objects/power_root_glow.png` | A faint hint in default; strong while unpowered in flow | "Hint which objects can become interactable" (design page 8) |
 | `game/audio/sfx/network_activated.wav` | Activation | Feedback |
+| `game/objects/wire/wire.gd` | `class_name Wire extends Line2D`, `@tool`. Exports `decorative_powered`; holds `powered` and `flow_mode`; switches between the default look and the flow current; plays the activation pulse | The visible link between a power source and its objects (moved from M3, owner 2026-10-20: Level 1's connections are painted tiles) |
+| `game/objects/wire/wire_current.gdshader` | Canvas-item shader: dashes scrolling along the line in flow; a `pulse_progress` uniform for the activation pulse | The animated current and pulse, using only features the Compatibility renderer supports |
+| `game/art/props/wire_strip.png` | A 4 × 1 white texture | `Line2D` only generates the coordinates the current shader needs when it has a texture |
 | `game/verification/scenarios/n01_contact_activation.json` … `n04_death_reset.json` | 4 files, listed below | N-01 to N-04 |
 
 ```text
@@ -1893,9 +1894,8 @@ Files extended in M5:
 | File | Change |
 | --- | --- |
 | `world.gd` | Step 8 calls `try_activate()` on every network |
-| `wire.gd`, `wire_current.gdshader` | The activation pulse |
 | `room.gd` | Networks lookup |
-| `flow_presentation.gd` | Power-source hint glow |
+| `flow_presentation.gd` | Power-source hint glow; sets wire modes on each switch |
 | `sfx.gd` | Activation sound |
 | `debug_world_draw.gd` | Contact areas and network membership |
 | `gym.tscn` | Network stations |
