@@ -1,20 +1,22 @@
 # World, the referee: the project's only _physics_process. Runs the 11-step tick in a fixed order,
-# so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 completes
-# them. Serves AC D-04, D-05, R-04, L1-04.
+# so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 runs the
+# play states (title, death and respawn, completion). Serves AC D-04, D-05, R-01, R-02, R-04, L1-04.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
 const CATALOG: RoomCatalog = preload("res://rooms/room_catalog.tres")
-## Where a completed room replays from, until M3 step 2's completion overlay.
+## Where a completed room replays from.
 const START_ENTRANCE: StringName = &"start"
 
 ## Step 10's result, decided in this fixed order (Same-tick contract).
 enum Outcome { NONE, COMPLETE, COUNTDOWN, FELL }
+## The play states. Ticks count only in PLAYING, DYING and RESPAWNING.
+enum PlayState { TITLE, PLAYING, DYING, RESPAWNING, COMPLETE }
 
 ## The current tick. Counts only while the rules run, never on skipped or frozen physics steps.
 var tick: int = 0
-## Whether the simulation advances. In M0, Main starts it at launch.
-var running: bool = false
+## Where play stands. The title overlay leaves TITLE through start().
+var play_state: PlayState = PlayState.TITLE
 ## The input read on the latest tick; the only input the rules see (ground rule 5).
 var frame: InputFrame = InputFrame.new()
 ## Debug freeze: while on, ticks run only one at a time through request_step().
@@ -29,6 +31,8 @@ var checkpoint: StringName
 var _goals: Array[GoalZone] = []
 var _input_source: InputSource
 var _step_requested: bool = false
+# Ticks left in the death freeze (DYING) or the respawn lock (RESPAWNING).
+var _lock_ticks: int = 0
 # Physics steps since the last tick that ran, for slow motion.
 var _slow_phase: int = 0
 
@@ -43,7 +47,7 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if not running:
+	if not ticks_run():
 		return
 	if debug_frozen:
 		if not _step_requested:
@@ -56,6 +60,9 @@ func _physics_process(_delta: float) -> void:
 		_slow_phase = 0
 	tick += 1
 	Trace.tick = tick
+	if play_state != PlayState.PLAYING:
+		_step_locked()
+		return
 	_step_input()
 	_step_switch()
 	_step_dash()
@@ -69,9 +76,41 @@ func _physics_process(_delta: float) -> void:
 	_step_publish()
 
 
-## Starts the simulation. Ticks advance from the next physics step.
+## Leaves the title: marks inputs stale (the start key never becomes a jump) and starts play.
+## Ticks advance from the next physics step.
 func start() -> void:
-	running = true
+	if play_state != PlayState.TITLE:
+		return
+	_input_source.mark_all_stale()
+	play_state = PlayState.PLAYING
+
+
+## Leaves the completion screen: rebuilds the room at its start, marks inputs stale (the jump
+## that dismissed the screen never becomes a jump) and plays again.
+func replay() -> void:
+	if play_state != PlayState.COMPLETE:
+		return
+	load_room(room_id, START_ENTRANCE)
+	_input_source.mark_all_stale()
+	play_state = PlayState.PLAYING
+
+
+## The pause menu's Restart room: a death with cause `restart`, reset exactly like any other.
+## Only while playing; a death already under way is not restarted.
+func restart_room() -> void:
+	if play_state == PlayState.PLAYING:
+		_die("restart")
+
+
+## Marks every held gameplay button stale, for example on unpause.
+func mark_inputs_stale() -> void:
+	_input_source.mark_all_stale()
+
+
+## True while ticks count: in PLAYING, DYING and RESPAWNING. Only then can play be paused.
+func ticks_run() -> bool:
+	return play_state == PlayState.PLAYING or play_state == PlayState.DYING \
+			or play_state == PlayState.RESPAWNING
 
 
 ## While frozen, runs exactly one tick on the next physics step.
@@ -192,27 +231,46 @@ func _step_timers() -> void:
 	_player.step_timers()
 
 
-# Step 10: goal, countdown expiry, falls, in that order. Until M3 step 2 adds the play states, a
-# death resets the player at once, and a completion replays the room from its start (the
-# rebuild means room_complete is logged once per arrival).
+# Step 10: goal, countdown expiry, falls, in that order. A completion stops the ticks until the
+# completion overlay calls replay(); a death starts the death freeze.
 func _step_outcomes() -> void:
 	match outcome(_player, _goals):
 		Outcome.COMPLETE:
 			Trace.record("room_complete", {"room": String(room_id)})
-			load_room(room_id, START_ENTRANCE)
-			_input_source.mark_all_stale()
+			play_state = PlayState.COMPLETE
 		Outcome.COUNTDOWN:
-			Trace.record("death", {"cause": "countdown"})
-			load_room(room_id, checkpoint, true)
+			_die("countdown")
 		Outcome.FELL:
-			Trace.record("death", {"cause": "fell"})
-			load_room(room_id, checkpoint, true)
+			_die("fell")
 
 
 # Step 11: publish the new state; the camera target is set here.
 func _step_publish() -> void:
 	_player.publish()
 	_camera.move_to(_player.mover.position)
+
+
+# A tick in DYING or RESPAWNING: the player is frozen, and input is read and thrown away, so no
+# press made during the lock becomes a token. After the death freeze the room is rebuilt (the
+# respawn marks inputs stale); after the respawn lock control returns.
+func _step_locked() -> void:
+	_input_source.read(tick)
+	_lock_ticks -= 1
+	if _lock_ticks <= 0 and play_state == PlayState.DYING:
+		load_room(room_id, checkpoint, true)
+		play_state = PlayState.RESPAWNING
+		_lock_ticks = Tuning.respawn_ticks
+	if _lock_ticks <= 0 and play_state == PlayState.RESPAWNING:
+		Trace.record("control_return")
+		play_state = PlayState.PLAYING
+	_step_publish()
+
+
+# Logs the death once and starts the death freeze.
+func _die(cause: String) -> void:
+	Trace.record("death", {"cause": cause})
+	play_state = PlayState.DYING
+	_lock_ticks = Tuning.death_freeze_ticks
 
 
 # Reports and removes the token in [param buffer] if its window has closed.

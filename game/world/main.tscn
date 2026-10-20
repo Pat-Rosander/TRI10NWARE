@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://b5t7uyqi32r7p"]
+[gd_scene load_steps=10 format=3 uid="uid://b5t7uyqi32r7p"]
 
 [ext_resource type="Script" uid="uid://rr11rjck0x6d" path="res://world/main.gd" id="1_4f7fj"]
 [ext_resource type="Script" uid="uid://bop0qm0kf163p" path="res://world/world.gd" id="2_spvjk"]
@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" path="res://debug/debug_overlay.tscn" id="4_dbgov"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="5_player"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="6_hud"]
+[ext_resource type="PackedScene" path="res://ui/title_overlay.tscn" id="7_title"]
+[ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="8_pause"]
+[ext_resource type="PackedScene" path="res://ui/completion_overlay.tscn" id="9_complete"]
 
 [node name="Main" type="Node"]
 process_mode = 3
@@ -26,5 +29,11 @@ script = ExtResource("3_cmo1i")
 
 [node name="HUD" parent="." node_paths=PackedStringArray("player") instance=ExtResource("6_hud")]
 player = NodePath("../World/Player")
+
+[node name="TitleOverlay" parent="." instance=ExtResource("7_title")]
+
+[node name="CompletionOverlay" parent="." instance=ExtResource("9_complete")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("8_pause")]
 
 [node name="DebugOverlay" parent="." instance=ExtResource("4_dbgov")]

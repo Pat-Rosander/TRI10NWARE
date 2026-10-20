@@ -1,9 +1,13 @@
-# Main, the persistent game screen: command-line flags, debug tools, window size, fullscreen, and
-# saving the trace on quit in debug runs. Keeps app-level concerns out of the simulation. Serves AC V-01, D-05, D-07.
+# Main, the persistent game screen: command-line flags, debug tools, window size, fullscreen, pause
+# on the pause key and on focus loss, wiring the overlays, and saving the trace on quit in debug
+# runs. Keeps app-level concerns out of the simulation. Serves AC V-01, D-05, D-07, R-04.
 extends Node
 
 const WorldScript := preload("res://world/world.gd")
 const DebugOverlayScript := preload("res://debug/debug_overlay.gd")
+const TitleOverlayScript := preload("res://ui/title_overlay.gd")
+const PauseMenuScript := preload("res://ui/pause_menu.gd")
+const CompletionOverlayScript := preload("res://ui/completion_overlay.gd")
 
 ## True when debug tools are on: --debug-tools, any scenario flag, or ?debug=1 on a local web page.
 var debug_tools: bool = false
@@ -18,6 +22,9 @@ var render_fps: int = 0
 
 @onready var _world: WorldScript = $World
 @onready var _debug_overlay: DebugOverlayScript = $DebugOverlay
+@onready var _title: TitleOverlayScript = $TitleOverlay
+@onready var _pause_menu: PauseMenuScript = $PauseMenu
+@onready var _completion: CompletionOverlayScript = $CompletionOverlay
 
 
 func _ready() -> void:
@@ -33,8 +40,12 @@ func _ready() -> void:
 		Engine.max_fps = render_fps
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	_size_window()
-	# M0 has no title screen, so the simulation runs from launch; M3's Title state replaces this.
-	_world.start()
+	# The title overlay starts World on the first key or click.
+	_title.world = _world
+	_completion.world = _world
+	_pause_menu.world = _world
+	_pause_menu.toggle_fullscreen = toggle_fullscreen
+	_pause_menu.quit_game = quit_game
 
 
 ## Reads the user arguments (those after --). Called once at launch; public so tests can feed
@@ -77,18 +88,32 @@ func quit_game(exit_code: int = 0) -> void:
 	get_tree().quit(exit_code)
 
 
+## Switches between windowed and fullscreen.
+func toggle_fullscreen() -> void:
+	var mode: DisplayServer.WindowMode = DisplayServer.window_get_mode()
+	if mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_save_trace_if_debug()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT and not run_scenarios and _pause_menu != null:
+		# The scenario runner must never be paused by a click elsewhere.
+		_pause_menu.open()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"fullscreen"):
-		var mode: DisplayServer.WindowMode = DisplayServer.window_get_mode()
-		if mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		toggle_fullscreen()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"pause") and not event.is_echo():
+		if _pause_menu.visible:
+			_pause_menu.resume()
 		else:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+			_pause_menu.open()
 		get_viewport().set_input_as_handled()
 
 

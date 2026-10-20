@@ -4,9 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M3 step 1, Level 1 playable (nodes only), 2026-10-20. `level_1` is now the start room, with its entrance, charged object and goal zone placed, and step 10 completes the room. **Its tiles are not painted yet** (painting guide in the M3 step 1 entry): until they are, the game starts in a fall-and-respawn loop. The positions are a starting point from a placement aid, not proof (decision log, M3.1); the charged route is unconfirmed. Earlier: M2 step 5 (HUD and switch visuals, 2026-10-19), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M3 step 2, play loop (`/step M3.2`): World's play states, title, pause and completion overlays. It can start before Level 1 is painted, but the owner's Level 1 playtest may move nodes first. M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
+- **Last completed:** M3 step 2, play loop, 2026-10-20: title, death freeze and respawn lock, completion overlay, pause menu, pause on focus loss. Earlier: M3 step 1 (Level 1 nodes, 2026-10-20), whose tiles the owner is painting (uncommitted work in progress); M2 step 5 (HUD and switch visuals, 2026-10-19), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M3 step 3, flow visuals (`/step M3.3`): `flow_presentation.gd`, `wire.gd` and `wire_current.gdshader`, decorative wires in `level_1.tscn` (wait until the owner has committed the Level 1 painting, and ask before editing that scene), the title overlay's shader prewarm, and `camera_rig.gd`'s follow. M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
 - **Waiting on the owner:**
+    - **M3.2 check:** open `game/world/main.gd`, `game/ui/title_overlay.gd`, `game/ui/pause_menu.gd` and `game/ui/completion_overlay.gd` once so the editor analyzes them (diagnostics). Then press F5 and follow "How to see it" in the M3 step 2 entry. Accept if Godot asks to re-save `main.tscn` or the new overlay scenes.
+    - **Unit test failing because of uncommitted tile edits:** `test_level_tiles_resource` fails on your working-tree `level_tiles.tres` (tile 2:1 no longer solid; 3:2 and 4:2 now solid). If that is intended, approve updating the test's expectations; if not, fix those tiles in the TileSet editor.
     - **Level 1 (M3 step 1):** paint `level_1.tscn` following the painting guide in the M3 step 1 entry, moving nodes as you like. Then playtest: (1) the charged crossing (jump, Z for flow, jump again inside the ring, dash); (2) **try to cross with jump and dash only**. If (2) succeeds, widen the gap; if (1) fails, narrow it or move the object. Nothing automatic checks either until the postponed bypass search runs. Also open `game/objects/goal/goal_zone.gd` and `game/tests/unit/test_goal_zone.gd` once so the editor analyzes them (diagnostics). If `room_catalog.tres` was open in the Inspector, let Godot reload it.
     - **M2.5 check (also M2 step 6's done-when HUD check; tick it in the spec's M2 done-when when it passes):** open `game/ui/hud.gd` once so the editor analyzes it (diagnostics), then press F5 and press Z a few times: pips empty, the icon turns cyan, then red at 0 volts, a 3-second countdown appears top center, and a refused switch flashes the pips. Confirm the font's license (believed CC0) and source link in `CREDITS.md`. Replace the five M2.5 placeholders whenever you like (layouts in the M2 step 5 entry).
     - **Only for the postponed M1 step 8:** paint the six M2 gym stations (columns 160–319), following the painting guide in the M2 step 4 entry. The gym is now 5120 px wide, and the orange bounds outline shows the new area. Open `charged_object.tscn` once and check the ring still shows at 64 px: its `region_radius_px` is back to −1 (tuning). If not done yet, also open `charged_object.gd` and `game/tests/unit/test_charged_jump.gd` once so the editor analyzes them.
@@ -891,3 +893,34 @@ If you move the destination, move `GoalZone` with it: its position is the top su
 - Decision log, M3.1: tiles left to you (nodes + guide); the starting positions and exactly what the placement aid covered; the `GoalZone` shape; completion's temporary reset (`room_enter`, inputs stale).
 - Decided freely: `room.gd` gains `goal_zones()`, although the spec's "Files extended in M3" table doesn't list `room.gd`. Its header says World talks to rooms only through it, so the lookup lives there. Say if you'd like that row added to the spec.
 - **Unchecked risk:** nothing automatic proves that ordinary movement can't cross the gap, or that the charged route can. After painting, try crossing with jump and dash only.
+
+## M3 step 2: Play loop (2026-10-20)
+
+**What was built:**
+
+- `game/world/world.gd`: the play states (Title, Playing, Dying, Respawning, Complete) replace the old `running` flag; new public calls `start()`, `replay()`, `restart_room()`, `mark_inputs_stale()`, `ticks_run()`.
+- `game/world/main.gd`: no longer starts World at launch; wires the overlays; pauses on the `pause` key and on focus loss; `toggle_fullscreen()` is now public.
+- `game/world/main.tscn`: adds `TitleOverlay`, `CompletionOverlay`, `PauseMenu`.
+- New: `game/ui/title_overlay.tscn`/`.gd`, `game/ui/pause_menu.tscn`/`.gd`, `game/ui/completion_overlay.tscn`/`.gd`.
+- New: `game/tests/unit/test_play_loop.gd` (9 cases), with its row added to the spec's M3 files table (standing rule).
+- `docs/decision_log.md`: nine M3.2 rows.
+
+**How it works:**
+
+World now knows where play stands. On launch it is on the **title**: the room is built and visible behind the title screen, but `_physics_process` returns before counting a tick, so nothing moves and no timer runs. The first key or click hides the title and calls `World.start()`, which marks held buttons stale (so the key that started the game can't also be a jump) and switches to **Playing**.
+
+In Playing, the 11 steps run as before. What changed is step 10. Reaching the goal now logs `room_complete` and switches to **Complete**, which stops the ticks like the title does. The completion overlay is listening to the trace, so it appears. Pressing jump calls `World.replay()`, which rebuilds the room at `start`, marks inputs stale and plays again. A death (countdown or fall) logs `death` once and switches to **Dying**, with a 21-tick counter (`death_freeze_s`).
+
+Dying and Respawning still count ticks, because the death-to-control limit (R-02) is measured in ticks. But they run a short "locked" tick instead of the 11 steps: read input and throw it away, count down, publish. When the freeze ends, the room is rebuilt from its scene and the player placed at the checkpoint (this logs `respawn` and marks inputs stale), and **Respawning** counts 15 ticks (`respawn_s`). Then `control_return` is logged and play resumes. Death to control is 36 ticks, 0.6 s. Because input is read and discarded during the lock, a button mashed during the death animation never turns into a jump after respawn.
+
+**Pause** pauses the whole scene tree. World is "pausable" and Main is "always", so World's ticks stop (the countdown freezes) while the menu keeps working. The input source keeps watching keys while paused, so it knows what's held, and resuming marks those buttons stale. **Restart room** unpauses, then calls `World.restart_room()`: a death with cause `restart`, so it runs exactly the same freeze and respawn as any other death.
+
+**Why:** spec **M3 build order** step 2; **Death, retry and completion in World**; **Pause and focus**; **Control locks** (death freeze, respawn); M3 files rows for the three overlays. AC R-01 (complete reset; a held jump doesn't fire), R-02 (control within 1 s), R-04 (pause freezes the countdown), L1-04 (visible completion), D-07 (fullscreen and quit from the menu).
+
+**How to see it:** press F5. The title shows "TRI10NWARE", "Press any key" and the build ID. Press a key to play. Fall into the gap: a short freeze, then you're back at the start and can move again. Press Esc or P: the pause menu; try every button (Fullscreen, Sound, Restart room, Quit, Resume). Click outside the game window while playing: it pauses. Reach the goal: "Level complete" appears, and jump plays again. Tests: `"$GODOT" --headless --path game res://tests/test_runner.tscn` gives 175 passed, 1 failed. The failure is `test_level_tiles_resource`, caused by the uncommitted owner edits to `level_tiles.tres` (tile 2:1 no longer solid; 3:2 and 4:2, the telephone-pole pieces, now solid). This step doesn't touch that file. If the new solidity is intended, the test's expectations need updating with your approval; otherwise revert those three tiles in the TileSet editor.
+
+**Decisions and questions:**
+
+- Decision log, M3.2: the exact ticks of the death sequence; input read and discarded during the lock; restart applies at once and only from Playing; pause only while ticks run; what starts the title; sound mute is session-only; completion prompt has no delay; overlay layers and placeholder look; `start()`/`replay()` mark inputs stale themselves.
+- Not in this step: the title's shader prewarm (step 3), death and respawn effects and sounds (step 4), the web pause and focus check (step 5).
+- Left for the postponed M1.8: the scenario runner must call `World.start()` itself (the title now gates play), and `r01`/`r02` scenarios.

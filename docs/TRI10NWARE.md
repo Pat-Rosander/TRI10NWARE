@@ -1666,6 +1666,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/verification/bypass_search.gd` | `class_name BypassSearch extends RefCounted`, used by the scenario runner. From a room's start, tries every combination of jump tick, dash tick and dash direction within set bounds, without flow, and reports any that reach the goal | Proves "ordinary movement falls short" instead of hoping hand-written attempts found every route (6.2) |
 | `game/verification/scenarios/l1_02_powered_on_retry.json` … `r03_repeated_retries.json` | 6 files, listed below | L1-02 to L1-04, R-01 to R-03 |
 | `game/tests/unit/test_goal_zone.gd` | Step 10's completion check in the real player scene on a grid built in code: the goal zone's edges; completion on the landing tick; no completion from side contact or flying through the zone; goal, then countdown, then fall on one tick (standing rule, M3 step 1) | L1-04, until `l1_04`'s scenarios run |
+| `game/tests/unit/test_play_loop.gd` | World's play states through a real World, player scene and start room: no ticks on the title; death freeze, respawn and `control_return` on their exact ticks; the reset after a death; a jump held through death never fires; presses during the lock make no token; restart; completion stops ticks until replay; `main.tscn` wires the overlays (standing rule, M3 step 2) | R-01, R-02, R-04, L1-04, until `r01`, `r02` and `l1_04`'s retry case run |
 
 Files extended in M3:
 

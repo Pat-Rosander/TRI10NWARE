@@ -1,0 +1,64 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/title_overlay.gd" id="1_title"]
+[ext_resource type="Theme" path="res://ui/theme.tres" id="2_theme"]
+
+[node name="TitleOverlay" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_title")
+
+[node name="Root" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+color = Color(0, 0, 0, 0.75)
+
+[node name="Center" type="VBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -40.0
+offset_right = 150.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Root/Center"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "TRI10NWARE"
+horizontal_alignment = 1
+
+[node name="Prompt" type="Label" parent="Root/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Press any key"
+horizontal_alignment = 1
+
+[node name="Build" type="Label" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -204.0
+offset_top = -16.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "Build"
+horizontal_alignment = 2
