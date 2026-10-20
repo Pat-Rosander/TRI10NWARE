@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M2 step 5, HUD and switch visuals, 2026-10-19. The HUD (volt pips, state icon, dash pip, countdown) and the switch burst are in, with placeholder art; the font is the owner's (Pixel Operator HB 8, moved to the slot path `pixel_font.ttf`). The six M2 gym stations are **not painted yet** (painting guide in the M2 step 4 entry). M1 step 5's gym is still **partly painted** (owner commit `54b8164`); the rest is listed below.
-- **Next step:** M3 step 1, Level 1 playable (`/step M3.1`; spec, **M3 build order**, owner approval 2026-10-19). M3 builds a playable, shipped Level 1 first; its gate evidence (bypass search, `l1_*`/`r0*` scenarios, ledger, frame-rate runs) is postponed (spec, **Postponed M3 gate evidence**). M2 step 6 needs no session: its HUD check is the owner's M2.5 check below. **M1 steps 7–9 are postponed** (owner, 2026-10-19; spec, **Postponed work**): do not build them, or anything that waits on them (scenario files, `debug_world_draw.gd` extensions), unless the owner asks.
+- **Last completed:** M3 step 1, Level 1 playable (nodes only), 2026-10-20. `level_1` is now the start room, with its entrance, charged object and goal zone placed, and step 10 completes the room. **Its tiles are not painted yet** (painting guide in the M3 step 1 entry): until they are, the game starts in a fall-and-respawn loop. The positions are a starting point from a placement aid, not proof (decision log, M3.1); the charged route is unconfirmed. Earlier: M2 step 5 (HUD and switch visuals, 2026-10-19), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M3 step 2, play loop (`/step M3.2`): World's play states, title, pause and completion overlays. It can start before Level 1 is painted, but the owner's Level 1 playtest may move nodes first. M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
 - **Waiting on the owner:**
+    - **Level 1 (M3 step 1):** paint `level_1.tscn` following the painting guide in the M3 step 1 entry, moving nodes as you like. Then playtest: (1) the charged crossing (jump, Z for flow, jump again inside the ring, dash); (2) **try to cross with jump and dash only**. If (2) succeeds, widen the gap; if (1) fails, narrow it or move the object. Nothing automatic checks either until the postponed bypass search runs. Also open `game/objects/goal/goal_zone.gd` and `game/tests/unit/test_goal_zone.gd` once so the editor analyzes them (diagnostics). If `room_catalog.tres` was open in the Inspector, let Godot reload it.
     - **M2.5 check (also M2 step 6's done-when HUD check; tick it in the spec's M2 done-when when it passes):** open `game/ui/hud.gd` once so the editor analyzes it (diagnostics), then press F5 and press Z a few times: pips empty, the icon turns cyan, then red at 0 volts, a 3-second countdown appears top center, and a refused switch flashes the pips. Confirm the font's license (believed CC0) and source link in `CREDITS.md`. Replace the five M2.5 placeholders whenever you like (layouts in the M2 step 5 entry).
     - **Only for the postponed M1 step 8:** paint the six M2 gym stations (columns 160–319), following the painting guide in the M2 step 4 entry. The gym is now 5120 px wide, and the orange bounds outline shows the new area. Open `charged_object.tscn` once and check the ring still shows at 64 px: its `region_radius_px` is back to −1 (tuning). If not done yet, also open `charged_object.gd` and `game/tests/unit/test_charged_jump.gd` once so the editor analyzes them.
     - `CREDITS.md` lists `game/art/player/player_frames.png`, but the owner's commit `a29f319` renamed it to `player_sheet_v1.png` (`player_frames.tres` points there): update that row (and the slot-name question below may now be answered).
@@ -847,3 +848,46 @@ Two things are moments rather than states, so they listen to the trace signal (`
 - Check run: import clean; 162 unit tests pass. A throwaway scene (not committed) loaded `main.tscn` and went through flow at 2, 1 and 0 volts, 61 countdown ticks, a return to default, a refusal and a spent dash. Every pip, icon and dash frame, the countdown's visibility, its numerals (3 → 2) and the ring (180 → 119 of 180) matched, and SwitchFX showed. Diagnostics: `player_visuals.gd` is clean; `hud.gd` hasn't been analyzed yet (the editor analyzes files once opened), so the owner should open it once.
 - No new unit-test file: this step wires no rules (standing rule, **Postponed work**).
 - Question: please confirm the font's license and source link in `CREDITS.md` (Pixel Operator by Jayvee Enaguas is believed to be CC0).
+
+## M3 step 1: Level 1, playable (2026-10-20)
+
+**What was built:**
+
+- `game/objects/goal/goal_zone.gd` (new, plus its `.uid`): the `GoalZone` node.
+- `game/rooms/level_1/level_1.tscn` (new): the Level 1 room, with nodes placed and tile layers empty for the owner to paint.
+- `game/rooms/room_catalog.tres`: adds `level_1` at `world_rect` (0, 0, 640, 368) and makes it the start room.
+- `game/world/world.gd`: step 10's completion check, and the `Outcome` decision as a static function.
+- `game/rooms/room.gd`: `goal_zones()`, the lookup World uses.
+- `game/tests/unit/test_goal_zone.gd` (new): the stand-in for `l1_04`'s completion cases; its row is added to the spec's **M3 files** table (owner-approved).
+- `docs/decision_log.md`: four M3.1 rows.
+
+**How it works:**
+
+A `GoalZone` is a thin invisible strip lying on a platform's top surface. Its origin is the surface's left end. It reaches `width_px` to the right, and from 4 px above the surface down to the surface row itself. That row matters: the mover puts a standing player's feet exactly on the floor tile's top line, so a zone that stopped one pixel short would never contain a standing player. In the editor it draws a green outline so you can see where it is; in the game it draws nothing.
+
+Step 10 now asks three questions in a fixed order: is the player grounded with feet inside a goal zone, has the countdown run out, or have they fallen? The first "yes" wins. That is the **Same-tick contract**'s order, so landing on the goal on the very tick the countdown expires still counts as a win. "Grounded" comes from step 7 of the same tick. That is what stops the two false wins L1-04 worries about: touching the destination's side (never grounded on top) and flying through the strip (airborne). The decision is a small static function, `World.outcome()`, so a unit test can ask it directly, without building the whole game screen.
+
+When the room is complete, World logs `room_complete` and, until step 2 adds the completion overlay, rebuilds Level 1 and puts you back at `start`. It marks your held buttons stale, so a jump you are still holding doesn't fire on arrival. Because the room is rebuilt immediately, `room_complete` is logged once per arrival.
+
+**Placing the layout.** Positions came from a throwaway placement aid run in the session scratchpad (not committed). It is *not* the bypass search. It ran the real player rules for one jump plus one dash in 8 directions, with automatic wall jumps, and checked a destination 2 tiles closer than the real one. Nothing landed there. The aid's charged-route attempts never produced a charged jump, a flaw in the throwaway script that wasn't fixed within the two-run time box. So **whether the charged route reaches the destination is unconfirmed**. Your playtest decides it. Details are in the decision log (M3.1).
+
+**Painting guide (all in `WorldTiles`, any ordinary tile with solidity 1; tile coordinates are column, row; the room is 40 × 23 tiles):**
+
+| Part | Tiles | Notes |
+| --- | --- | --- |
+| Start platform | columns 0–7, rows 16–22 | Top surface y 256; `Start` stands on it at x 48 |
+| Gap | columns 8–25, open from row 8 down to the bottom | The pit; falling below the room kills |
+| Overhead block | columns 13–16, rows 1–7 | The object hangs below it (y 200). Keep its underside at row 7 or higher, so it doesn't block the jump arc and its sides don't become wall-jump footholds near the route |
+| Destination | columns 26–39, rows 15–22 | Top surface y 240, one tile above the start, as in the mockup. `GoalZone` sits on it at (416, 240) |
+
+If you move the destination, move `GoalZone` with it: its position is the top surface's left end (x = first column × 16, y = top row × 16), and it should end at least one tile before the room's edge. If you move the object, keep its ring (radius 64) where the first jump from the ledge passes through it.
+
+**Why:** spec **M3 build order** step 1; **What Level 1 must demonstrate**; **Death, retry and completion in World** (completion, step 10); **Same-tick contract** (goal, countdown, fall order); **Room scene convention**; standing rule **Unit tests stand in for waiting scenarios**. AC L1-01 (elements present), L1-02 (the object is always powered), L1-04 (completion only by standing on the destination).
+
+**How to see it:** paint the tiles first (guide above). Then press F5: you start on the left platform. Run right, jump, press Z for flow, press jump again inside the ring for the charged jump, dash, and land on the right platform. The game puts you back at the start. In the editor, open `level_1.tscn` to see the orange room outline, the object's ring and the goal zone's green strip. Tests: `"$GODOT" --headless --path game res://tests/test_runner.tscn` (167 passed, 0 failed, including the 5 new `test_goal_zone.gd` cases).
+
+**Decisions and questions:**
+
+- Decision log, M3.1: tiles left to you (nodes + guide); the starting positions and exactly what the placement aid covered; the `GoalZone` shape; completion's temporary reset (`room_enter`, inputs stale).
+- Decided freely: `room.gd` gains `goal_zones()`, although the spec's "Files extended in M3" table doesn't list `room.gd`. Its header says World talks to rooms only through it, so the lookup lives there. Say if you'd like that row added to the spec.
+- **Unchecked risk:** nothing automatic proves that ordinary movement can't cross the gap, or that the charged route can. After painting, try crossing with jump and dash only.

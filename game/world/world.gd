@@ -1,9 +1,15 @@
 # World, the referee: the project's only _physics_process. Runs the 11-step tick in a fixed order,
-# so every same-tick tie resolves the same way; from M1 it also loads rooms. Serves AC D-04, D-05, R-04.
+# so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 completes
+# them. Serves AC D-04, D-05, R-04, L1-04.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
 const CATALOG: RoomCatalog = preload("res://rooms/room_catalog.tres")
+## Where a completed room replays from, until M3 step 2's completion overlay.
+const START_ENTRANCE: StringName = &"start"
+
+## Step 10's result, decided in this fixed order (Same-tick contract).
+enum Outcome { NONE, COMPLETE, COUNTDOWN, FELL }
 
 ## The current tick. Counts only while the rules run, never on skipped or frozen physics steps.
 var tick: int = 0
@@ -19,6 +25,8 @@ var slow_divisor: int = 1: set = _set_slow_divisor
 var room_id: StringName
 var checkpoint: StringName
 
+# The current room's goal zones, sorted by node name.
+var _goals: Array[GoalZone] = []
 var _input_source: InputSource
 var _step_requested: bool = false
 # Physics steps since the last tick that ran, for slow motion.
@@ -77,6 +85,20 @@ func set_input_source(source: InputSource) -> void:
 	_input_source = source
 
 
+## Step 10's decision for [param player] in a room with [param goals]: the goal (grounded, feet
+## inside a zone), then countdown expiry, then a fall; the first that applies wins.
+static func outcome(player: Player, goals: Array[GoalZone]) -> Outcome:
+	if player.state.grounded:
+		for goal: GoalZone in goals:
+			if goal.contains_feet(player.mover.position):
+				return Outcome.COMPLETE
+	if player.flow.countdown_expired:
+		return Outcome.COUNTDOWN
+	if player.fell():
+		return Outcome.FELL
+	return Outcome.NONE
+
+
 ## Builds [param id] fresh from the catalog and places the player at [param entrance_id] with
 ## fresh state, replacing any current room. Used at game start, for respawns, by the debug menu
 ## and by scenarios. Logs `room_enter`, or `respawn` when [param is_respawn] is true.
@@ -97,6 +119,7 @@ func load_room(id: StringName, entrance_id: StringName, is_respawn: bool = false
 		return
 	room_id = id
 	checkpoint = entrance_id
+	_goals = room.goal_zones()
 	Trace.room = String(id)
 	_player.respawn(entry.world_rect.position + entrance.feet(), grid, entrance.facing,
 			room.charged_objects())
@@ -169,15 +192,21 @@ func _step_timers() -> void:
 	_player.step_timers()
 
 
-# Step 10: goal (M3), countdown expiry, falls, in that order. Until M3 a death resets the player
-# at once; M3 adds the full death sequence.
+# Step 10: goal, countdown expiry, falls, in that order. Until M3 step 2 adds the play states, a
+# death resets the player at once, and a completion replays the room from its start (the
+# rebuild means room_complete is logged once per arrival).
 func _step_outcomes() -> void:
-	if _player.flow.countdown_expired:
-		Trace.record("death", {"cause": "countdown"})
-		load_room(room_id, checkpoint, true)
-	elif _player.fell():
-		Trace.record("death", {"cause": "fell"})
-		load_room(room_id, checkpoint, true)
+	match outcome(_player, _goals):
+		Outcome.COMPLETE:
+			Trace.record("room_complete", {"room": String(room_id)})
+			load_room(room_id, START_ENTRANCE)
+			_input_source.mark_all_stale()
+		Outcome.COUNTDOWN:
+			Trace.record("death", {"cause": "countdown"})
+			load_room(room_id, checkpoint, true)
+		Outcome.FELL:
+			Trace.record("death", {"cause": "fell"})
+			load_room(room_id, checkpoint, true)
 
 
 # Step 11: publish the new state; the camera target is set here.

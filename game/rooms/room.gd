@@ -1,6 +1,6 @@
 # Every room scene's root. World talks to rooms only through it: bounds from the catalog, the
-# entrance and charged-object lookups and the room's SolidGrid. In the editor it outlines its
-# bounds. Serves AC R-01.
+# entrance, charged-object and goal-zone lookups and the room's SolidGrid. In the editor it
+# outlines its bounds. Serves AC R-01, L1-04.
 @tool
 class_name Room
 extends Node2D
@@ -56,6 +56,16 @@ func charged_objects() -> Array[ChargedObject]:
 	return found
 
 
+## Every goal zone under `Objects`, at any depth, sorted by node name (the same-tick ordering
+## rule).
+func goal_zones() -> Array[GoalZone]:
+	var found: Array[GoalZone] = []
+	_collect_goals($Objects, found)
+	found.sort_custom(func(a: GoalZone, b: GoalZone) -> bool:
+			return String(a.name) < String(b.name))
+	return found
+
+
 ## Builds the room's SolidGrid from its three tile layers. Call after the room is placed.
 func build_grid() -> SolidGrid:
 	var grid: SolidGrid = SolidGrid.new(bounds)
@@ -69,6 +79,13 @@ func _collect_charged(parent: Node, found: Array[ChargedObject]) -> void:
 		if child is ChargedObject:
 			found.append(child)
 		_collect_charged(child, found)
+
+
+func _collect_goals(parent: Node, found: Array[GoalZone]) -> void:
+	for child: Node in parent.get_children():
+		if child is GoalZone:
+			found.append(child)
+		_collect_goals(child, found)
 
 
 func _set_room_id(value: StringName) -> void:
