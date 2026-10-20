@@ -738,7 +738,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M0 Foundations | 47 |
 | M1 Movement kit | 31 |
 | M2 Flow and charge | 32 |
-| M3 Level 1 room | 36 |
+| M3 Level 1 room | 37 |
 | M4 Platforms and spikes | 7 |
 | M5 Networks | 13 |
 | M6 Rooms and progress | 13 |
@@ -1512,7 +1512,7 @@ Files extended in M2:
 
 ```text
 ChargedObject     Node2D, charged_object.gd   (origin = region center)
-├── Sprite        Sprite2D, charged_object.png
+├── Sprite        Sprite2D, charged_object.png (an AnimatedSprite2D with a per-type look from M3 step 4)
 └── Glow          Sprite2D, charged_glow.png, CanvasItemMaterial blend mode Add; faint in default while powered (a hint), full in flow
 ```
 
@@ -1627,8 +1627,9 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 1. **Level 1, playable:** `level_1.tscn` following **Room scene convention**, with entrance `start`, one `ChargedObject` with `always_powered` on, and a `GoalZone` on the destination's top surface, placed from the tuned movement values (**What Level 1 must demonstrate**); `goal_zone.gd`; step 10's completion check, first in its fixed order, logging `room_complete` once (until step 2 builds the completion overlay, completion resets the player at `start`); `room_catalog.tres` gains `level_1`, `world_rect` (0, 0, 640, 368), as the start room. **Owner hand-off:** the owner paints the tiles and may move any node; the owner then playtests.
 2. **Play loop:** `world.gd`'s play states (Title, Playing, Dying, Respawning, Complete) with `death_freeze_s`, `respawn_s` and `control_return` (**Death, retry and completion in World**); `title_overlay.tscn`/`.gd`, `pause_menu.tscn`/`.gd`, `completion_overlay.tscn`/`.gd`, added to `main.tscn`; `main.gd` pauses on the `pause` action and on focus loss.
 3. **Flow visuals:** `flow_presentation.gd` (backdrop fade, glows, region rings; wire modes arrive with `Wire` in M5) as `World/FlowPresentation`; the title overlay's shader prewarm; `camera_rig.gd`'s follow. Placeholders at `level_1_backdrop.png` and `level_1_props.png` until the owner's files arrive.
-4. **Effects and sound:** `effects.gd` and `effects_frames.tres` as `World/Effects`, with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main, and `default_bus_layout.tres`; the 11 M3 sound slots. The owner's files for 8 of them (`jump`, `charged_jump`, `dash`, `charged_dash`, `switch_to_flow`, `switch_to_default`, `death`, `respawn`; 16-bit mono 44.1 kHz WAV) are already at their slot paths in `game/audio/sfx/` (owner, 2026-10-20); the session registers them in `CREDITS.md` as `owner draft`; `switch_refused`, `countdown_tick` and `room_complete` are silent, registered placeholders until the owner's files arrive.
-5. **Ship (the last step before the game ships):** `tools/export_all.sh` from a clean commit, producing the three builds and the `builds/itch/` upload files; the web build over `tools/serve_web.sh`; the web pause and focus check (**Pause and focus**); the README's first-launch steps; the owner plays every build and records approval or requested changes (gate step 8, without its evidence). **The owner makes the itch.io page and uploads the files** (gate step 7; owner, 2026-10-20), so no session does any itch.io work.
+4. **Charged object looks** (owner, 2026-10-20; every type behaves the same, so looks are visual only): in `charged_object.tscn`, `Sprite` becomes an `AnimatedSprite2D`; `charged_object.gd` exports `frames: SpriteFrames`, so each placed object picks its type in the Inspector, and an optional `glow_texture` for a type-specific glow (the `Glow` node stays separate, because it uses additive blending). Every look has two animations, `default` and `electric`. `flow_presentation.gd` plays `electric` in flow and `default` otherwise, on every `switch`, `room_enter` and `respawn`, and no rule waits on an animation. The developer's placeholder look, `game/objects/charged_object/looks/default_frames.tres` (both animations show `charged_object.png`), is used when `frames` is empty. **Owner assets:** each type's sheet at `game/art/objects/charged/<type>.png` and its `SpriteFrames` at `game/objects/charged_object/looks/<type>_frames.tres`, made by the owner in the editor; the owner matches each object's `region_radius_px` to its art, because the region ignores the sprite.
+5. **Effects and sound:** `effects.gd` and `effects_frames.tres` as `World/Effects`, with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main, and `default_bus_layout.tres`; the 11 M3 sound slots. The owner's files for 8 of them (`jump`, `charged_jump`, `dash`, `charged_dash`, `switch_to_flow`, `switch_to_default`, `death`, `respawn`; 16-bit mono 44.1 kHz WAV) are already at their slot paths in `game/audio/sfx/` (owner, 2026-10-20); the session registers them in `CREDITS.md` as `owner draft`; `switch_refused`, `countdown_tick` and `room_complete` are silent, registered placeholders until the owner's files arrive.
+6. **Ship (the last step before the game ships):** `tools/export_all.sh` from a clean commit, producing the three builds and the `builds/itch/` upload files; the web build over `tools/serve_web.sh`; the web pause and focus check (**Pause and focus**); the README's first-launch steps; the owner plays every build and records approval or requested changes (gate step 8, without its evidence). **The owner makes the itch.io page and uploads the files** (gate step 7; owner, 2026-10-20), so no session does any itch.io work.
 
 #### M3 files
 
@@ -1636,7 +1637,8 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | --- | --- | --- |
 | `game/rooms/level_1/level_1.tscn` | The Level 1 room (layout below) | The first required room (L1-01) |
 | `game/objects/goal/goal_zone.gd` | `class_name GoalZone extends Node2D`, `@tool`. Exports a thin rectangle that sits on a platform's top surface | Completion means standing on the destination, not touching its side or flying past (L1-04) |
-| `game/world/flow_presentation.gd` | Script on a new `FlowPresentation` node in `World`. Listens for `switch`, `room_enter` and `respawn`; fades the room's `Backdrop`, shows glows and region rings; sets wire modes from M5 | All flow visuals in one place; no rule depends on them (V-02) |
+| `game/world/flow_presentation.gd` | Script on a new `FlowPresentation` node in `World`. Listens for `switch`, `room_enter` and `respawn`; fades the room's `Backdrop`, shows glows and region rings, and plays each charged object's `default` or `electric` animation (M3 step 4); sets wire modes from M5 | All flow visuals in one place; no rule depends on them (V-02) |
+| `game/objects/charged_object/looks/default_frames.tres` | `SpriteFrames` placeholder look: animations `default` and `electric`, each one frame of `charged_object.png` (M3 step 4) | The look a charged object uses until the owner's type looks exist |
 | `game/ui/title_overlay.tscn` | `CanvasLayer`: title, build ID, "press any key". On the web build it asks for a click or key press specifically | Starts play on a user gesture, which browsers need before audio (D-04). Gamepad buttons do not count as a gesture in browsers |
 | `game/ui/title_overlay.gd` | While shown, draws each flow-state material once off-screen so its shader compiles before play. On the first key or click: hides, starts `World`, marks inputs stale | No stall on the first switch into flow (worst on the web); the start key never becomes a jump |
 | `game/ui/pause_menu.tscn` | `CanvasLayer`, process mode **Always**: Resume, Restart room, Fullscreen, Sound on/off, Quit (Quit hidden on web) | R-04, D-07 and normal play |
@@ -1676,6 +1678,7 @@ Files extended in M3:
 | `camera_rig.gd` | Follows the player, clamped to the room's bounds, no smoothing; moved on the physics step |
 | `player_sheet.png`, `level_1_tiles.png` | The owner's art, when it arrives, at the same paths |
 | `room_catalog.tres` | Adds `level_1` and makes it the start room |
+| `charged_object.tscn`, `charged_object.gd` | `Sprite` becomes an `AnimatedSprite2D`; exports `frames` and `glow_texture` (M3 step 4) |
 | `debug_world_draw.gd` | Draws goal zones |
 | `README.md`, `docs/*` | Level 1 gate evidence |
 
