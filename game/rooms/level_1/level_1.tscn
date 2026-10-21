@@ -16,7 +16,8 @@ room_id = &"level_1"
 [node name="Backdrop" type="Node2D" parent="."]
 
 [node name="Parallax2D" type="Parallax2D" parent="Backdrop"]
-repeat_size = Vector2(640, 360)
+scroll_scale = Vector2(0, 0)
+repeat_size = Vector2(640, 0)
 
 [node name="Sprite2D" type="Sprite2D" parent="Backdrop/Parallax2D"]
 position = Vector2(320, 179)
