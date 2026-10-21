@@ -744,7 +744,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M3 Level 1 room | 40 |
 | M4 Platforms and spikes | 9 |
 | M5 Networks | 13 |
-| M6 Rooms and progress | 13 |
+| M6 Rooms and progress | 17 |
 | M7 Adding rooms | 2 per room, plus any art and mockup files the room needs |
 | M8 Reset sweep | 0 (evidence only) |
 | M9 Evidence package | 0 (evidence only) |
@@ -928,6 +928,8 @@ Field names carry their unit as a suffix: `_px`, `_px_s` (pixels per second), `_
 | `music_volume` | 0.7 | Owner | Starting music volume, linear 0 to 1, until the player moves the pause menu's slider (M3 step 7). The owner sets it to suit the track |
 | `trace_memory_limit` | 100000 | Ours | Events kept in memory during normal play |
 | `coin_counter_s` | 2.0 | Ours | How long the HUD's coin counter stays after the last touch or commit (M6 step 5) |
+| `hint_s` | 5.0 | Ours | How long a control hint stays fully visible on first entry to its room (M6 step 6) |
+| `hint_fade_s` | 0.5 | Ours | How long a control hint takes to fade out (M6 step 6) |
 
 Docs: [Resources](https://docs.godotengine.org/en/4.5/tutorials/scripting/resources.html), [GDScript exported properties](https://docs.godotengine.org/en/4.5/tutorials/scripting/gdscript/gdscript_exports.html), [Singletons (Autoload)](https://docs.godotengine.org/en/4.5/tutorials/scripting/singletons_autoload.html).
 
@@ -1366,7 +1368,7 @@ Every room scene, including the gym, uses exactly this structure. `room.gd` find
 ├── WorldTiles    TileMapLayer
 ├── DefaultTiles  TileMapLayer
 ├── FlowTiles     TileMapLayer
-├── Objects       Node2D                (charged objects, networks, goal zones)
+├── Objects       Node2D                (charged objects, networks, goal zones, hints from M6 step 6)
 ├── Collectibles  Node2D
 └── Entrances     Node2D                (RoomEntrance children)
 ```
@@ -2001,19 +2003,23 @@ M6 is built in these numbered steps, one session each (`/step M6.1` and so on; o
     - **Best time, saved:** the best (lowest) completion time is saved to `user://best.cfg` (a `ConfigFile`; in the browser, `user://` is browser storage) and loaded at startup. If storage is unavailable, the best time lasts for the session and nothing errors. This is the one value saved to disk (owner, 2026-10-21); collectibles and all other progress still reset with each new game.
     - **Replay:** "play again" starts a fresh run: committed collectibles are cleared, the timer restarts, and the saved best time is kept.
     - **Tests:** a unit test (pre-approved, owner 2026-10-21) for the tick count across a death and a pause, the time formatting, the best-time comparison, the save and load round trip (to a temporary path), and replay clearing the run. The new tuning field also changes `test_tuning.gd` and `test_trace.gd`'s `test_header_fields` count.
-6. **Done-when:** the owner's checks (**M6 done when**). `g01`, `g02` and `n03`'s re-entry case wait for M1.8.
+6. **Control hints** (owner, 2026-10-21; numbered after step 5 so steps 1–5 keep their numbers): a `Hint` (`hint.tscn` and `hint.gd`): a `@tool` `Node2D` holding a `Label` in the theme's pixel font, placed in a room's `Objects`, with exported `text`. It starts hidden. The first time its room is entered in a run (`room_enter`), it appears, stays `hint_s` (5.0 s, new tuning field), then fades out over `hint_fade_s` (0.5 s, new tuning field). Its timer runs only while the game is playing: not behind the title screen and not while paused. It does not reappear after a death or a later re-entry in the same run; `GameState` remembers shown hints (room ID plus node name), and a new run shows them again. Visual only: no rule reads it. **Placed now:** one in `tutorial_1` explaining jump and dash, and one in `level_1` explaining the state switch; the session proposes text and positions, and the owner rewrites the text and moves them freely (suggested: "Jump: C, Space or J. Dash: X or K, aimed with the arrow keys or WASD" and "Switch to flow: Z or L"). A unit test (pre-approved, owner 2026-10-21) covers first entry, no repeat after a death or re-entry, a new run showing it again, and the timer pausing behind the title and in pause. The two tuning fields also change `test_tuning.gd` and `test_trace.gd`'s `test_header_fields` count. Ask the owner to close `tutorial_1.tscn` and `level_1.tscn` before editing them.
+7. **Done-when:** the owner's checks (**M6 done when**). `g01`, `g02` and `n03`'s re-entry case wait for M1.8.
 
 #### M6 files
 
 | File | What it is | Why it exists |
 | --- | --- | --- |
-| `game/autoload/game_state.gd` | Autoload named `GameState`, third in the autoload list. Committed collectible IDs, permanent unlock flags and the completion flag, kept in memory for the session; from M6 step 5 also the run's tick count and the best completion time, which is saved to `user://best.cfg`. Nothing is written to disk (saving is parked) | Permanent progress, kept apart from temporary electricity (G-02) |
+| `game/autoload/game_state.gd` | Autoload named `GameState`, third in the autoload list. Committed collectible IDs, permanent unlock flags and the completion flag, kept in memory for the session; from M6 step 5 also the run's tick count and the best completion time, which is saved to `user://best.cfg`; from step 6 the hints already shown this run. Nothing is written to disk (saving is parked) | Permanent progress, kept apart from temporary electricity (G-02) |
 | `game/rooms/room_info.gd` | `class_name RoomInfo extends Resource`: entry state and assumed volts per entrance, volt budget, recharge points, completion route, notes. Saved inside each room scene | The G-03 record, shown in the debug overlay and copied into the ledger |
 | `game/objects/collectible/collectible.tscn` | A `Node2D` with a sprite | Placed in rooms |
 | `game/objects/collectible/collectible.gd` | `class_name Collectible extends Node2D`. ID is room ID plus node name; idle or following; hides itself if already committed | The commitment rule (below) |
 | `game/art/objects/collectible.png` | Collectible sprite | Art |
 | `game/audio/sfx/collectible_touch.wav` | Touched | Feedback |
 | `game/audio/sfx/collectible_commit.wav` | Committed | Feedback |
+| `game/objects/hint/hint.tscn` | A `Node2D` with a `Label` in the theme's pixel font (step 6) | Temporary control hints placed in rooms |
+| `game/objects/hint/hint.gd` | `class_name Hint extends Node2D`, `@tool`. Exported `text`; shown on the first entry to its room in a run, for `hint_s`, then faded over `hint_fade_s`; the timer runs only during play (step 6) | Teaches controls once, then gets out of the way |
+| `game/tests/unit/test_hints.gd` | First entry shows it; no repeat after a death or re-entry; a new run shows it again; the timer pauses behind the title and in pause (step 6) | The once-per-run rule and its timing |
 | `game/verification/gym/gym_annex.tscn` | A second verification room placed on the map directly right of the gym, with entrances beside the shared edge, a network near that edge and a collectible station | Crossings, re-entry and progress can be tested without owner rooms. **Postponed** (owner, 2026-10-21): crossings are tested by hand in Level 1's rooms |
 | `game/rooms/world_map_preview.tscn` | An editor-only scene with one `Node2D` running `world_map_preview.gd`. Excluded from exports | Lets the owner see the whole world map at once, the way Celeste's map view does |
 | `game/rooms/world_map_preview.gd` | `@tool`. In the editor, builds every catalog room at its `world_rect` (never saved into the scene) and draws each room's outline, its ID and every shared opening | Laying out and checking the map without playing |
@@ -2035,6 +2041,7 @@ Files extended in M6:
 | `debug_world_draw.gd`, `debug_overlay.gd` | Shared openings and room info |
 | `sfx.gd` | Collectible sounds |
 | `hud.tscn`, `hud.gd` | The top-right coin counter (step 5) |
+| `tutorial_1.tscn`, `level_1.tscn` | A `Hint` each: jump and dash; the state switch (step 6) |
 | `completion_overlay.tscn`, `completion_overlay.gd` | Coins, run time, best time and "New best!"; "play again" starts a fresh run (step 5) |
 | `n03_no_recharge_farming.json` | Re-entry case |
 
