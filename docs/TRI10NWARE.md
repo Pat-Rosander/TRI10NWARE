@@ -357,7 +357,7 @@ These were chosen while planning the implementation; each was weighed against th
 | Velocity and remainder stored in a `Vector2` | Separate 64-bit `float` values per axis | A `Vector2` holds 32-bit floats in standard builds: tuning values get silently shortened and traces show values like 0.6499999761581421 (owner, 2026-10-18) |
 | A pixel-by-pixel sweep, or tile-column math, for the wall check | One overlap test at the full `wall_check_px`, guarded below 16 by a unit test | Celeste's method; exact while every solid is a 16 px tile. A sweep matters only for solids thinner than a tile, and there are none (owner, 2026-10-18) |
 | A wall that must run alongside a minimum height of the body | Any overlap counts | Celeste allows wall jumps off a corner sliver; the narrow-chamber climb does not need the restriction, and adding it would change a rule (owner, 2026-10-18) |
-| A level-complete screen between levels | Each level's goal opens into the next level, with a banner | Keeps the world connected for backtracking (owner, 2026-10-16) |
+| A level-complete screen between levels | Level 1's goal shows a banner and leads on into the next room; there are no further levels (owner, 2026-10-21: one map) | Keeps the world connected for backtracking (owner, 2026-10-16) |
 | Debug tools available to every player | Enabled only by a launch argument or a local URL parameter | The debug menu would be a level select (owner, 2026-10-16) |
 
 ## Open decisions
@@ -393,6 +393,7 @@ Later milestones assume these steps exist. Until they run:
 
 - **Every scenario file waits for M1.8,** because nothing can run one without `scenario_runner.gd`. That covers new files (M2's `c01`–`c08` and `s01`–`s04`, M3's `l1_*` and `r0*`, and later milestones' scenarios) and every "adds cases to `m0x`" row. Sessions write and test rule code with unit tests only.
 - **Every extension of `debug_world_draw.gd` waits for M1.7** (M2 regions, M3 goal zones, M4 pending tiles, M5 contact areas, M6 openings), and so does M2's done-when item about the debug overlay showing region boundaries.
+- **The gym annex waits indefinitely** (owner, 2026-10-21): crossings are tested by hand in Level 1's rooms. `gym_annex.tscn`, its catalog entry and the gym's opening wait with `g01`, which needs them.
 - **Done-when items that need scenarios** (M2's "all M1 and M2 scenarios pass headless", and the same line in later milestones) are left unchecked, not passed.
 - **The Level 1 gate cannot pass without M1.8.** Its steps 1, 3 and 4 run the scenarios on every target and file their results as evidence (AC page 9). Run M1.7–M1.9 and the waiting scenarios before the gate.
 
@@ -712,21 +713,23 @@ Work is delivered level by level, the way AC page 1 frames it: a Level 1 gate, t
 
 1. **Foundation (M0–M2):** the clock, input, movement, flow, volts, charged objects, the verification room and the tests. It has no gate of its own; it is the start of Level 1's work.
 2. **Level 1 gate (M3).**
-3. **One gate per later level (M7).** When the owner supplies a level's mockup, it is registered in the Levels table below and given its own section. The level claims each feature package it needs, its features are discussed and written into this document, and its gate passes when those criteria and its rooms' routes pass on all three targets.
-4. **Final gate (M8, M9):** once the owner declares the level list complete.
+3. **Later core rooms (M7).** The game is **one connected map of rooms**, with no further levels (owner, 2026-10-21). Each new room is added as M7 describes; it claims the feature packages it needs, and their criteria apply from then on.
+4. **Final gate (M8, M9):** once the owner declares the room list complete (G-04's "owner's final room/content list").
 
-**Feature packages (M4–M6)** are fully specified now so their design is not lost, but each is built only when the first level that needs it is registered. Their order follows the levels, not their numbers. A package's criteria become applicable at that level's gate.
+**Feature packages (M4–M6)** are fully specified now so their design is not lost, but each is built only when the first room that needs it is registered. Their order follows the rooms that need them, not their numbers (owner, 2026-10-21: M6, then M5 and M4's platforms when a room needs them). A package's criteria apply from the first room that uses it.
 
 | Package | Builds | Criteria it brings into scope | Built for |
 | --- | --- | --- | --- |
 | M4 Platforms and spikes | Default-only and flow-only platforms, the overlap policy, and spikes (owner, 2026-10-20) | P-01 to P-04; spike deaths reset like every death (R-01 to R-03) | The first level that uses state-dependent platforms or spikes |
-| M5 Networks | Power sources, networks, recharging | N-01 to N-04, and S-04's recharge cases | The first level that uses a power network |
-| M6 Rooms and progress | Crossings between rooms, collectibles, session progress | G-01, G-02 | The first level with more than one room, or with a collectible |
+| M5 Networks | Power sources, networks, recharging | N-01 to N-04, and S-04's recharge cases | The first room that uses a power network |
+| M6 Rooms and progress | Crossings between rooms, collectibles, session progress | G-01, G-02 | Level 1, now (owner, 2026-10-21): tutorial rooms, more rooms after `level_1`, and a collectible in `level_1` |
 **Levels** (one row per level, added when its mockup arrives):
 
 | Level | Rooms | Mockup | What it introduces | Packages it claims | Gate | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `level_1` | Design page 2 (concept only) | Flow, volts and countdown, the charged jump | None | Level 1 gate (M3) | Planned |
+| 1 | Movement-only tutorial rooms, then `level_1`, then later rooms (**Rooms table**, M7) | Design page 2 (concept only, for `level_1`) | Basic movement (tutorial rooms), then flow, volts and countdown, the charged jump | M4's spikes (built); M6 (rooms and collectibles, owner 2026-10-21); M5 and M4's platforms when a room needs them | Level 1 gate (M3), then the final gate | `level_1` shipped (0.2.0) |
+
+**One map, one level** (owner, 2026-10-21). The game is a single connected map of rooms; there is no Level 2. Its one ending is the final room's goal (M7). **Tutorial rooms before `level_1`** are a declared interpretation (owner, 2026-10-21): the AC call Level 1 "the first room"; here Level 1 means the first room that uses flow, and movement-only tutorial rooms come before it (G-03: "tutorials may use simple alternation"). Level 1's evidence loads `level_1` directly, so the L1 criteria apply to it unchanged.
 
 ### Where each file is created
 
@@ -742,7 +745,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M4 Platforms and spikes | 9 |
 | M5 Networks | 13 |
 | M6 Rooms and progress | 13 |
-| M7 Adding a level | 2 per room, plus any art and mockup files the level needs |
+| M7 Adding rooms | 2 per room, plus any art and mockup files the room needs |
 | M8 Reset sweep | 0 (evidence only) |
 | M9 Evidence package | 0 (evidence only) |
 
@@ -972,7 +975,7 @@ The event catalog is fixed. New events are added here first.
 | `transition_start` | from_room, to_room, edge | The player crosses an opening |
 | `transition_end` | room, checkpoint | The crossing finishes and the rules resume |
 | `room_complete` | room | The goal is reached |
-| `goal_banner` | level | A level's goal is reached and play continues (from Level 2 on) |
+| `goal_banner` | level | Level 1's goal is reached and play continues into the next room (once a room follows `level_1`) |
 | `collectible` | id, change (touched, committed, lost) | Collectible state changes |
 | `snapshot` | position, velocity, state, volts, dash, countdown, grounded | Scenario runner requests a state capture |
 
@@ -1741,7 +1744,7 @@ Death to control takes 0.6 s, under the 1 s limit (R-02). **The player reset is 
 
 The room is a fresh instance, so encounters, effects and timers start clean.
 
-**Completion (step 10):** the player is grounded and their feet are inside a `GoalZone`. Log `room_complete` once. Until Level 2 exists, Level 1's goal shows the completion overlay. When Level 2 is registered, Level 1's goal becomes an opening into Level 2's first room (owner decision 2026-10-16): reaching it shows a brief level-complete banner and sound without stopping play (`goal_banner`, satisfying L1-04's "visibly completes"), and only the final room's goal ends the game (M7). The banner triggers on the goal zone in step 10, never on the crossing that follows; a goal zone never sits on a room edge.
+**Completion (step 10):** the player is grounded and their feet are inside a `GoalZone`. Log `room_complete` once. Until a room follows `level_1`, Level 1's goal shows the completion overlay. Once one does (owner, 2026-10-21: one map of rooms), Level 1's goal becomes a banner goal and its destination leads on into the next room: reaching it shows a brief level-complete banner and sound without stopping play (`goal_banner`, satisfying L1-04's "visibly completes"), and only the final room's goal ends the game (M7). The banner triggers on the goal zone in step 10, never on the crossing that follows; a goal zone never sits on a room edge.
 
 **Pause and focus (R-04):** the `pause` action, or `NOTIFICATION_APPLICATION_FOCUS_OUT`, pauses the scene tree. That stops `World`'s ticks, freezing the countdown. Resuming marks inputs stale. On the web build, check that switching tabs and clicking outside the game pause it. If they do not, record it in `docs/known_issues.md` and propose the fix in this document before building it.
 
@@ -1782,13 +1785,13 @@ To support R-03, the `snapshot` event also records engine-wide counts: total nod
 
 ### M4 — Platforms and spikes (feature package)
 
-**Built when** the first level that uses state-dependent platforms or spikes is registered (see **How work is delivered**). Spikes were added to this package by the owner on 2026-10-20; a level that needs only spikes may build the spike parts alone.
+**Built when** the first room that uses state-dependent platforms or spikes is registered (see **How work is delivered**). Spikes were added to this package by the owner on 2026-10-20; a level that needs only spikes may build the spike parts alone.
 
 **Goal:** default-only and flow-only platforms with one-way support and the overlap policy, and spikes that kill, proven in the gym.
 
 #### M4 build order
 
-M4 is built in these numbered steps, one session each (`/step M4.1` and so on; owner approval 2026-10-21). It is built ahead of Level 2, which will use both platforms and spikes and claims M4 when it is registered (owner, 2026-10-21). Spikes come first, so the owner can paint and playtest them after step 1. The sections below this list are the specification each step implements. Work that waits for the postponed M1 steps (**Postponed work**) is skipped and named in each step's journal entry.
+M4 is built in these numbered steps, one session each (`/step M4.1` and so on; owner approval 2026-10-21). Spikes (step 1) were built ahead of any room needing them (owner, 2026-10-21). **Steps 2–5 wait** until a room needs state-dependent platforms (owner, 2026-10-21: M6 and new rooms come first; there is no Level 2). Spikes come first, so the owner can paint and playtest them after step 1. The sections below this list are the specification each step implements. Work that waits for the postponed M1 steps (**Postponed work**) is skipped and named in each step's journal entry.
 
 1. **Spike rules:** `solid_grid.gd`'s spike cells (`solidity` 4–7) and `touches_spike(rect)`; `pixel_mover.gd` notes a spike contact at the start position and at every pixel of step 6's move; `world.gd`'s step 10 spike death, after the goal and before the countdown; `spike_depth_px` and `spike_inset_px` in `tuning_data.gd`, `tuning.tres` and `test_tuning.gd`; the spike cases in `test_solid_grid.gd` and `test_pixel_mover.gd`; `test_spikes.gd`. The `spikes` station's entrance in `gym.tscn`, with the gym widened to hold it. **Owner hand-off:** the owner sets the spike tiles' `solidity` in the TileSet panel, paints the station and playtests.
 2. **Overlap policy:** `overlap_policy.gd` and `test_overlap_policy.gd`; pending tiles in `solid_grid.gd`; `flow_controller.gd` applies the policy on every switch; `player.gd` re-checks pending tiles in step 7; `test_platforms.gd`.
@@ -1883,9 +1886,18 @@ Docs: [TileMapLayer](https://docs.godotengine.org/en/4.5/classes/class_tilemapla
 
 ### M5 — Networks (feature package)
 
-**Built when** the first level that uses a power network is registered.
+**Built when** the first room that uses a power network is registered.
 
 **Goal:** power sources, networks of charged objects, recharging, and the same-tick tie rule, proven in the gym.
+
+#### M5 build order
+
+M5 is built in these numbered steps, one session each, when the first room with a power network is registered (owner approval of the order 2026-10-21). Work that waits for the postponed M1 steps is skipped and named in each step's journal entry.
+
+1. **Network rules:** `network.gd`, `power_root.tscn` and `power_root.gd`, placeholders at `power_root.png` and `power_root_glow.png`; `room.gd`'s networks lookup; `world.gd` step 8 (**How activation works**): touching a root in flow powers its members and recharges once per tick however many networks activate; member objects start unpowered. A standing-rule unit test stands in for `n01`–`n04` and `s04`'s recharge cases.
+2. **Wires and feedback:** `wire.gd`, `wire_current.gdshader` and `wire_strip.png`; `flow_presentation.gd` sets wire modes and the power-source hint glow; the activation pulse; the wire shader joins the title overlay's prewarm list; `network_activated.wav` (the owner's or a placeholder).
+3. **Gym network stations:** the four M5 stations' entrances in `gym.tscn`. **Owner hand-off:** the owner paints them.
+4. **Done-when:** the owner's review (**M5 done when**). The scenario runner's `setup.countdown` and the M5 scenarios wait for M1.8.
 
 #### M5 files
 
@@ -1968,9 +1980,19 @@ Step 8 runs before step 9, so a recharge on the same tick as an expiry always wi
 
 ### M6 — Rooms and progress (feature package)
 
-**Built when** the first level with more than one room, or with a collectible, is registered.
+**Built now** (owner, 2026-10-21): Level 1 gains tutorial rooms before `level_1`, rooms after it, and a collectible in `level_1`. Built before M4's platforms and M5.
 
-**Goal:** crossings between neighboring rooms with a camera slide, checkpoints, collectibles and session progress, proven with a second verification room.
+**Goal:** crossings between neighboring rooms with a camera slide, checkpoints, collectibles and session progress. Crossings are proven by the owner's manual testing in Level 1's own rooms; the second verification room (`gym_annex`) is postponed (owner, 2026-10-21).
+
+#### M6 build order
+
+M6 is built in these numbered steps, one session each (`/step M6.1` and so on; owner approval 2026-10-21). Work that waits for the postponed M1 steps (**Postponed work**) is skipped and named in each step's journal entry.
+
+1. **Collectibles and progress:** `game_state.gd` (the `GameState` autoload, third in the list), `collectible.tscn` and `collectible.gd`, placeholders at `collectible.png`, `collectible_touch.wav` and `collectible_commit.wav` until the owner's files arrive, and `sfx.gd`'s collectible sounds; step 7 touching and step 10 committing and losing (**Collectibles**). Committing at the start of a crossing arrives in step 2. **Level 1's collectible:** one in `level_1.tscn` on top of the overhead geometry the charged object hangs from; the session places it and the owner may move it. A standing-rule unit test stands in for `g02`.
+2. **Crossings:** `world.gd`'s Transition state, crossing detection and checkpoints (**How crossings work**), `SolidGrid` holding both rooms during a crossing, `camera_rig.gd`'s slide, and committing a carried collectible at the start of a crossing. To have a second room to cross into, the session adds one movement-only tutorial room skeleton (`tutorial_1`) beside `level_1` with its `RoomEntry`, entrances by the shared opening, and makes it the start room; **the owner paints it** and designs the rest of the tutorial. **No unit test and no gym annex:** the owner tests crossings by hand (owner, 2026-10-21).
+3. **Map tools:** `test_world_layout.gd` and `world_map_preview.tscn`/`.gd` (editor-only, excluded from exports), before the owner lays out more rooms, so layout mistakes show in the editor rather than in play.
+4. **Room info:** `room_info.gd`, each room's entry state, volt budget, recharge points and route (G-03); showing it in the debug overlay waits for M1.7.
+5. **Done-when:** the owner's checks (**M6 done when**). `g01`, `g02` and `n03`'s re-entry case wait for M1.8.
 
 #### M6 files
 
@@ -1983,7 +2005,7 @@ Step 8 runs before step 9, so a recharge on the same tick as an expiry always wi
 | `game/art/objects/collectible.png` | Collectible sprite | Art |
 | `game/audio/sfx/collectible_touch.wav` | Touched | Feedback |
 | `game/audio/sfx/collectible_commit.wav` | Committed | Feedback |
-| `game/verification/gym/gym_annex.tscn` | A second verification room placed on the map directly right of the gym, with entrances beside the shared edge, a network near that edge and a collectible station | Crossings, re-entry and progress can be tested without owner rooms |
+| `game/verification/gym/gym_annex.tscn` | A second verification room placed on the map directly right of the gym, with entrances beside the shared edge, a network near that edge and a collectible station | Crossings, re-entry and progress can be tested without owner rooms. **Postponed** (owner, 2026-10-21): crossings are tested by hand in Level 1's rooms |
 | `game/rooms/world_map_preview.tscn` | An editor-only scene with one `Node2D` running `world_map_preview.gd`. Excluded from exports | Lets the owner see the whole world map at once, the way Celeste's map view does |
 | `game/rooms/world_map_preview.gd` | `@tool`. In the editor, builds every catalog room at its `world_rect` (never saved into the scene) and draws each room's outline, its ID and every shared opening | Laying out and checking the map without playing |
 | `game/tests/unit/test_world_layout.gd` | Checks the catalog: unique IDs; each scene's `room_id` matches its record; positions and sizes are multiples of 16; sizes are at least 640 × 368; no overlaps; the start room and entrance exist; every shared edge has an entrance within 48 px (3 tiles) on both sides; every entrance keeps the whole body inside its room's bounds, so a respawn can never trigger a crossing | Layout mistakes are caught before anyone plays |
@@ -1998,8 +2020,8 @@ Files extended in M6:
 | `world.gd` | Crossings and checkpoints (below) |
 | `camera_rig.gd` | The slide between rooms |
 | `room.gd` | Exposes its `RoomInfo` |
-| `room_catalog.tres` | Adds `gym_annex` beside `gym` |
-| `gym.tscn` | An opening in its right wall where it meets the annex, with an entrance beside it |
+| `room_catalog.tres` | Adds `tutorial_1` (step 2) and each later room (M7); `gym_annex` is postponed |
+| `gym.tscn` | An opening in its right wall where it meets the annex, with an entrance beside it (postponed with the annex) |
 | `debug_world_draw.gd`, `debug_overlay.gd` | Shared openings and room info |
 | `sfx.gd` | Collectible sounds |
 | `n03_no_recharge_farming.json` | Re-entry case |
@@ -2052,30 +2074,17 @@ Progress lasts for the session only; closing the app starts a new game. This ans
 #### M6 done when
 
 - [ ] All unit tests and all M1–M6 scenarios pass.
-- [ ] Every gym–annex passage works in both directions, after a death, and at 0 and 1 volts.
+- [ ] Every room passage works in both directions, after a death, and at 0 and 1 volts (the owner's manual testing; owner 2026-10-21).
 - [ ] The camera slide shows both rooms, with no gap, seam or flicker, on all three targets.
 - [ ] `test_world_layout.gd` passes and the world map preview shows the layout correctly.
 
 ---
 
-### M7 — Adding a level
+### M7 — Adding rooms
 
-**Goal:** add each level the owner supplies, one at a time, each with its own gate. This plan does not invent levels, rooms, room counts or the ending. Each mockup is used as **How mockups are used** describes: it decides the elements and their relationships, while geometry follows the tuned movement and art comes from the owner.
+**Goal:** add each room the owner designs to the one map (owner, 2026-10-21: one level, no Level 2). This plan does not invent rooms, room counts or the ending. A room's mockup, if the owner has one, is used as **How mockups are used** describes and saved as `docs/reference/mockups/<room_id>.png`; otherwise the owner's painted room is its own reference. Any new feature a room needs is written up as a feature package first, or goes to the Parked list.
 
-**When the owner supplies a level:**
-
-1. **Register it.** Add a row to the Levels table (**How work is delivered**). Save its mockups as `docs/reference/mockups/<level>_<name>.png`.
-2. **Discuss its features with the owner** and write the outcome into this document before building:
-    - which feature packages (M4–M6) it claims;
-    - any new feature it needs. A new feature is written up as a new feature package first, or goes to the Parked list if it is not in scope.
-3. **Add a level section** below, `#### Level N — <name>`, holding:
-    - its rooms (rows in the Rooms table);
-    - the packages it claims and any new files, listed with their reasons;
-    - the criteria that become applicable at its gate;
-    - its gate checklist: those criteria and every route scenario for its rooms pass, with evidence, on all three targets, and the owner approves.
-4. **Build** the claimed packages that do not exist yet, then the level's rooms.
-
-**For each room in the level:**
+**For each room:**
 
 1. **Register it.** Add a row to the Rooms table below. Any new art file the room needs is listed here before it is created.
 2. **Place it on the world map.** Agree its position with the owner and add its `RoomEntry` to `room_catalog.tres`. Check it in the world map preview; `test_world_layout.gd` must still pass.
@@ -2083,12 +2092,14 @@ Progress lasts for the session only; closing the app starts a new game. This ans
 4. **Write the route.** Create `game/verification/scenarios/route_<room_id>.json`. Its cases play from each entrance to each opening or goal under the room's intended entry state and volts.
 5. **Record evidence:** the G-03 row in the ledger and a short video of the route.
 
+Until M1.8 runs, steps 4 and 5 wait (**Postponed work**); the owner plays each room's route and its crossings by hand.
+
 | File per room | Why it exists |
 | --- | --- |
 | `game/rooms/<room_id>/<room_id>.tscn` | The room |
 | `game/verification/scenarios/route_<room_id>.json` | Proves the room can be completed as designed (G-03, G-04) |
 
-**Level goals and the final room** (owner decision 2026-10-16). When a level after Level 1 is registered, the previous level's goal becomes an opening into the new level's first room on the world map, with the level-complete banner from M3. `goal_zone.gd` gains two exports in this milestone: `banner_level` (shows the banner and logs `goal_banner` without stopping play) and `completes_game` (only on the final room's goal; calls `GameState.mark_completed()` and shows the completion overlay with the game's ending message). The banner's duration becomes the tuning value `level_banner_s` (1.5 s) at that point.
+**Level goals and the final room** (owner decision 2026-10-16). When the first room after `level_1` is built (owner, 2026-10-21), Level 1's goal becomes a banner goal, with the level-complete banner from M3, and play continues into the next room. `goal_zone.gd` gains two exports in this milestone: `banner_level` (shows the banner and logs `goal_banner` without stopping play) and `completes_game` (only on the final room's goal; calls `GameState.mark_completed()` and shows the completion overlay with the game's ending message). The banner's duration becomes the tuning value `level_banner_s` (1.5 s) at that point.
 
 **Rooms table** (filled as mockups arrive):
 
@@ -2100,7 +2111,7 @@ Progress lasts for the session only; closing the app starts a new game. This ans
 
 ### M8 — Reset and backtracking sweep (final gate)
 
-**Runs** once the owner declares the level list complete. Each level gate already checks its own passages; this sweep checks the whole world together.
+**Runs** once the owner declares the room list complete. This sweep checks the whole world together.
 
 **Goal:** prove no player can be trapped (G-01). No new files.
 
