@@ -29,5 +29,6 @@ One row per art, audio or font file in the game. `status` is `placeholder`, `own
 | `game/audio/sfx/respawn.wav` | Respawn (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
 | `game/audio/sfx/switch_refused.wav` | Flow refused at zero volts (slot); 0.1 s of silence, 16-bit mono 44.1 kHz WAV | placeholder | developer (generated) | none (silence) | — | 2026-10-20 |
 | `game/audio/sfx/countdown_tick.wav` | Countdown tick, once per remaining second (slot); 0.1 s of silence, 16-bit mono 44.1 kHz WAV | placeholder | developer (generated) | none (silence) | — | 2026-10-20 |
-| `game/audio/sfx/room_complete.wav` | Room completion (slot); 0.1 s of silence, 16-bit mono 44.1 kHz WAV | placeholder | developer (generated) | none (silence) | — | 2026-10-20 |
+| `game/audio/sfx/room_complete.wav` | Room completion (slot); 6.8 s, 16-bit stereo 44.1 kHz WAV, converted from the owner's `completion.mp3` | owner draft | Pat Rosander | owner to confirm | — | 2026-10-21 |
+| `game/audio/music/electrun_theme_1.mp3` | Game music (slot, M3 step 7); 81 s, stereo MP3, looped | owner draft | Pat Rosander | owner to confirm | — | 2026-10-21 |
 | `game/art/effects/effects.png` | Effects art (slot), source of `game/world/effects_frames.tres`: 6 cells of 16 × 16 in a row, left to right `death`, `respawn`, `charged_jump`, `dash`, `land`, `goal`; each a 1-px colored outline | placeholder | developer (generated) | none (flat color) | — | 2026-10-20 |

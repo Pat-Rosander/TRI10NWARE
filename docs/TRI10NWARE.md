@@ -738,7 +738,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M0 Foundations | 47 |
 | M1 Movement kit | 31 |
 | M2 Flow and charge | 32 |
-| M3 Level 1 room | 37 |
+| M3 Level 1 room | 40 |
 | M4 Platforms and spikes | 9 |
 | M5 Networks | 13 |
 | M6 Rooms and progress | 13 |
@@ -922,6 +922,7 @@ Field names carry their unit as a suffix: `_px`, `_px_s` (pixels per second), `_
 | `inactive_platform_alpha` | 0.35 | Ours | How faint the currently non-solid platform family is drawn |
 | `glow_hint_alpha` | 0.3 | Ours | How strong a powered object's glow is in default, where it only hints (full in flow; owner, 2026-10-20) |
 | `stick_deadzone` | 0.2 | Ours | Radial stick deadzone before 8-way snapping |
+| `music_volume` | 0.7 | Owner | Starting music volume, linear 0 to 1, until the player moves the pause menu's slider (M3 step 7). The owner sets it to suit the track |
 | `trace_memory_limit` | 100000 | Ours | Events kept in memory during normal play |
 
 Docs: [Resources](https://docs.godotengine.org/en/4.5/tutorials/scripting/resources.html), [GDScript exported properties](https://docs.godotengine.org/en/4.5/tutorials/scripting/gdscript/gdscript_exports.html), [Singletons (Autoload)](https://docs.godotengine.org/en/4.5/tutorials/scripting/singletons_autoload.html).
@@ -1631,6 +1632,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 4. **Charged object looks** (owner, 2026-10-20; every type behaves the same, so looks are visual only): in `charged_object.tscn`, `Sprite` becomes an `AnimatedSprite2D`; `charged_object.gd` exports `frames: SpriteFrames`, so each placed object picks its type in the Inspector, and an optional `glow_texture` for a type-specific glow (the `Glow` node stays separate, because it uses additive blending). Every look has two animations, `default` and `electric`. `flow_presentation.gd` plays `electric` in flow and `default` otherwise, on every `switch`, `room_enter` and `respawn`, and no rule waits on an animation. The developer's placeholder look, `game/objects/charged_object/looks/default_frames.tres` (both animations show `charged_object.png`), is used when `frames` is empty. **Owner assets:** each type's sheet at `game/art/objects/charged/<type>.png` and its `SpriteFrames` at `game/objects/charged_object/looks/<type>_frames.tres`, made by the owner in the editor; the owner matches each object's `region_radius_px` to its art, because the region ignores the sprite.
 5. **Effects and sound:** `effects.gd` and `effects_frames.tres` as `World/Effects`, with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main, and `default_bus_layout.tres`; the 11 M3 sound slots. The owner's files for 8 of them (`jump`, `charged_jump`, `dash`, `charged_dash`, `switch_to_flow`, `switch_to_default`, `death`, `respawn`; 16-bit mono 44.1 kHz WAV) are already at their slot paths in `game/audio/sfx/` (owner, 2026-10-20); the session registers them in `CREDITS.md` as `owner draft`; `switch_refused`, `countdown_tick` and `room_complete` are silent, registered placeholders until the owner's files arrive.
 6. **Ship (the last step before the game ships):** `tools/export_all.sh` from a clean commit, producing the three builds and the `builds/itch/` upload files; the web build over `tools/serve_web.sh`; the web pause and focus check (**Pause and focus**); the README's first-launch steps; the owner plays every build and records approval or requested changes (gate step 8, without its evidence). **The owner makes the itch.io page and uploads the files** (gate step 7; owner, 2026-10-20), so no session does any itch.io work.
+7. **Music and volume** (owner, 2026-10-21; added after the 0.2.0 ship, so run step 6 again afterwards for a new build): a `Music` `AudioStreamPlayer` in `main.tscn` on the Music bus, playing the owner's `game/audio/music/electrun_theme_1.mp3`, looped through its import settings (Loop on). It starts when the title screen is dismissed, because browsers allow audio only after a key press or click, and then **keeps playing** through deaths, respawns, completion, room rebuilds and pause (process mode **Always**). The pause menu gains a **Music volume** slider (0 to 100 %) that sets the Music bus volume (`AudioServer.set_bus_volume_db(bus, linear_to_db(value))`, muting the bus at 0); it starts at `music_volume`, lasts for the session only (nothing is saved to disk), and is reached with the same keys and gamepad as the other pause-menu items. The existing Sound on/off item still mutes everything. `test_feedback.gd` gains cases: music starts on title dismissal and not before; it keeps playing across a death and a pause; the slider's value reaches the Music bus, and 0 mutes it. Adding the `music_volume` tuning field also changes `test_tuning.gd` and `test_trace.gd`'s `test_header_fields` count.
 
 #### M3 files
 
@@ -1642,12 +1644,12 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/objects/charged_object/looks/default_frames.tres` | `SpriteFrames` placeholder look: animations `default` and `electric`, each one frame of `charged_object.png` (M3 step 4) | The look a charged object uses until the owner's type looks exist |
 | `game/ui/title_overlay.tscn` | `CanvasLayer`: title, build ID, "press any key". On the web build it asks for a click or key press specifically | Starts play on a user gesture, which browsers need before audio (D-04). Gamepad buttons do not count as a gesture in browsers |
 | `game/ui/title_overlay.gd` | While shown, draws each flow-state material once off-screen so its shader compiles before play. On the first key or click: hides, starts `World`, marks inputs stale | No stall on the first switch into flow (worst on the web); the start key never becomes a jump |
-| `game/ui/pause_menu.tscn` | `CanvasLayer`, process mode **Always**: Resume, Restart room, Fullscreen, Sound on/off, Quit (Quit hidden on web) | R-04, D-07 and normal play |
+| `game/ui/pause_menu.tscn` | `CanvasLayer`, process mode **Always**: Resume, Restart room, Fullscreen, Sound on/off, Music volume (from step 7), Quit (Quit hidden on web) | R-04, D-07 and normal play |
 | `game/ui/pause_menu.gd` | Pauses and unpauses the scene tree; marks inputs stale on resume. Restart room is a death with cause `restart`, so it resets exactly like any other death | Pausing freezes ticks, so the countdown cannot expire in the background |
 | `game/ui/completion_overlay.tscn` | `CanvasLayer`: "Level complete", then "press jump to play again" | Visible completion (L1-04, V-04) |
 | `game/ui/completion_overlay.gd` | Shows on `room_complete`; on replay, marks inputs stale and rebuilds the room | Clean replay; the jump that dismissed it never becomes a jump |
 | `game/audio/sfx.gd` | Script on a new `Sfx` node in Main. Plays sounds in response to `Trace` events through a small pool of `AudioStreamPlayer`s on the SFX bus; plays the countdown tick each time the displayed second changes | Audio feedback with no link to the rules (V-04) |
-| `game/default_bus_layout.tres` | Audio buses: Master, SFX, Music (Music is reserved; no track is required) | Separate volume control |
+| `game/default_bus_layout.tres` | Audio buses: Master, SFX, Music (the Music bus plays the owner's track from step 7) | Separate volume control, including the pause menu's music volume |
 | `game/audio/sfx/jump.wav` | Ordinary, coyote and wall jumps | Feedback |
 | `game/audio/sfx/charged_jump.wav` | Charged jump | Feedback |
 | `game/audio/sfx/dash.wav` | Dash start | Feedback |
@@ -1659,6 +1661,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/audio/sfx/death.wav` | Death | Feedback |
 | `game/audio/sfx/respawn.wav` | Respawn | Feedback |
 | `game/audio/sfx/room_complete.wav` | Completion | Feedback |
+| `game/audio/music/electrun_theme_1.mp3` | The game's music (owner, 2026-10-21), looped on the Music bus (step 7) | Atmosphere; stays playing through the whole session |
 | `game/art/backdrop/level_1_backdrop.png` | Level 1's background, made by the owner. If the owner splits it into layers, each layer file is added to this table before it is created | The part of the screen that dims in flow (V-02) |
 | `game/art/props/level_1_props.png` | Level 1's decorative props as one atlas, made by the owner | Decoration only; props never collide |
 | `game/world/effects.gd` | Script on a new `Effects` node in `World`. Plays one-shot visual effects at the right position in response to `Trace` events, through a small pool of `AnimatedSprite2D`s | Visible feedback for every important action (V-04), with no link to the rules |
@@ -1677,7 +1680,8 @@ Files extended in M3:
 | --- | --- |
 | `world.gd` | Death sequence, completion, title gating (below) |
 | `main.gd` | Pause on the `pause` action and on `NOTIFICATION_APPLICATION_FOCUS_OUT`, except while the scenario runner is active |
-| `main.tscn` | Adds `TitleOverlay`, `PauseMenu`, `CompletionOverlay`, `Sfx`, `World/FlowPresentation`, `World/Effects` |
+| `main.tscn` | Adds `TitleOverlay`, `PauseMenu`, `CompletionOverlay`, `Sfx`, `World/FlowPresentation`, `World/Effects`, and `Music` (step 7) |
+| `pause_menu.gd`, `title_overlay.gd` or `main.gd` | Step 7: the music volume slider, and starting the music when the title is dismissed |
 | `camera_rig.gd` | Follows the player, clamped to the room's bounds, no smoothing; moved on the physics step |
 | `player_sheet.png`, `level_1_tiles.png` | The owner's art, when it arrives, at the same paths |
 | `room_catalog.tres` | Adds `level_1` and makes it the start room |
