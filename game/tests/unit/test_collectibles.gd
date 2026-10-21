@@ -161,6 +161,8 @@ func _setup(feet: Vector2i) -> void:
 	node.add_child(camera)
 	_world = add_node(node) as WorldScript
 	_player = player as Player
+	# The game starts in tutorial_1 (M6 step 2); these tests run in Level 1.
+	_world.load_room(&"level_1", &"start")
 	_input = add_node(ScriptedInputSource.new()) as ScriptedInputSource
 	_world.set_input_source(_input)
 	var grid: SolidGrid = SolidGrid.new(ROOM, Tuning.data.spike_depth_px,

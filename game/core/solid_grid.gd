@@ -1,6 +1,7 @@
 # The mover's view of one room: which 16 px cells are solid, one-way platform tops, spikes or
-# open, read once from the room's tile layers, plus the room-edge walls and pit. No physics engine.
-# Serves AC M-01, M-02, M-03 (collision), R-01 (spike deaths) and, from M4, P-01 to P-04.
+# open, read once from the room's tile layers, plus the room-edge walls, pit and (from M6) openings
+# into neighboring rooms. No physics engine.
+# Serves AC M-01, M-02, M-03 (collision), R-01 (spike deaths), from M4 P-01 to P-04, from M6 G-01.
 class_name SolidGrid
 extends RefCounted
 
@@ -33,6 +34,10 @@ var bounds: Rect2i
 
 var _cell_bounds: Rect2i
 var _cells: Dictionary[Vector2i, int] = {}
+# Neighboring rooms' places in cells: open to the mover until a crossing begins.
+var _openings: Array[Rect2i] = []
+# Rooms joined during a crossing, in cells: their cells are read from _cells like this room's.
+var _joined: Array[Rect2i] = []
 var _active_top: int = DEFAULT_TOP
 var _spike_depth: int
 var _spike_inset: int
@@ -86,17 +91,38 @@ func set_cell(cell: Vector2i, solidity: int) -> void:
 		_cells[world_cell] = _cells.get(world_cell, 0) | flag
 
 
+## Opens the cells beyond this room's edge that lie inside [param neighbor_rect], a neighboring
+## room's `world_rect` in pixels: until a crossing begins they are open to the mover.
+func add_opening(neighbor_rect: Rect2i) -> void:
+	_openings.append(Rect2i(cell_of(neighbor_rect.position), neighbor_rect.size / TILE_PX))
+
+
+## Adds [param other]'s cells and room to this grid, so it holds both rooms during a crossing.
+## [param other] is unchanged.
+func join(other: SolidGrid) -> void:
+	_joined.append(other._cell_bounds)
+	for cell: Vector2i in other._cells:
+		_cells[cell] = _cells.get(cell, 0) | other._cells[cell]
+
+
 ## Chooses which platform family is solid for the player: flow-only tops when [param on],
 ## default-only tops otherwise.
 func set_flow(on: bool) -> void:
 	_active_top = FLOW_TOP if on else DEFAULT_TOP
 
 
-## The flags of the world [param cell]. Outside the room, cells at or below the bottom edge
-## are open (a pit) and every other cell is [constant SOLID] (a wall or ceiling).
+## The flags of the world [param cell]. Outside the room, a joined room's cells are read as
+## painted; cells inside an opening or at or below the bottom edge are open (a neighbor or a pit);
+## every other cell is [constant SOLID] (a wall or ceiling).
 func cell_flags(cell: Vector2i) -> int:
 	if _cell_bounds.has_point(cell):
 		return _cells.get(cell, 0)
+	for joined: Rect2i in _joined:
+		if joined.has_point(cell):
+			return _cells.get(cell, 0)
+	for opening: Rect2i in _openings:
+		if opening.has_point(cell):
+			return 0
 	if cell.y >= _cell_bounds.end.y:
 		return 0
 	return SOLID

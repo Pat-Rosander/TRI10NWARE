@@ -258,8 +258,9 @@ func test_music_keeps_playing_through_death_pause_and_replay() -> void:
 	_run(1)
 	assert_eq(_world.play_state, WorldScript.PlayState.COMPLETE, "standing on the goal completes")
 	assert_true(music.playing, "still playing on the completion screen")
+	var entered: int = _count("room_enter")
 	_world.replay()
-	assert_eq(_count("room_enter"), 2, "replay rebuilt the room")
+	assert_eq(_count("room_enter"), entered + 1, "replay rebuilt the room")
 	assert_true(music.playing, "still playing after the rebuild")
 	assert_eq(music.get_stream_playback(), started, "never restarted")
 
@@ -359,6 +360,8 @@ func _setup(with_feedback: bool = true) -> void:
 			node.free()
 	add_node(_main)
 	_world = _main.get_node("World") as WorldScript
+	# The game starts in tutorial_1 (M6 step 2); these tests run in Level 1.
+	_world.load_room(&"level_1", &"start")
 	_player = _main.get_node("World/Player") as Player
 	_sfx = _main.get_node_or_null("Sfx") as SfxScript
 	_effects = _main.get_node_or_null("World/Effects") as EffectsScript
@@ -377,6 +380,8 @@ func _setup_on_title() -> void:
 	Trace.begin_session(true)
 	_main = add_node(MAIN_SCENE.instantiate())
 	_world = _main.get_node("World") as WorldScript
+	# The game starts in tutorial_1 (M6 step 2); these tests run in Level 1.
+	_world.load_room(&"level_1", &"start")
 	_player = _main.get_node("World/Player") as Player
 	_input = add_node(ScriptedInputSource.new()) as ScriptedInputSource
 	_world.set_input_source(_input)

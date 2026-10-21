@@ -197,6 +197,14 @@ func touched_spike() -> bool:
 	return mover.spike_hit
 
 
+## A room crossing: the player moves into [param grid] and [param charged_objects] (the new
+## room's, in node-name order) with every rule object and all movement state kept (M6).
+func enter_room(grid: SolidGrid, charged_objects: Array[ChargedObject]) -> void:
+	mover.grid = grid
+	flow.set_grid(grid)
+	charged = charged_objects
+
+
 ## Step 10: true if the feet are below the room's failure line (bounds bottom + fall_margin_px).
 func fell() -> bool:
 	return mover.position.y > mover.grid.bounds.end.y + Tuning.data.fall_margin_px

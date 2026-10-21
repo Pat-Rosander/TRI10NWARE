@@ -22,6 +22,13 @@ func reset(grid: SolidGrid) -> void:
 	_grid.set_flow(false)
 
 
+## A room crossing: keeps the ledger and makes the current state's platform family solid in
+## [param grid], the new room's grid.
+func set_grid(grid: SolidGrid) -> void:
+	_grid = grid
+	_grid.set_flow(is_flow())
+
+
 ## True while the player is in flow.
 func is_flow() -> bool:
 	return ledger.state == FlowLedger.State.FLOW

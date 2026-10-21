@@ -45,10 +45,10 @@ static func set_music_volume(linear: float) -> void:
 		AudioServer.set_bus_volume_db(bus, linear_to_db(linear))
 
 
-## Pauses the tree and shows the menu. Only while World's ticks run (not on the title or
-## completion screens).
+## Pauses the tree and shows the menu. Only while World's ticks run or a crossing slides (not
+## on the title or completion screens).
 func open() -> void:
-	if visible or world == null or not world.ticks_run():
+	if visible or world == null or not world.can_pause():
 		return
 	get_tree().paused = true
 	show()

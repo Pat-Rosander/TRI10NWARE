@@ -134,9 +134,10 @@ func test_completion_stops_ticks_until_replay() -> void:
 	assert_eq(_count("room_complete"), 1, "room_complete logged once")
 	_world.restart_room()
 	assert_eq(_count("death"), 0, "no restart from the completion screen")
+	var entered: int = _count("room_enter")
 	_world.replay()
 	assert_eq(_world.play_state, WorldScript.PlayState.PLAYING, "replay plays again")
-	assert_eq(_count("room_enter"), 2, "the room was rebuilt")
+	assert_eq(_count("room_enter"), entered + 1, "the room was rebuilt")
 	assert_eq(_events("room_enter")[1]["data"]["entrance"], "start", "at its start")
 	_run(1)
 	assert_eq(_world.tick, done_tick + 1, "ticks resume")
@@ -199,6 +200,8 @@ func _setup() -> void:
 	node.add_child(camera)
 	_world = add_node(node) as WorldScript
 	_player = player as Player
+	# The game starts in tutorial_1 (M6 step 2); these tests run in Level 1.
+	_world.load_room(&"level_1", &"start")
 	_input = add_node(ScriptedInputSource.new()) as ScriptedInputSource
 	_world.set_input_source(_input)
 

@@ -172,6 +172,36 @@ func test_corner_cells() -> void:
 	assert_eq(grid.cell_flags(Vector2i(5, cells.end.y)), 0, "below")
 
 
+func test_openings_into_a_neighbor() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	@warning_ignore("integer_division")
+	var cells: Rect2i = Rect2i(0, 0, ROOM.size.x / T, ROOM.size.y / T)
+	# A neighbor to the left, as tall as the room's top half.
+	grid.add_opening(Rect2i(-ROOM.size.x, 0, ROOM.size.x, 10 * T))
+	assert_eq(grid.cell_flags(Vector2i(-1, 0)), 0, "beside the edge, inside the neighbor")
+	assert_eq(grid.cell_flags(Vector2i(-1, 9)), 0, "the neighbor's last row")
+	assert_eq(grid.cell_flags(Vector2i(-1, 10)), SolidGrid.SOLID, "below the neighbor: wall")
+	assert_eq(grid.cell_flags(Vector2i(cells.end.x, 0)), SolidGrid.SOLID,
+			"the other side: still wall")
+	assert_eq(grid.cell_flags(Vector2i(-1, -1)), SolidGrid.SOLID, "above both: ceiling")
+
+
+func test_join_holds_both_rooms() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	var neighbor_rect: Rect2i = Rect2i(ROOM.end.x, 0, ROOM.size.x, ROOM.size.y)
+	var neighbor: SolidGrid = _new_grid(neighbor_rect)
+	neighbor.set_cell(Vector2i(0, 3), SolidGrid.ORDINARY)
+	grid.add_opening(neighbor_rect)
+	@warning_ignore("integer_division")
+	var first: int = ROOM.end.x / T
+	assert_eq(grid.cell_flags(Vector2i(first, 3)), 0, "before the join, an opening is open")
+	grid.join(neighbor)
+	assert_eq(grid.cell_flags(Vector2i(first, 3)), SolidGrid.SOLID, "joined: the neighbor's tile")
+	assert_eq(grid.cell_flags(Vector2i(first, 4)), 0, "joined: the neighbor's empty cell")
+	assert_eq(neighbor.cell_flags(Vector2i(first - 1, 3)), SolidGrid.SOLID,
+			"the neighbor itself is unchanged")
+
+
 func test_cells_painted_outside_the_room_are_ignored() -> void:
 	var grid: SolidGrid = _new_grid(ROOM)
 	@warning_ignore("integer_division")

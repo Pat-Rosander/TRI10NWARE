@@ -145,6 +145,8 @@ func _setup(with_presentation: bool = true) -> void:
 		node.free()
 	add_node(_main)
 	_world = _main.get_node("World") as WorldScript
+	# The game starts in tutorial_1 (M6 step 2); these tests run in Level 1.
+	_world.load_room(&"level_1", &"start")
 	_player = _main.get_node("World/Player") as Player
 	_presentation = _main.get_node_or_null("World/FlowPresentation")
 	_input = add_node(ScriptedInputSource.new()) as ScriptedInputSource

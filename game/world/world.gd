@@ -1,18 +1,21 @@
 # World, the referee: the project's only _physics_process. Runs the 11-step tick in a fixed order,
 # so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 runs the
 # play states (title, death and respawn, completion), and from M6 touches, commits and loses
-# collectibles. Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-02.
+# collectibles and runs crossings between neighboring rooms.
+# Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-01, G-02.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
 const CATALOG: RoomCatalog = preload("res://rooms/room_catalog.tres")
 ## Where a completed room replays from.
 const START_ENTRANCE: StringName = &"start"
+## How far from the crossed edge an entrance may be to become the checkpoint (48 px, 3 tiles).
+const CHECKPOINT_REACH_PX: int = 48
 
 ## Step 10's result, decided in this fixed order (Same-tick contract).
 enum Outcome { NONE, COMPLETE, SPIKE, COUNTDOWN, FELL }
-## The play states. Ticks count only in PLAYING, DYING and RESPAWNING.
-enum PlayState { TITLE, PLAYING, DYING, RESPAWNING, COMPLETE }
+## The play states. Ticks count only in PLAYING, DYING and RESPAWNING; TRANSITION is a crossing.
+enum PlayState { TITLE, PLAYING, DYING, RESPAWNING, COMPLETE, TRANSITION }
 
 ## The current tick. Counts only while the rules run, never on skipped or frozen physics steps.
 var tick: int = 0
@@ -28,6 +31,19 @@ var slow_divisor: int = 1: set = _set_slow_divisor
 var room_id: StringName
 var checkpoint: StringName
 
+# The current room, its record and its grid.
+var _room: Room
+var _entry: RoomEntry
+var _grid: SolidGrid
+# The neighbor the body's center entered in step 7 of this tick, or null.
+var _pending: RoomEntry
+# During a crossing: the room being entered, its grid, the edge crossed and physics steps left.
+var _next_room: Room
+var _next_entry: RoomEntry
+var _next_grid: SolidGrid
+var _crossed_edge: String = ""
+var _from_bounds: Rect2i = Rect2i()
+var _slide_steps_left: int = 0
 # The current room's goal zones, sorted by node name.
 var _goals: Array[GoalZone] = []
 # The current room's collectibles, sorted by node name.
@@ -50,7 +66,7 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if not ticks_run():
+	if not ticks_run() and play_state != PlayState.TRANSITION:
 		return
 	if debug_frozen:
 		if not _step_requested:
@@ -61,6 +77,9 @@ func _physics_process(_delta: float) -> void:
 		if _slow_phase < slow_divisor:
 			return
 		_slow_phase = 0
+	if play_state == PlayState.TRANSITION:
+		_step_transition()
+		return
 	tick += 1
 	Trace.tick = tick
 	if play_state != PlayState.PLAYING:
@@ -116,6 +135,11 @@ func ticks_run() -> bool:
 			or play_state == PlayState.RESPAWNING
 
 
+## True while the pause menu may open: whenever ticks run, and during a crossing's slide.
+func can_pause() -> bool:
+	return ticks_run() or play_state == PlayState.TRANSITION
+
+
 ## While frozen, runs exactly one tick on the next physics step.
 func request_step() -> void:
 	_step_requested = true
@@ -155,18 +179,13 @@ func load_room(id: StringName, entrance_id: StringName, is_respawn: bool = false
 	for old: Node in slot.get_children():
 		slot.remove_child(old)
 		old.queue_free()
-	var room: Room = entry.scene.instantiate() as Room
-	room.position = Vector2(entry.world_rect.position)
-	slot.add_child(room)
-	var grid: SolidGrid = room.build_grid()
+	_next_room = null
+	var room: Room = _build_room(entry)
+	var grid: SolidGrid = _build_grid(room, entry)
 	var entrance: RoomEntrance = room.entrance(entrance_id)
 	if entrance == null:
 		return
-	room_id = id
-	checkpoint = entrance_id
-	_goals = room.goal_zones()
-	_collectibles = room.collectibles()
-	Trace.room = String(id)
+	_set_room(room, entry, grid, entrance_id)
 	_player.respawn(entry.world_rect.position + entrance.feet(), grid, entrance.facing,
 			room.charged_objects())
 	if is_respawn:
@@ -224,10 +243,18 @@ func _step_move() -> void:
 
 
 # Step 7: grounded, walls, charged-object regions; then collectibles the body overlaps start
-# following the player, in node-name order.
+# following the player, in node-name order; then whether the body's center has left the room
+# into a neighbor (a crossing, begun in step 10).
 func _step_sense() -> void:
 	_player.step_sense()
 	var body: Rect2i = _player.mover.body_rect(_player.mover.position)
+	_pending = null
+	var center: Vector2i = body.position + body.size / 2
+	var here: Rect2i = _player.mover.grid.bounds
+	if not here.has_point(center):
+		var neighbor: RoomEntry = CATALOG.room_at(center)
+		if neighbor != null and neighbor.world_rect != here:
+			_pending = neighbor
 	for collectible: Collectible in _collectibles:
 		if collectible.overlaps(body):
 			collectible.touch(_player)
@@ -244,11 +271,15 @@ func _step_timers() -> void:
 	_player.step_timers()
 
 
-# Step 10: goal, spike, countdown expiry, falls, in that order. A completion stops the ticks until the
-# completion overlay calls replay(); a death starts the death freeze (and loses carried
-# collectibles). Without a death, carried collectibles commit on a grounded tick.
+# Step 10: goal, spike, countdown expiry, falls, then a crossing, in that order. A completion
+# stops the ticks until the completion overlay calls replay(); a death starts the death freeze
+# (and loses carried collectibles). Without a death, carried collectibles commit on a grounded
+# tick, or on any tick a crossing begins.
 func _step_outcomes() -> void:
 	var result: Outcome = outcome(_player, _goals)
+	if result == Outcome.NONE and _pending != null:
+		_begin_crossing(_pending)
+		return
 	if result == Outcome.NONE or result == Outcome.COMPLETE:
 		_commit_carried()
 	match result:
@@ -263,10 +294,11 @@ func _step_outcomes() -> void:
 			_die("fell")
 
 
-# Step 11: publish the new state; the camera target is set here.
+# Step 11: publish the new state; the camera target is set here, except during a slide.
 func _step_publish() -> void:
 	_player.publish()
-	_camera.move_to(_player.mover.position)
+	if play_state != PlayState.TRANSITION:
+		_camera.move_to(_player.mover.position)
 
 
 # A tick in DYING or RESPAWNING: the player is frozen, and input is read and thrown away, so no
@@ -296,15 +328,146 @@ func _die(cause: String) -> void:
 	_lock_ticks = Tuning.death_freeze_ticks
 
 
-# Commits every carried collectible if the player is grounded, in node-name order.
-func _commit_carried() -> void:
-	if not _player.state.grounded:
+# Commits every carried collectible if the player is grounded, or if [param leaving] (a crossing
+# out of its room), in node-name order.
+func _commit_carried(leaving: bool = false) -> void:
+	if not _player.state.grounded and not leaving:
 		return
 	for collectible: Collectible in _collectibles:
 		if collectible.phase == Collectible.Phase.FOLLOWING:
 			GameState.commit(collectible.id)
 			collectible.commit()
 			_log_collectible(collectible, "committed")
+
+
+# Starts a crossing into [param entry] (How crossings work, 1 to 4): the rules and the tick stop,
+# a carried collectible commits, the neighbor is built beside this room and joined into the grid,
+# and the camera starts sliding to it.
+func _begin_crossing(entry: RoomEntry) -> void:
+	_from_bounds = _player.mover.grid.bounds
+	_crossed_edge = _edge_toward(entry.world_rect)
+	Trace.record("transition_start", {"from_room": String(room_id),
+			"to_room": String(entry.room_id), "edge": _crossed_edge})
+	_commit_carried(true)
+	_next_entry = entry
+	_next_room = _build_room(entry)
+	_next_grid = _build_grid(_next_room, entry)
+	_player.mover.grid.join(_next_grid)
+	_camera.begin_slide(_player.mover.position, entry.world_rect)
+	_slide_steps_left = Tuning.room_transition_ticks
+	play_state = PlayState.TRANSITION
+	if _slide_steps_left <= 0:
+		_end_crossing()
+
+
+# One physics step of a crossing's slide; the tick does not advance. Input is read and thrown
+# away, so presses made during the slide are discarded while held buttons stay held.
+func _step_transition() -> void:
+	_input_source.read(tick)
+	_slide_steps_left -= 1
+	var total: int = maxi(Tuning.room_transition_ticks, 1)
+	_camera.slide(float(total - _slide_steps_left) / float(total))
+	if _slide_steps_left <= 0:
+		_end_crossing()
+
+
+# Ends a crossing (How crossings work, 5 and 6): frees the old room, moves the player into the
+# new one with all state kept, chooses the checkpoint, logs room_enter and transition_end on the
+# tick the crossing began, and resumes the rules.
+func _end_crossing() -> void:
+	var slot: Node = $RoomSlot
+	slot.remove_child(_room)
+	_room.queue_free()
+	var room: Room = _next_room
+	var entrance_id: StringName = _choose_checkpoint(room, _next_entry.world_rect.position)
+	_set_room(room, _next_entry, _next_grid, entrance_id)
+	_next_room = null
+	_next_entry = null
+	_next_grid = null
+	_player.enter_room(_grid, room.charged_objects())
+	_camera.end_slide(_player.mover.position, _entry.world_rect)
+	Trace.record("room_enter", {"room": String(room_id), "entrance": String(checkpoint)})
+	Trace.record("transition_end", {"room": String(room_id), "checkpoint": String(checkpoint)})
+	play_state = PlayState.PLAYING
+
+
+# The new room's entrance nearest the player's feet among those within CHECKPOINT_REACH_PX of
+# the edge crossed; ties go to the lowest entrance_id. [param origin] is the room's place.
+func _choose_checkpoint(room: Room, origin: Vector2i) -> StringName:
+	var feet: Vector2i = _player.mover.position
+	var near: Array[RoomEntrance] = []
+	for candidate: RoomEntrance in room.entrances():
+		if _edge_distance(origin + candidate.feet()) <= CHECKPOINT_REACH_PX:
+			near.append(candidate)
+	if near.is_empty():
+		push_error("World: room '%s' has no entrance within %d px of its %s edge." % [
+				room.room_id, CHECKPOINT_REACH_PX, _crossed_edge])
+		near = room.entrances()
+	var best: RoomEntrance = null
+	var best_distance: int = 0
+	for candidate: RoomEntrance in near:
+		var offset: Vector2i = origin + candidate.feet() - feet
+		var distance: int = offset.x * offset.x + offset.y * offset.y
+		if best == null or distance < best_distance or (distance == best_distance
+				and String(candidate.entrance_id) < String(best.entrance_id)):
+			best = candidate
+			best_distance = distance
+	return best.entrance_id if best != null else START_ENTRANCE
+
+
+# How far the world pixel [param point] is from the edge being crossed.
+func _edge_distance(point: Vector2i) -> int:
+	var rect: Rect2i = _from_bounds
+	match _crossed_edge:
+		"left":
+			return absi(point.x - rect.position.x)
+		"right":
+			return absi(point.x - rect.end.x)
+		"top":
+			return absi(point.y - rect.position.y)
+		_:
+			return absi(point.y - rect.end.y)
+
+
+# The current room's edge that [param rect] (a neighbor) lies beyond; sides before top and bottom.
+func _edge_toward(rect: Rect2i) -> String:
+	var here: Rect2i = _from_bounds
+	if rect.end.x <= here.position.x:
+		return "left"
+	if rect.position.x >= here.end.x:
+		return "right"
+	if rect.end.y <= here.position.y:
+		return "top"
+	return "bottom"
+
+
+# Builds [param entry]'s room fresh at its place on the map, under RoomSlot.
+func _build_room(entry: RoomEntry) -> Room:
+	var room: Room = entry.scene.instantiate() as Room
+	room.position = Vector2(entry.world_rect.position)
+	$RoomSlot.add_child(room)
+	return room
+
+
+# The room's grid, open into every neighbor the catalog lists.
+func _build_grid(room: Room, entry: RoomEntry) -> SolidGrid:
+	var grid: SolidGrid = room.build_grid()
+	for neighbor: RoomEntry in CATALOG.neighbors(entry):
+		grid.add_opening(neighbor.world_rect)
+	return grid
+
+
+# Makes [param room] the current room, with [param checkpoint_id] as its checkpoint.
+func _set_room(room: Room, entry: RoomEntry, grid: SolidGrid, checkpoint_id: StringName) -> void:
+	_room = room
+	_entry = entry
+	_grid = grid
+	_pending = null
+	room_id = entry.room_id
+	checkpoint = checkpoint_id
+	_goals = room.goal_zones()
+	_collectibles = room.collectibles()
+	Trace.room = String(room_id)
 
 
 func _log_collectible(collectible: Collectible, change: String) -> void:
