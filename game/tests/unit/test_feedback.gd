@@ -1,7 +1,9 @@
 # Tests Sfx and Effects through the real main scene and Level 1: the charged_dash memory (a
 # ground refill, a dash, a respawn or a room_enter clears it); exactly one countdown tick per
 # shown second; identical traces with and without both nodes; pools that never grow across
-# deaths; and one check per other sound and effect. Serves AC V-04 (owner, M3 step 5).
+# deaths; and one check per other sound and effect. Serves AC V-04 (owner, M3 step 5). Also the
+# music: it starts on the title's dismissal and never stops, and the pause menu's slider sets
+# the Music bus (owner, M3 step 7).
 extends TestCase
 
 const MAIN_SCENE: PackedScene = preload("res://world/main.tscn")
@@ -9,6 +11,7 @@ const WorldScript: GDScript = preload("res://world/world.gd")
 const SfxScript: GDScript = preload("res://audio/sfx.gd")
 const EffectsScript: GDScript = preload("res://world/effects.gd")
 const HudScript: GDScript = preload("res://ui/hud.gd")
+const PauseMenuScript: GDScript = preload("res://ui/pause_menu.gd")
 
 var _main: Node
 var _world: WorldScript
@@ -213,6 +216,76 @@ func test_sounds_play_on_the_sfx_bus() -> void:
 		assert_eq((child as AudioStreamPlayer).bus, &"SFX", "%s is on SFX" % child.name)
 
 
+# --- music (M3 step 7) ---
+
+func test_music_starts_on_title_dismissal_and_not_before() -> void:
+	_setup_on_title()
+	var music: AudioStreamPlayer = _main.get_node("Music") as AudioStreamPlayer
+	assert_eq(music.bus, &"Music", "on the Music bus")
+	assert_eq(music.process_mode, Node.PROCESS_MODE_ALWAYS, "process mode Always")
+	assert_eq(music.stream.resource_path, "res://audio/music/electrun_theme_1.mp3", "the owner's track")
+	assert_true((music.stream as AudioStreamMP3).loop, "looped by its import settings")
+	assert_false(music.autoplay, "no autoplay")
+	assert_false(music.playing, "silent on the title")
+	_dismiss_title()
+	assert_true(music.playing, "the start key starts the music")
+
+
+func test_music_keeps_playing_through_death_pause_and_replay() -> void:
+	_setup_on_title()
+	var music: AudioStreamPlayer = _main.get_node("Music") as AudioStreamPlayer
+	var pause: PauseMenuScript = _main.get_node("PauseMenu") as PauseMenuScript
+	_dismiss_title()
+	var started: AudioStreamPlayback = music.get_stream_playback()
+	_die_and_respawn()
+	assert_true(music.playing, "still playing after a death and respawn")
+	pause.open()
+	assert_true(_main.get_tree().paused, "the menu paused the tree")
+	assert_true(music.playing and music.can_process(), "still playing while paused")
+	pause.resume()
+	assert_true(music.playing, "still playing after resume")
+	var goal: GoalZone = _world._goals[0]
+	_player.respawn(Vector2i(roundi(goal.position.x + goal.width_px / 2.0), roundi(goal.position.y)),
+			_player.mover.grid)
+	_run(1)
+	assert_eq(_world.play_state, WorldScript.PlayState.COMPLETE, "standing on the goal completes")
+	assert_true(music.playing, "still playing on the completion screen")
+	_world.replay()
+	assert_eq(_count("room_enter"), 2, "replay rebuilt the room")
+	assert_true(music.playing, "still playing after the rebuild")
+	assert_eq(music.get_stream_playback(), started, "never restarted")
+
+
+func test_music_volume_starts_at_tuning() -> void:
+	_setup_on_title()
+	var slider: HSlider = _main.get_node("PauseMenu").get_node("%MusicVolume") as HSlider
+	var bus: int = AudioServer.get_bus_index(&"Music")
+	assert_eq(Tuning.data.music_volume, 0.7, "the tuning default")
+	assert_eq(slider.value, 70.0, "the slider starts at music_volume")
+	assert_false(AudioServer.is_bus_mute(bus), "the Music bus is on")
+	assert_near(AudioServer.get_bus_volume_db(bus), linear_to_db(0.7), 0.001, "at 70 %")
+
+
+func test_slider_sets_the_music_bus_and_zero_mutes_it() -> void:
+	_setup_on_title()
+	var slider: HSlider = _main.get_node("PauseMenu").get_node("%MusicVolume") as HSlider
+	var label: Label = _main.get_node("PauseMenu").get_node("%MusicLabel") as Label
+	var bus: int = AudioServer.get_bus_index(&"Music")
+	var master: int = AudioServer.get_bus_index(&"Master")
+	var master_db: float = AudioServer.get_bus_volume_db(master)
+	slider.value = 50.0
+	assert_near(AudioServer.get_bus_volume_db(bus), linear_to_db(0.5), 0.001, "50 % reaches the bus")
+	assert_eq(label.text, "Music: 50 %", "the label follows")
+	slider.value = 0.0
+	assert_true(AudioServer.is_bus_mute(bus), "0 mutes the Music bus")
+	slider.value = 100.0
+	assert_false(AudioServer.is_bus_mute(bus), "above 0 unmutes it")
+	assert_near(AudioServer.get_bus_volume_db(bus), 0.0, 0.001, "100 % is 0 dB")
+	assert_false(AudioServer.is_bus_mute(master), "Master is never muted by the slider")
+	assert_eq(AudioServer.get_bus_volume_db(master), master_db, "or changed")
+	slider.value = Tuning.data.music_volume * 100.0
+
+
 # --- the effects, one check each ---
 
 func test_fall_death_effect_is_clamped_into_the_view() -> void:
@@ -289,6 +362,25 @@ func _setup(with_feedback: bool = true) -> void:
 	_input = add_node(ScriptedInputSource.new()) as ScriptedInputSource
 	_world.set_input_source(_input)
 	_world.start()
+
+
+# A main scene on its title screen, its World reading a ScriptedInputSource once started.
+func _setup_on_title() -> void:
+	Trace.begin_session(true)
+	_main = add_node(MAIN_SCENE.instantiate())
+	_world = _main.get_node("World") as WorldScript
+	_player = _main.get_node("World/Player") as Player
+	_input = add_node(ScriptedInputSource.new()) as ScriptedInputSource
+	_world.set_input_source(_input)
+
+
+# A key press reaching the title overlay, as in test_play_loop.
+func _dismiss_title() -> void:
+	var key: InputEventKey = InputEventKey.new()
+	key.physical_keycode = KEY_A
+	key.pressed = true
+	_main.get_node("TitleOverlay").call(&"_unhandled_input", key)
+	assert_eq(_world.play_state, WorldScript.PlayState.PLAYING, "the title started play")
 
 
 # Switches, runs, jumps, dashes, dies by countdown and respawns, and returns every event,

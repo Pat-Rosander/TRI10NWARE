@@ -1,6 +1,7 @@
 # Main, the persistent game screen: command-line flags, debug tools, window size, fullscreen, pause
-# on the pause key and on focus loss, wiring the overlays, and saving the trace on quit in debug
-# runs. Keeps app-level concerns out of the simulation. Serves AC V-01, D-05, D-07, R-04.
+# on the pause key and on focus loss, wiring the overlays, starting the music when the title is
+# dismissed, and saving the trace on quit in debug runs. Keeps app-level concerns out of the
+# simulation. Serves AC V-01, D-05, D-07, R-04.
 extends Node
 
 const WorldScript := preload("res://world/world.gd")
@@ -25,6 +26,7 @@ var render_fps: int = 0
 @onready var _title: TitleOverlayScript = $TitleOverlay
 @onready var _pause_menu: PauseMenuScript = $PauseMenu
 @onready var _completion: CompletionOverlayScript = $CompletionOverlay
+@onready var _music: AudioStreamPlayer = $Music
 
 
 func _ready() -> void:
@@ -42,6 +44,7 @@ func _ready() -> void:
 	_size_window()
 	# The title overlay starts World on the first key or click.
 	_title.world = _world
+	_title.dismissed.connect(_start_music)
 	_completion.world = _world
 	_pause_menu.world = _world
 	_pause_menu.toggle_fullscreen = toggle_fullscreen
@@ -95,6 +98,14 @@ func toggle_fullscreen() -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+
+# The music starts on the title's key or click, the gesture browsers need before audio, and then
+# never stops: Music sits outside World and processes Always, so deaths, rebuilds and pause leave
+# it alone.
+func _start_music() -> void:
+	if not _music.playing:
+		_music.play()
 
 
 func _notification(what: int) -> void:

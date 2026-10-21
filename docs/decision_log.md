@@ -60,6 +60,7 @@ Current values in `game/config/tuning.tres`. Source: **AC** values are fixed by 
 | `inactive_platform_alpha` | 0.35 | | Ours | Start value |
 | `glow_hint_alpha` | 0.3 | | Ours | Added M3.3 (owner, 2026-10-20) |
 | `stick_deadzone` | 0.2 | | Ours | Start value |
+| `music_volume` | 0.7 | | Owner | Added M3.7 (owner, 2026-10-21) |
 | `trace_memory_limit` | 100000 | | Ours | Start value |
 
 **Tuning changes** (one row per retune, with the playtest or scenario behind it):
@@ -253,6 +254,10 @@ Kind: **D&L** = decide and log; **Owner** = owner decision; **Engine** = workaro
 | M4.1 | 2026-10-21 | D&L | The gym grows from 5120 × 512 to 5760 × 512; the `spikes` station uses columns 320–359, with its entrance at (5160, 416) on the usual floor line (row 26). Suggested layout in the M4.1 journal entry | The gym had no spare columns (M2.4) | Headless load: 17 entrances, bounds 5760 × 512 |
 | M3 | 2026-10-21 | Owner | The owner's completion sound fills the `room_complete.wav` slot, converted from `completion.mp3` to 16-bit stereo 44.1 kHz WAV (`afconvert`); the MP3 is removed. WAV avoids MP3's built-in start silence, which would delay a sound effect | `sfx.gd` loads the slot path, so the MP3 was never played | `CREDITS.md` row |
 | M3 | 2026-10-21 | Owner | New M3 step 7, music and volume: the owner's `electrun_theme_1.mp3` loops on the Music bus, starts when the title is dismissed (the browser audio gesture), and keeps playing through deaths, completion and pause; the pause menu gains a session-only Music volume slider starting at the new tuning field `music_volume` (0.7). After step 7, step 6 (ship) runs again for a new build. M3 files recounted: 40 | The owner added music; Music bus was reserved for it | `test_feedback.gd` cases (step 7) |
+| M3.7 | 2026-10-21 | D&L | The music starts from `TitleOverlay`'s new `dismissed` signal, emitted after `world.start()` on the start key or click; `main.gd` connects it to `_start_music()`, which plays the `Music` node only if it is not already playing. `Music` is a child of Main (not World) with process mode Always, so deaths, room rebuilds, completion and pause never touch it | The overlay holds no audio and World knows nothing of music; the play call runs inside the browser's input gesture | `test_music_starts_on_title_dismissal_and_not_before`, `test_music_keeps_playing_through_death_pause_and_replay` |
+| M3.7 | 2026-10-21 | D&L | Pause menu music slider: a `MusicLabel` reading "Music: N %" above a `MusicVolume` `HSlider`, 0–100, `step` 1 (smooth with the mouse), `custom_step` 10 (each Left/Right key, d-pad or stick press moves 10 %, through the built-in `ui_left`/`ui_right` actions). Placed between Sound and Quit; the menu box grows from 140 to 168 px tall | Reads like the existing "Sound: on" item; 10 presses cover the range | `test_slider_sets_the_music_bus_and_zero_mutes_it` |
+| M3.7 | 2026-10-21 | D&L | `PauseMenu._ready` applies `music_volume` to the Music bus at launch, before the menu first opens, so the track starts at 70 %. At 0 the bus is muted (`linear_to_db(0)` is −inf); above 0 it is unmuted and set to `linear_to_db(value)`. Sound on/off still mutes only Master, so the two stack | Spec: "starts at `music_volume`", "muting the bus at 0" | `test_music_volume_starts_at_tuning` |
+| M3.7 | 2026-10-21 | D&L | Loop on is set in `electrun_theme_1.mp3.import` (`loop=true`), the import setting only; the MP3 itself is untouched | Spec: "looped through its import settings (Loop on)" | `test_music_starts_on_title_dismissal_and_not_before` (checks `loop`) |
 
 ## 3. Disclosed deviations
 

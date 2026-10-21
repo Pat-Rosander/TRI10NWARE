@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://b5t7uyqi32r7p"]
+[gd_scene load_steps=14 format=3 uid="uid://b5t7uyqi32r7p"]
 
 [ext_resource type="Script" uid="uid://rr11rjck0x6d" path="res://world/main.gd" id="1_4f7fj"]
 [ext_resource type="Script" uid="uid://bop0qm0kf163p" path="res://world/world.gd" id="2_spvjk"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://world/flow_presentation.gd" id="10_flow"]
 [ext_resource type="Script" path="res://world/effects.gd" id="11_effects"]
 [ext_resource type="Script" path="res://audio/sfx.gd" id="12_sfx"]
+[ext_resource type="AudioStream" uid="uid://co6sscfvqv55m" path="res://audio/music/electrun_theme_1.mp3" id="13_music"]
 
 [node name="Main" type="Node"]
 process_mode = 3
@@ -42,6 +43,11 @@ player = NodePath("../World/Player")
 [node name="Sfx" type="Node" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("12_sfx")
 player = NodePath("../World/Player")
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+process_mode = 3
+stream = ExtResource("13_music")
+bus = &"Music"
 
 [node name="TitleOverlay" parent="." instance=ExtResource("7_title")]
 

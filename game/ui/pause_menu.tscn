@@ -26,9 +26,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -60.0
-offset_top = -70.0
+offset_top = -84.0
 offset_right = 60.0
-offset_bottom = 70.0
+offset_bottom = 84.0
 grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
@@ -59,6 +59,20 @@ text = "Fullscreen"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Sound: on"
+
+[node name="MusicLabel" type="Label" parent="Root/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Music: 70 %"
+horizontal_alignment = 1
+
+[node name="MusicVolume" type="HSlider" parent="Root/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 100.0
+step = 1.0
+custom_step = 10.0
+value = 70.0
 
 [node name="Quit" type="Button" parent="Root/Center"]
 unique_name_in_owner = true

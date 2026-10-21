@@ -4,6 +4,10 @@
 # start key never becomes a jump. Serves AC D-04, D-07, V-02.
 extends CanvasLayer
 
+## Emitted once the start key or click has hidden the overlay and started World. Main starts
+## the music on it, inside the browser's audio gesture.
+signal dismissed
+
 const WorldScript := preload("res://world/world.gd")
 
 ## The World to start. Set by Main.
@@ -27,6 +31,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 	hide()
 	world.start()
+	dismissed.emit()
 
 
 # A fresh key, mouse button or (off the web) gamepad button press; fullscreen and the debug

@@ -75,5 +75,8 @@ enum CountdownMode { CONTINUE, PAUSE, STOP }
 @export_group("Input")
 @export var stick_deadzone: float
 
+@export_group("Audio")
+@export var music_volume: float
+
 @export_group("Trace")
 @export var trace_memory_limit: int

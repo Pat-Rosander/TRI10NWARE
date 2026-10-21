@@ -4,10 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M4 step 1, spike rules, 2026-10-21: spike cells and hitboxes in `SolidGrid`, contact at every pixel of the move, step 10's spike death, the two spike tuning fields, `test_spikes.gd`, and the `spikes` gym entrance (gym widened to 5760 px). The spec now has an **M4 build order** (owner, 2026-10-21; M4 is built ahead of Level 2). Earlier: M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Last completed:** M3 step 7, music and volume, 2026-10-21: the `Music` player in `main.tscn` (Music bus, process mode Always, the owner's track looped through its import settings), started by the title's new `dismissed` signal; the pause menu's Music volume slider starting at the new tuning field `music_volume` (0.7); four music cases in `test_feedback.gd`. Earlier: M4 step 1 (spike rules: spike cells and hitboxes in `SolidGrid`, step 10's spike death, `test_spikes.gd`, the `spikes` gym entrance, gym 5760 px wide; the spec has an **M4 build order**, built ahead of Level 2), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
 - **Next step:** M4 step 2, overlap policy (`/step M4.2`): `overlap_policy.gd` and its test, pending tiles in `solid_grid.gd`, the policy on every switch in `flow_controller.gd`, the step 7 pending re-check in `player.gd`, and `test_platforms.gd` (spec, **M4 build order**). It does not need the owner's platform art: its tests build grids in code. If the owner has set the spike tiles' `solidity` by then, first update `test_level_tiles_resource` to the new tiles (see M4.1 "How to see it"). Still postponed: **M1 steps 7–9** and M3's gate evidence (spec, **Postponed work**). Do not build them, or anything that waits on them, unless the owner asks. No session does itch.io work.
-- **Added 2026-10-21: M3 step 7, music and volume** (`/step M3.7`; spec, M3 build order). It can run any time, before or between M4 steps: the owner's music loops on the Music bus from the title's dismissal, and the pause menu gains a music volume slider. Afterwards, run M3 step 6 (ship) again for a new build. The completion sound is already in its slot (`room_complete.wav`).
+- **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
 - **Waiting on the owner:**
+    - **M3.7 check:** follow "How to see it" in the M3 step 7 entry (open the five scripts for diagnostics, reload `main.tscn`/`pause_menu.tscn` if Godot asks, press F5, listen through a death, pause and replay, and try the slider). Adjust `music_volume` in `tuning.tres` if 70 % doesn't suit the track.
     - **M4.1:** set the spike tiles' `solidity` (4 up, 5 down, 6 left, 7 right) in the TileSet panel; open `game/core/solid_grid.gd` and `game/tests/unit/test_spikes.gd` once for diagnostics; paint the `spikes` station (painting guide in the M4 step 1 entry); playtest it, especially that a held jump grazes the ceiling spikes and lives. If `gym.tscn` or `room_catalog.tres` was open, let Godot reload them.
     - **M3.6 ship checks:** movement and visuals approved (owner, 2026-10-21; decision log M3.6). Still open: (1) the **web pause and focus check** in Chrome, Safari and Firefox (switch tabs, click outside the canvas, switch apps), which the owner runs last. It is untested and at risk: `main.gd` pauses only on the *application* focus notification, which the web runtime may not send; a failure goes to `known_issues.md` with a spec fix *proposed*. (2) Any builds not yet played (macOS from its itch.io zip, Windows on the PC, web). (3) Make the itch.io page and upload `builds/itch/*`. 13 placeholders still ship (list in the M3 step 6 entry).
     - **M3.5 check:** follow "How to see it" in the M3 step 5 entry (open `game/audio/sfx.gd`, `game/world/effects.gd` and `game/tests/unit/test_feedback.gd` for diagnostics, reload `main.tscn` if Godot asks, press F5 and listen). Confirm the license of your 8 WAVs in `CREDITS.md`. Replace `effects.png` (then its frames in `effects_frames.tres`) and the three silent WAVs whenever you like. Optionally approve fixing the spec layout's stale "13 unit-test files" (now 17).
@@ -1136,3 +1137,42 @@ The right edge (column 359) is already a wall, because room edges count as walls
 - The `test_platforms.gd` row was added to the spec now, with step 2's file, so the table matches the build order.
 - Skipped because they wait for the postponed M1 steps: `h01_spikes.json` (M1.8; `test_spikes.gd` stands in for it).
 - Check run: import clean; 228 unit tests pass. A throwaway headless script (not committed) loaded the gym and found 17 entrances, including `spikes`, with bounds 5760 × 512. Its jump-height measurement didn't run, because scripts started with `-s` load no autoloads. So the ceiling row above comes from the M2.4 figure, and your playtest confirms it.
+
+## M3 step 7: Music and volume (2026-10-21)
+
+**What was built:**
+
+- `game/world/main.tscn`: a new `Music` `AudioStreamPlayer` under Main, playing `res://audio/music/electrun_theme_1.mp3` on the Music bus, process mode Always, no autoplay.
+- `game/world/main.gd`: holds `_music`, and connects the title's `dismissed` signal to `_start_music()`.
+- `game/ui/title_overlay.gd`: new `dismissed` signal, emitted after `world.start()`.
+- `game/ui/pause_menu.tscn`: `MusicLabel` ("Music: 70 %") and a `MusicVolume` slider (0–100), between Sound and Quit. The menu box is 28 px taller.
+- `game/ui/pause_menu.gd`: `set_music_volume()`, the slider handler, and applying `music_volume` at launch.
+- `game/audio/music/electrun_theme_1.mp3.import`: `loop=true` (the import setting only; the MP3 is untouched).
+- `game/config/tuning_data.gd`, `game/config/tuning.tres`: new "Audio" group with `music_volume = 0.7`.
+- Tests: four music cases in `game/tests/unit/test_feedback.gd`; `test_tuning.gd` expects `music_volume`; `test_trace.gd`'s header count goes from 49 to 50.
+- `docs/decision_log.md`: the `music_volume` tuning row and four M3.7 rows.
+
+**How it works:**
+
+The music is a single `AudioStreamPlayer` called `Music`, a sibling of `World` rather than a child of it. That placement does most of the work. When you die or replay, World frees the room and rebuilds it, but that never reaches a sibling. And because `Music` processes "Always", pausing the scene tree doesn't stop it. Nothing in the rules knows music exists, so it can't affect a trace.
+
+Browsers refuse to play sound until the page has had a key press or click. The title screen already waits for exactly that, so it now emits a `dismissed` signal right after starting World, and Main calls `play()` in response. This runs inside the same key-press handler, so the browser counts it as part of the gesture. `play()` runs only if the track isn't already playing, so nothing can restart it from the top. Looping isn't done in code: it's the MP3's "Loop" import setting, so Godot wraps the track seamlessly after 81 s.
+
+The pause menu's slider controls only the Music bus. At 0 the bus is muted (in decibels, zero volume is minus infinity). Any other value sets `linear_to_db(value)`, so 50 % means half the amplitude, about −6 dB. "Sound on/off" still mutes Master, which everything (Music included) feeds into, so the two controls stack without fighting. The slider starts at `music_volume` (0.7) and is applied when the game launches, so the track starts at 70 % even if you never open the menu. Nothing is saved: each launch starts at 70 % again.
+
+**Why:** spec **M3 build order** step 7; the M3 files rows for `pause_menu.tscn`, `default_bus_layout.tres`, `electrun_theme_1.mp3` and the "Files extended" rows for `main.tscn` and `pause_menu.gd`/`title_overlay.gd`/`main.gd`; the tuning table's `music_volume`; ground rule 13 (owner's audio, untouched); AC D-04 (the browser gesture), V-04.
+
+**How to see it:**
+
+1. Run the unit tests: 232 pass (4 new music cases in `test_feedback.gd`).
+2. Open `game/world/main.gd`, `game/ui/pause_menu.gd`, `game/ui/title_overlay.gd`, `game/config/tuning_data.gd` and `game/tests/unit/test_feedback.gd` once, so the editor analyzes them (diagnostics). If `main.tscn` or `pause_menu.tscn` was open, let Godot reload them.
+3. Press F5. The title is silent; the music starts on your key press. Die, pause, finish the level and replay: it never stops or restarts. It loops after about 81 s.
+4. Press Escape and move to the slider: Left/Right (or the d-pad) moves it 10 % at a time; the mouse drags it smoothly. At 0 the music goes silent but sound effects keep playing; "Sound: off" silences everything.
+5. If 70 % is the wrong starting level for the track, change `music_volume` in `config/tuning.tres`.
+
+**Decisions and questions:**
+
+- Decide and log (decision log, M3.7): the music starts from the title's `dismissed` signal; the slider's layout, label and steps (1 by mouse, 10 by key or pad); `music_volume` applied at launch, and 0 mutes the bus; Loop on set in the import file.
+- Check run: `run_tests.sh` passes (import, 232 unit tests; scenarios skipped until M1.8). The first run after turning Loop on printed "2 resources still in use at exit" once, during the MP3's re-import. Three later runs printed nothing, so it was the one-off re-import, not a leak in the new code.
+- Diagnostics: the editor had not opened the changed scripts yet, so the diagnostics tool had nothing for them (owner, step 2 above).
+- Next: run M3 step 6 (ship) again for a new build with the music, whenever you want one.
