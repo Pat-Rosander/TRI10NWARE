@@ -1,6 +1,7 @@
 # World, the referee: the project's only _physics_process. Runs the 11-step tick in a fixed order,
 # so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 runs the
-# play states (title, death and respawn, completion). Serves AC D-04, D-05, R-01, R-02, R-04, L1-04.
+# play states (title, death and respawn, completion), and from M6 touches, commits and loses
+# collectibles. Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-02.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
@@ -29,6 +30,8 @@ var checkpoint: StringName
 
 # The current room's goal zones, sorted by node name.
 var _goals: Array[GoalZone] = []
+# The current room's collectibles, sorted by node name.
+var _collectibles: Array[Collectible] = []
 var _input_source: InputSource
 var _step_requested: bool = false
 # Ticks left in the death freeze (DYING) or the respawn lock (RESPAWNING).
@@ -162,6 +165,7 @@ func load_room(id: StringName, entrance_id: StringName, is_respawn: bool = false
 	room_id = id
 	checkpoint = entrance_id
 	_goals = room.goal_zones()
+	_collectibles = room.collectibles()
 	Trace.room = String(id)
 	_player.respawn(entry.world_rect.position + entrance.feet(), grid, entrance.facing,
 			room.charged_objects())
@@ -219,9 +223,15 @@ func _step_move() -> void:
 	_player.step_move()
 
 
-# Step 7: grounded, walls, charged-object regions.
+# Step 7: grounded, walls, charged-object regions; then collectibles the body overlaps start
+# following the player, in node-name order.
 func _step_sense() -> void:
 	_player.step_sense()
+	var body: Rect2i = _player.mover.body_rect(_player.mover.position)
+	for collectible: Collectible in _collectibles:
+		if collectible.overlaps(body):
+			collectible.touch(_player)
+			_log_collectible(collectible, "touched")
 
 
 # Step 8: power-source contacts and recharge (M2, M5).
@@ -235,9 +245,13 @@ func _step_timers() -> void:
 
 
 # Step 10: goal, spike, countdown expiry, falls, in that order. A completion stops the ticks until the
-# completion overlay calls replay(); a death starts the death freeze.
+# completion overlay calls replay(); a death starts the death freeze (and loses carried
+# collectibles). Without a death, carried collectibles commit on a grounded tick.
 func _step_outcomes() -> void:
-	match outcome(_player, _goals):
+	var result: Outcome = outcome(_player, _goals)
+	if result == Outcome.NONE or result == Outcome.COMPLETE:
+		_commit_carried()
+	match result:
 		Outcome.COMPLETE:
 			Trace.record("room_complete", {"room": String(room_id)})
 			play_state = PlayState.COMPLETE
@@ -271,11 +285,30 @@ func _step_locked() -> void:
 	_step_publish()
 
 
-# Logs the death once and starts the death freeze.
+# Logs the death once, loses every carried collectible (the rebuilt room shows it again) and
+# starts the death freeze.
 func _die(cause: String) -> void:
 	Trace.record("death", {"cause": cause})
+	for collectible: Collectible in _collectibles:
+		if collectible.phase == Collectible.Phase.FOLLOWING:
+			_log_collectible(collectible, "lost")
 	play_state = PlayState.DYING
 	_lock_ticks = Tuning.death_freeze_ticks
+
+
+# Commits every carried collectible if the player is grounded, in node-name order.
+func _commit_carried() -> void:
+	if not _player.state.grounded:
+		return
+	for collectible: Collectible in _collectibles:
+		if collectible.phase == Collectible.Phase.FOLLOWING:
+			GameState.commit(collectible.id)
+			collectible.commit()
+			_log_collectible(collectible, "committed")
+
+
+func _log_collectible(collectible: Collectible, change: String) -> void:
+	Trace.record("collectible", {"id": collectible.id, "change": change})
 
 
 # Reports and removes the token in [param buffer] if its window has closed.

@@ -1,6 +1,6 @@
 # Every room scene's root. World talks to rooms only through it: bounds from the catalog, the
-# entrance, charged-object and goal-zone lookups and the room's SolidGrid. In the editor it
-# outlines its bounds. Serves AC R-01, L1-04.
+# entrance, charged-object, goal-zone and collectible lookups and the room's SolidGrid. In the
+# editor it outlines its bounds. Serves AC R-01, L1-04, G-02.
 @tool
 class_name Room
 extends Node2D
@@ -62,6 +62,17 @@ func goal_zones() -> Array[GoalZone]:
 	var found: Array[GoalZone] = []
 	_collect_goals($Objects, found)
 	found.sort_custom(func(a: GoalZone, b: GoalZone) -> bool:
+			return String(a.name) < String(b.name))
+	return found
+
+
+## Every collectible under `Collectibles`, sorted by node name (the same-tick ordering rule).
+func collectibles() -> Array[Collectible]:
+	var found: Array[Collectible] = []
+	for child: Node in $Collectibles.get_children():
+		if child is Collectible:
+			found.append(child)
+	found.sort_custom(func(a: Collectible, b: Collectible) -> bool:
 			return String(a.name) < String(b.name))
 	return found
 

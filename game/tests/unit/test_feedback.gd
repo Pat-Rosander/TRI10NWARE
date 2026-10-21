@@ -208,6 +208,14 @@ func test_room_complete_sound() -> void:
 	assert_eq(_sounds, [&"room_complete"], "completion")
 
 
+func test_collectible_sounds_and_none_for_a_loss() -> void:
+	_setup()
+	for change: String in ["touched", "committed", "lost"]:
+		Trace.record("collectible", {"id": "level_1/Collectible", "change": change})
+	assert_eq(_sounds, [&"collectible_touch", &"collectible_commit"],
+			"touched and committed have sounds; lost relies on the death sound")
+
+
 func test_sounds_play_on_the_sfx_bus() -> void:
 	_setup()
 	assert_true(AudioServer.get_bus_index(&"SFX") >= 0, "the SFX bus exists")

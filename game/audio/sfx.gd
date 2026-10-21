@@ -11,7 +11,7 @@ const HudScript := preload("res://ui/hud.gd")
 ## How many sounds can play at once; the oldest is cut off when all are busy (decision log, M3.5).
 const POOL_SIZE: int = 8
 const BUS: StringName = &"SFX"
-## One stream per sound slot (spec, M3 files).
+## One stream per sound slot (spec, M3 and M6 files).
 const STREAMS: Dictionary = {
 	&"jump": preload("res://audio/sfx/jump.wav"),
 	&"charged_jump": preload("res://audio/sfx/charged_jump.wav"),
@@ -24,6 +24,8 @@ const STREAMS: Dictionary = {
 	&"death": preload("res://audio/sfx/death.wav"),
 	&"respawn": preload("res://audio/sfx/respawn.wav"),
 	&"room_complete": preload("res://audio/sfx/room_complete.wav"),
+	&"collectible_touch": preload("res://audio/sfx/collectible_touch.wav"),
+	&"collectible_commit": preload("res://audio/sfx/collectible_commit.wav"),
 }
 
 @export var player: Player
@@ -87,3 +89,9 @@ func _on_event_logged(entry: Dictionary) -> void:
 			play(&"respawn")
 		"room_enter":
 			_charged_refill = false
+		"collectible":
+			# A lost collectible has no sound of its own: the death sound already plays.
+			if data["change"] == "touched":
+				play(&"collectible_touch")
+			elif data["change"] == "committed":
+				play(&"collectible_commit")
