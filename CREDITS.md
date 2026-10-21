@@ -19,3 +19,15 @@ One row per art, audio or font file in the game. `status` is `placeholder`, `own
 | `game/art/ui/state_icons.png` | State icons: default, flow, flow-at-0-volts warning; 3 frames of 12 × 12, colored squares (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
 | `game/art/ui/countdown_ring.png` | Countdown ring for the HUD's radial TextureProgressBar, 48 × 48 (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
 | `game/art/backdrop/level_1_backdrop.png` | Level 1 backdrop (slot), 640 × 368, flat blue-grey; dimmed in flow | placeholder | developer (generated) | none (flat color) | — | 2026-10-20 |
+| `game/audio/sfx/jump.wav` | Ordinary, coyote and wall jumps (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/charged_jump.wav` | Charged jump (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/dash.wav` | Dash start (any dash not charged by a charged jump) (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/charged_dash.wav` | Dash start when the latest dash refill was from a charged jump (C-08) (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/switch_to_flow.wav` | Entering flow (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/switch_to_default.wav` | Leaving flow (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/death.wav` | Death (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/respawn.wav` | Respawn (slot); 16-bit mono 44.1 kHz WAV | owner draft | Pat Rosander | owner to confirm | — | 2026-10-20 |
+| `game/audio/sfx/switch_refused.wav` | Flow refused at zero volts (slot); 0.1 s of silence, 16-bit mono 44.1 kHz WAV | placeholder | developer (generated) | none (silence) | — | 2026-10-20 |
+| `game/audio/sfx/countdown_tick.wav` | Countdown tick, once per remaining second (slot); 0.1 s of silence, 16-bit mono 44.1 kHz WAV | placeholder | developer (generated) | none (silence) | — | 2026-10-20 |
+| `game/audio/sfx/room_complete.wav` | Room completion (slot); 0.1 s of silence, 16-bit mono 44.1 kHz WAV | placeholder | developer (generated) | none (silence) | — | 2026-10-20 |
+| `game/art/effects/effects.png` | Effects art (slot), source of `game/world/effects_frames.tres`: 6 cells of 16 × 16 in a row, left to right `death`, `respawn`, `charged_jump`, `dash`, `land`, `goal`; each a 1-px colored outline | placeholder | developer (generated) | none (flat color) | — | 2026-10-20 |

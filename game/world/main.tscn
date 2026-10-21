@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://b5t7uyqi32r7p"]
+[gd_scene load_steps=13 format=3 uid="uid://b5t7uyqi32r7p"]
 
 [ext_resource type="Script" uid="uid://rr11rjck0x6d" path="res://world/main.gd" id="1_4f7fj"]
 [ext_resource type="Script" uid="uid://bop0qm0kf163p" path="res://world/world.gd" id="2_spvjk"]
@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" path="res://ui/pause_menu.tscn" id="8_pause"]
 [ext_resource type="PackedScene" path="res://ui/completion_overlay.tscn" id="9_complete"]
 [ext_resource type="Script" path="res://world/flow_presentation.gd" id="10_flow"]
+[ext_resource type="Script" path="res://world/effects.gd" id="11_effects"]
+[ext_resource type="Script" path="res://audio/sfx.gd" id="12_sfx"]
 
 [node name="Main" type="Node"]
 process_mode = 3
@@ -31,7 +33,14 @@ script = ExtResource("3_cmo1i")
 [node name="FlowPresentation" type="Node" parent="World"]
 script = ExtResource("10_flow")
 
+[node name="Effects" type="Node2D" parent="World"]
+script = ExtResource("11_effects")
+
 [node name="HUD" parent="." node_paths=PackedStringArray("player") instance=ExtResource("6_hud")]
+player = NodePath("../World/Player")
+
+[node name="Sfx" type="Node" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("12_sfx")
 player = NodePath("../World/Player")
 
 [node name="TitleOverlay" parent="." instance=ExtResource("7_title")]

@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M3 step 4, charged object looks, 2026-10-20: `Sprite` is an `AnimatedSprite2D`, `ChargedObject` exports `frames` and `glow_texture`, the placeholder `looks/default_frames.tres`, and `FlowPresentation` plays `electric` in flow and `default` otherwise. Earlier: M3 step 3 (flow visuals), M3 step 2 (play loop), M3 step 1 (Level 1 nodes; the owner's painting is committed, `4cf3a1b`), M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M3 step 5, effects and sound (`/step M3.5`): `effects.gd` and `effects_frames.tres` as `World/Effects` with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main and `default_bus_layout.tres`; the 11 sound slots (register the owner's 8 WAVs as `owner draft`, 3 silent placeholders). Then step 6 ship. M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
+- **Last completed:** M3 step 5, effects and sound, 2026-10-20: `Sfx` in Main (8-player pool on the SFX bus, 11 sound slots, the countdown tick), `World/Effects` (8-sprite pool, 6 effects), `default_bus_layout.tres`, placeholders `effects.png` and three silent WAVs, the owner's 8 WAVs registered as `owner draft`, and `test_feedback.gd`. Earlier: M3 step 4 (charged object looks), M3 step 3 (flow visuals), M3 step 2 (play loop), M3 step 1 (Level 1; painted, `4cf3a1b`), M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M3 step 6, ship (`/step M3.6`): `tools/export_all.sh` from a clean commit, the three builds and `builds/itch/`, the web build over `tools/serve_web.sh`, the web pause and focus check, the README's first-launch steps, and the owner's play of every build. The owner makes the itch.io page and uploads (no session does itch.io work). M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
 - **Waiting on the owner:**
+    - **M3.5 check:** follow "How to see it" in the M3 step 5 entry (open `game/audio/sfx.gd`, `game/world/effects.gd` and `game/tests/unit/test_feedback.gd` for diagnostics, reload `main.tscn` if Godot asks, press F5 and listen). Confirm the license of your 8 WAVs in `CREDITS.md`. Replace `effects.png` (then its frames in `effects_frames.tres`) and the three silent WAVs whenever you like. Optionally approve fixing the spec layout's stale "13 unit-test files" (now 17).
     - **M3.4 check:** follow "How to see it" in the M3 step 4 entry (open the three scripts for diagnostics, reload `level_1.tscn`/`gym.tscn`, look at the Inspector's **Frames** and **Glow Texture**). Add your charged-object types whenever you like ("To add a type" in that entry).
     - **M3.2 check:** open `game/world/main.gd`, `game/ui/title_overlay.gd`, `game/ui/pause_menu.gd` and `game/ui/completion_overlay.gd` once so the editor analyzes them (diagnostics). Then press F5 and follow "How to see it" in the M3 step 2 entry. Accept if Godot asks to re-save `main.tscn` or the new overlay scenes.
     - **M3.3 check:** follow "How to see it" in the M3 step 3 entry (open the four scripts for diagnostics, reload the three scenes, press F5 and Z). Optionally approve the "off-screen" → "invisibly, on screen" wording for the spec's `title_overlay.gd` row. Replace `level_1_backdrop.png` with your backdrop whenever you like.
@@ -988,3 +989,44 @@ If one of your looks is missing an animation (say you have only made `default` s
 
 - Decision log, M3.4: a look with a missing animation keeps its current one and warns; the placeholder's settings (one frame, 5 fps, looping), the empty-glow fallback and the `electric_look` switch.
 - Unit tests: 186 passed, 0 failed. Scenarios remain postponed (M1.8); the scenario command has nothing to run and does not quit, so it was stopped.
+
+## M3 step 5: Effects and sound (2026-10-20)
+
+**What was built:**
+
+- New: `game/audio/sfx.gd` (the `Sfx` node in Main), `game/world/effects.gd` (the `Effects` node in `World`), `game/world/effects_frames.tres` (animations `death`, `respawn`, `charged_jump`, `dash`, `land`, `goal`), `game/default_bus_layout.tres` (Master, SFX, Music).
+- Placeholders: `game/art/effects/effects.png` and silent `game/audio/sfx/switch_refused.wav`, `countdown_tick.wav`, `room_complete.wav`.
+- `game/world/main.tscn`: adds `Sfx` (its `player` points at `World/Player`, like the HUD) and `World/Effects` (after `Player`, so effects draw on top).
+- New: `game/tests/unit/test_feedback.gd` (27 cases; owner approved), and its row in the spec's M3 files table.
+- `CREDITS.md`: your 8 WAVs as `owner draft`; the 4 placeholders. `docs/decision_log.md`: six M3.5 rows.
+- Godot generated `.uid` files for the three scripts and `.import` files for the new WAVs and PNG.
+
+**How it works:**
+
+Both new nodes work like `FlowPresentation`: they listen to `Trace.event_logged`, the signal that fires for every rule event, and react. They never change anything the rules read, so the game plays identically with or without them. A test runs the same scripted inputs with both nodes and with both removed, and the traces match exactly.
+
+`Sfx` maps events to sounds: a `jump` plays `jump`, or `charged_jump` if its kind is `charged`; a `switch` plays `switch_to_flow` or `switch_to_default`; `switch_refused`, `death`, `respawn` and `room_complete` play their own slots. For dashes it remembers one thing, whether the latest dash refill came from a charged jump. A `dash_start` plays `charged_dash` if so, otherwise `dash`, and then forgets. A ground refill, a respawn or a new room also forget it. The countdown has no per-second event, so `Sfx` reads it every rendered frame with the HUD's own "whole seconds left" function. When the shown number changes to 3, 2 or 1 it plays `countdown_tick`, so it never disagrees with the numerals.
+
+`Effects` plays a short animation centered on the player's body for `death`, `respawn`, a charged `jump`, `dash_start`, `land` and `room_complete` (`goal`). When the player falls out of the room, that point is off screen, so a `fell` death clamps it to the edge of the camera's view, where the player left. When an animation finishes, the sprite hides itself. That is only visual: nothing waits for it.
+
+Both nodes make a fixed pool when they load, 8 sound players and 8 effect sprites, and never add more. Each new sound or effect takes the pool slot that started longest ago. So 20 deaths in a row cannot pile up nodes (R-03), and a test checks the counts after six deaths. The sounds play on the SFX bus. The pause menu's Sound on/off still mutes Master, which silences everything.
+
+**Why:** spec **M3 build order** step 5; M3 files rows `sfx.gd`, `default_bus_layout.tres`, the 11 sound slots, `effects.gd`, `effects_frames.tres`, `effects.png`; the `charged_dash.wav` row (owner, 2026-10-20); M3 "Files extended" `main.tscn`; **Visuals are a window, not a lever**; ground rules 3 and 13. AC V-04 (feedback for every important action), R-03 (nothing accumulates across retries).
+
+**How to see it:** open `game/audio/sfx.gd`, `game/world/effects.gd` and `game/tests/unit/test_feedback.gd` once so the editor analyzes them (diagnostics). Reload `main.tscn` if Godot asks. It now has `Sfx` under Main and `Effects` under World. Press F5, then a key:
+
+- Jump: your jump sound. Dash (X): the dash sound and a light-blue outline square.
+- Land: a yellow outline. Z: the switch sounds.
+- Charged jump through the ring: the charged-jump sound and a cyan outline; dash right after it: the charged-dash sound.
+- Fall into the gap: the death sound, a red outline at the bottom edge of the screen, then the respawn sound and a white outline at the start.
+- Spend all volts (Z in and out three times) and watch the countdown: the tick placeholder is silent, so nothing is heard yet.
+- Reach the goal: a green outline (the completion sound is silent too).
+
+To use your own effects art, save it over `game/art/effects/effects.png`, then open `effects_frames.tres` in the SpriteFrames panel and set each animation's frames, speed and loop. Keep the six animation names.
+
+**Decisions and questions:**
+
+- Decision log, M3.5: the new test file (owner); pool sizes and round-robin reuse; the `charged_dash` memory and what clears it; the countdown tick on 3, 2, 1; effect positions, draw order and the fall clamp; the placeholders and bus layout.
+- The spec's repository layout still says `13 unit-test files`; there are now 17. That count was out of date before this step; I left it for you to approve a fix.
+- Your 8 WAVs are registered with license "owner to confirm".
+- Unit tests: 213 passed, 0 failed (27 new). The headless run shows no script errors. The editor diagnostics had not analyzed the three new scripts yet (they were not open). Scenarios remain postponed (M1.8).
