@@ -345,7 +345,7 @@ These were chosen while planning the implementation; each was weighed against th
 | Loading the whole level as one scene | Each room is its own scene; only the current room is active | Retries rebuild one room; no per-object reset code (AC R-01, R-03, N-04) |
 | Isolated rooms joined by a fade to black | Rooms placed on a shared world map; the camera slides between neighbors | Shows the real neighbor and keeps the player oriented (owner, 2026-10-13) |
 | Exit zones that name a target room and entrance | Crossing a shared edge into the neighbor found on the world map | The map is the only record of connections, so links cannot disagree with it |
-| Saving progress to disk | Progress lasts for the session only | Not a jam focus (owner, 2026-10-13) |
+| Saving progress to disk | Progress lasts for the session only. **One exception:** the best completion time is saved (M6 step 5; owner, 2026-10-21) | Not a jam focus (owner, 2026-10-13) |
 | Engine collision signals deciding when a charged area is entered or left | A direct shape check every tick | Signals can arrive late or fire falsely on a state switch (AC C-04) |
 | Buffering the switch button like jump and dash | A switch fires on its own tick or is refused | A delayed switch could spend a volt the player no longer wanted |
 | Relying on the engine's built-in glow for the flow look | Hand-made glow sprites and dimming | The web build's renderer may not match it |
@@ -927,6 +927,7 @@ Field names carry their unit as a suffix: `_px`, `_px_s` (pixels per second), `_
 | `stick_deadzone` | 0.2 | Ours | Radial stick deadzone before 8-way snapping |
 | `music_volume` | 0.7 | Owner | Starting music volume, linear 0 to 1, until the player moves the pause menu's slider (M3 step 7). The owner sets it to suit the track |
 | `trace_memory_limit` | 100000 | Ours | Events kept in memory during normal play |
+| `coin_counter_s` | 2.0 | Ours | How long the HUD's coin counter stays after the last touch or commit (M6 step 5) |
 
 Docs: [Resources](https://docs.godotengine.org/en/4.5/tutorials/scripting/resources.html), [GDScript exported properties](https://docs.godotengine.org/en/4.5/tutorials/scripting/gdscript/gdscript_exports.html), [Singletons (Autoload)](https://docs.godotengine.org/en/4.5/tutorials/scripting/singletons_autoload.html).
 
@@ -1580,6 +1581,7 @@ All HUD elements sit inside the 640 × 360 canvas with at least 8 px of margin:
 
 - **Top left:** three volt pips, then the state icon, then the dash pip.
 - **Top center:** the countdown, only while it runs: large numerals over a ring draining from full to empty.
+- **Top right (from M6 step 5):** the coin counter, shown briefly when a collectible is touched or committed, and while paused.
 - **On refusal:** the volt pips flash.
 - **At 0 volts in flow:** the state icon shows a warning, because switching to default now is certain death (level design rule 1).
 
@@ -1992,13 +1994,20 @@ M6 is built in these numbered steps, one session each (`/step M6.1` and so on; o
 2. **Crossings:** `world.gd`'s Transition state, crossing detection and checkpoints (**How crossings work**), `SolidGrid` holding both rooms during a crossing, `camera_rig.gd`'s slide, and committing a carried collectible at the start of a crossing. To have a second room to cross into, the session adds one movement-only tutorial room skeleton (`tutorial_1`) beside `level_1` with its `RoomEntry`, entrances by the shared opening, and makes it the start room; **the owner paints it** and designs the rest of the tutorial. **No unit test and no gym annex:** the owner tests crossings by hand (owner, 2026-10-21).
 3. **Map tools:** `test_world_layout.gd` and `world_map_preview.tscn`/`.gd` (editor-only, excluded from exports), before the owner lays out more rooms, so layout mistakes show in the editor rather than in play.
 4. **Room info:** `room_info.gd`, each room's entry state, volt budget, recharge points and route (G-03); showing it in the debug overlay waits for M1.7.
-5. **Done-when:** the owner's checks (**M6 done when**). `g01`, `g02` and `n03`'s re-entry case wait for M1.8.
+5. **Coin counter and results** (owner, 2026-10-21; numbered after step 4 so steps 1–4 keep their numbers):
+    - **Counter:** `hud.gd`/`hud.tscn` gain a top-right counter: the collectible's sprite (from `collectible.png`, no new art slot) and the number of committed collectibles, count only (no total). It slides in when a collectible is touched or committed, ticks up on commit, and hides `coin_counter_s` (2.0 s, new tuning field) after the last of these; it also shows while the pause menu is open. It reads `GameState` and listens to `collectible` events; it changes no rule state.
+    - **Run timer:** `GameState` counts the run's ticks: from the title's dismissal (a fresh run) to the tick the game is completed. Ticks count only while the rules run (M0 step 7), so pause, the title and room-crossing slides are excluded, and deaths are included. Shown as minutes, seconds and hundredths (ticks ÷ 60), so the time is exact and identical on every target.
+    - **Results:** the completion overlay shows the coins collected, the run's time and the best time, with "New best!" when beaten. It appears wherever the game completes: on `level_1`'s goal while it is the end, then on the final room's goal (M7).
+    - **Best time, saved:** the best (lowest) completion time is saved to `user://best.cfg` (a `ConfigFile`; in the browser, `user://` is browser storage) and loaded at startup. If storage is unavailable, the best time lasts for the session and nothing errors. This is the one value saved to disk (owner, 2026-10-21); collectibles and all other progress still reset with each new game.
+    - **Replay:** "play again" starts a fresh run: committed collectibles are cleared, the timer restarts, and the saved best time is kept.
+    - **Tests:** a unit test (pre-approved, owner 2026-10-21) for the tick count across a death and a pause, the time formatting, the best-time comparison, the save and load round trip (to a temporary path), and replay clearing the run. The new tuning field also changes `test_tuning.gd` and `test_trace.gd`'s `test_header_fields` count.
+6. **Done-when:** the owner's checks (**M6 done when**). `g01`, `g02` and `n03`'s re-entry case wait for M1.8.
 
 #### M6 files
 
 | File | What it is | Why it exists |
 | --- | --- | --- |
-| `game/autoload/game_state.gd` | Autoload named `GameState`, third in the autoload list. Committed collectible IDs, permanent unlock flags and the completion flag, kept in memory for the session. Nothing is written to disk (saving is parked) | Permanent progress, kept apart from temporary electricity (G-02) |
+| `game/autoload/game_state.gd` | Autoload named `GameState`, third in the autoload list. Committed collectible IDs, permanent unlock flags and the completion flag, kept in memory for the session; from M6 step 5 also the run's tick count and the best completion time, which is saved to `user://best.cfg`. Nothing is written to disk (saving is parked) | Permanent progress, kept apart from temporary electricity (G-02) |
 | `game/rooms/room_info.gd` | `class_name RoomInfo extends Resource`: entry state and assumed volts per entrance, volt budget, recharge points, completion route, notes. Saved inside each room scene | The G-03 record, shown in the debug overlay and copied into the ledger |
 | `game/objects/collectible/collectible.tscn` | A `Node2D` with a sprite | Placed in rooms |
 | `game/objects/collectible/collectible.gd` | `class_name Collectible extends Node2D`. ID is room ID plus node name; idle or following; hides itself if already committed | The commitment rule (below) |
@@ -2025,6 +2034,8 @@ Files extended in M6:
 | `gym.tscn` | An opening in its right wall where it meets the annex, with an entrance beside it (postponed with the annex) |
 | `debug_world_draw.gd`, `debug_overlay.gd` | Shared openings and room info |
 | `sfx.gd` | Collectible sounds |
+| `hud.tscn`, `hud.gd` | The top-right coin counter (step 5) |
+| `completion_overlay.tscn`, `completion_overlay.gd` | Coins, run time, best time and "New best!"; "play again" starts a fresh run (step 5) |
 | `n03_no_recharge_farming.json` | Re-entry case |
 
 #### How crossings work
@@ -2063,7 +2074,7 @@ Step 10's fixed order applies: deaths are checked before a crossing, so if the c
 3. **Losing:** dying before that logs `lost`. The rebuilt room shows the collectible again.
 4. **Already committed:** a committed collectible hides itself whenever its room is built.
 
-Progress lasts for the session only; closing the app starts a new game. This answers G-02's separate choice and is recorded in the decision log.
+Progress lasts for the session only; closing the app starts a new game. This answers G-02's separate choice and is recorded in the decision log. The best completion time is the one saved value (M6 step 5); it is a record, not progress.
 
 #### M6 scenario files
 
