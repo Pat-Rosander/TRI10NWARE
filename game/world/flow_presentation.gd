@@ -1,5 +1,6 @@
 # All flow visuals in one place: on each switch it fades the room's Backdrop toward
-# flow_backdrop_color and shows the charged objects' rings and full glows (or reverses that);
+# flow_backdrop_color and shows the charged objects' rings, full glows and `electric`
+# animations (or reverses that);
 # on room_enter and respawn it snaps to the player's state with no fade. It only reads Trace
 # events and never changes rule state, so no rule depends on it. Serves AC V-02, V-03.
 extends Node
@@ -35,7 +36,7 @@ func _on_event_logged(entry: Dictionary) -> void:
 
 
 # Shows [param in_flow]'s look; the backdrop fades over flow_fade_s if [param animate], and
-# rings and glows change at once.
+# rings, glows and animations change at once.
 func _show(in_flow: bool, animate: bool) -> void:
 	var room: Room = _current_room()
 	if room == null:
@@ -43,6 +44,7 @@ func _show(in_flow: bool, animate: bool) -> void:
 	for object: ChargedObject in room.charged_objects():
 		object.ring_shown = in_flow
 		object.glow_strength = 1.0 if in_flow else Tuning.data.glow_hint_alpha
+		object.electric_look = in_flow
 	if _fade != null:
 		_fade.kill()
 		_fade = null

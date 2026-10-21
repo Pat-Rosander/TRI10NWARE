@@ -1,0 +1,22 @@
+[gd_resource type="SpriteFrames" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" uid="uid://dxanr1rvhtunq" path="res://art/objects/charged_object.png" id="1_sprite"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_sprite")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_sprite")
+}],
+"loop": true,
+"name": &"electric",
+"speed": 5.0
+}]

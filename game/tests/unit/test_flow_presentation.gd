@@ -1,8 +1,9 @@
 # Tests FlowPresentation through the real main scene and Level 1: the default look on load; a
-# switch shows rings and full glows on its tick and fades the backdrop over flow_fade_s; a
-# switch back and a respawn restore the default look; a refused switch changes nothing; the
-# title overlay holds the prewarm material; and the visuals never change the rules' trace.
-# Serves AC V-02, V-03.
+# switch shows rings, full glows and the `electric` animation on its tick and fades the backdrop
+# over flow_fade_s; a switch back and a respawn restore the default look; a refused switch
+# changes nothing; the charged object's placeholder look and its frames and glow_texture
+# exports; the title overlay holds the prewarm material; and the visuals never change the
+# rules' trace. Serves AC V-02, V-03.
 extends TestCase
 
 const MAIN_SCENE: PackedScene = preload("res://world/main.tscn")
@@ -28,6 +29,9 @@ func test_switch_shows_flow_look_and_fades_the_backdrop() -> void:
 	for object: ChargedObject in _objects():
 		assert_true(object.ring_shown, "%s: ring shown on the switch tick" % object.name)
 		assert_eq(object.glow_strength, 1.0, "%s: full glow on the switch tick" % object.name)
+		assert_eq(_sprite(object).animation, &"electric",
+				"%s: electric animation on the switch tick" % object.name)
+		assert_true(_sprite(object).is_playing(), "%s: electric is playing" % object.name)
 	assert_eq(_backdrop().modulate, Color.WHITE, "the fade has not started yet")
 	var fade: Tween = _presentation.call(&"fade") as Tween
 	assert_true(fade != null and fade.is_valid(), "a fade is running")
@@ -70,6 +74,45 @@ func test_refused_switch_changes_nothing() -> void:
 	assert_eq(_count("switch_refused"), 1, "the switch is refused")
 	assert_eq(_presentation.call(&"fade"), null, "no fade")
 	_assert_default("after a refused switch")
+
+
+func test_empty_frames_use_the_placeholder_look() -> void:
+	_setup()
+	for object: ChargedObject in _objects():
+		var frames: SpriteFrames = _sprite(object).sprite_frames
+		assert_eq(object.frames, null, "%s: Level 1 sets no look yet" % object.name)
+		assert_eq(frames, ChargedObject.DEFAULT_FRAMES, "%s: placeholder look" % object.name)
+		for animation: StringName in [&"default", &"electric"]:
+			assert_eq(frames.get_frame_count(animation), 1, "%s has one frame" % animation)
+			assert_eq(frames.get_frame_texture(animation, 0).resource_path,
+					"res://art/objects/charged_object.png",
+					"%s shows charged_object.png" % animation)
+		assert_eq(_glow(object).texture, ChargedObject.DEFAULT_GLOW,
+				"%s: default glow" % object.name)
+
+
+func test_frames_and_glow_texture_exports_replace_the_look() -> void:
+	_setup()
+	var object: ChargedObject = _objects()[0]
+	var look: SpriteFrames = SpriteFrames.new()
+	look.add_animation(&"electric")
+	look.add_frame(&"default", PlaceholderTexture2D.new())
+	look.add_frame(&"electric", PlaceholderTexture2D.new())
+	var glow: Texture2D = PlaceholderTexture2D.new()
+	object.frames = look
+	object.glow_texture = glow
+	assert_eq(_sprite(object).sprite_frames, look, "the assigned look is used")
+	assert_eq(_sprite(object).animation, &"default", "it plays default outside flow")
+	assert_eq(_glow(object).texture, glow, "the assigned glow is used")
+	_input.play([{"tick": 1, "press": "switch"}, {"tick": 2, "release": "switch"}])
+	_run(1)
+	assert_eq(_sprite(object).animation, &"electric", "the assigned look plays electric in flow")
+	object.frames = null
+	object.glow_texture = null
+	assert_eq(_sprite(object).sprite_frames, ChargedObject.DEFAULT_FRAMES,
+			"empty restores the placeholder")
+	assert_eq(_sprite(object).animation, &"electric", "and keeps the current state's animation")
+	assert_eq(_glow(object).texture, ChargedObject.DEFAULT_GLOW, "empty restores the default glow")
 
 
 func test_main_scene_has_presentation_and_prewarm() -> void:
@@ -133,6 +176,9 @@ func _assert_default(when: String) -> void:
 		assert_false(object.ring_shown, "%s: ring hidden %s" % [object.name, when])
 		assert_eq(object.glow_strength, Tuning.data.glow_hint_alpha,
 				"%s: glow at hint strength %s" % [object.name, when])
+		assert_eq(_sprite(object).animation, &"default",
+				"%s: default animation %s" % [object.name, when])
+		assert_true(_sprite(object).is_playing(), "%s: default is playing %s" % [object.name, when])
 
 
 func _room() -> Room:
@@ -150,6 +196,14 @@ func _objects() -> Array[ChargedObject]:
 	var objects: Array[ChargedObject] = _room().charged_objects()
 	assert_true(objects.size() > 0, "Level 1 has a charged object")
 	return objects
+
+
+func _sprite(object: ChargedObject) -> AnimatedSprite2D:
+	return object.get_node("Sprite") as AnimatedSprite2D
+
+
+func _glow(object: ChargedObject) -> Sprite2D:
+	return object.get_node("Glow") as Sprite2D
 
 
 func _run(ticks: int) -> void:

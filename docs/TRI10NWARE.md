@@ -1513,8 +1513,8 @@ Files extended in M2:
 
 ```text
 ChargedObject     Node2D, charged_object.gd   (origin = region center)
-├── Sprite        Sprite2D, charged_object.png (an AnimatedSprite2D with a per-type look from M3 step 4)
-└── Glow          Sprite2D, charged_glow.png, CanvasItemMaterial blend mode Add; faint in default while powered (a hint), full in flow
+├── Sprite        AnimatedSprite2D, looks/default_frames.tres unless `frames` is set (M3 step 4)
+└── Glow          Sprite2D, charged_glow.png unless `glow_texture` is set, CanvasItemMaterial blend mode Add; faint in default while powered (a hint), full in flow
 ```
 
 The ring is drawn by the script itself, not by a child node. Docs: [Custom drawing in 2D](https://docs.godotengine.org/en/4.5/tutorials/2d/custom_drawing_in_2d.html), [CanvasItemMaterial](https://docs.godotengine.org/en/4.5/classes/class_canvasitemmaterial.html), [Using fonts](https://docs.godotengine.org/en/4.5/tutorials/ui/gui_using_fonts.html), [TextureProgressBar](https://docs.godotengine.org/en/4.5/classes/class_textureprogressbar.html).
@@ -1668,7 +1668,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/verification/scenarios/l1_02_powered_on_retry.json` … `r03_repeated_retries.json` | 6 files, listed below | L1-02 to L1-04, R-01 to R-03 |
 | `game/tests/unit/test_goal_zone.gd` | Step 10's completion check in the real player scene on a grid built in code: the goal zone's edges; completion on the landing tick; no completion from side contact or flying through the zone; goal, then countdown, then fall on one tick (standing rule, M3 step 1) | L1-04, until `l1_04`'s scenarios run |
 | `game/tests/unit/test_play_loop.gd` | World's play states through a real World, player scene and start room: no ticks on the title; death freeze, respawn and `control_return` on their exact ticks; the reset after a death; a jump held through death never fires; presses during the lock make no token; restart; completion stops ticks until replay; `main.tscn` wires the overlays (standing rule, M3 step 2) | R-01, R-02, R-04, L1-04, until `r01`, `r02` and `l1_04`'s retry case run |
-| `game/tests/unit/test_flow_presentation.gd` | `FlowPresentation` through the real main scene and Level 1: the default look on load (backdrop undimmed, rings hidden, glow at `glow_hint_alpha`); a switch shows rings and full glows on its tick and fades the backdrop to `flow_backdrop_color` over `flow_fade_s`; switching back and a respawn restore the default look (a respawn with no fade); a refused switch changes nothing; the title overlay's prewarm material; identical traces with and without the node (owner, M3 step 3) | V-02, V-03; no scenario covers the presentation |
+| `game/tests/unit/test_flow_presentation.gd` | `FlowPresentation` through the real main scene and Level 1: the default look on load (backdrop undimmed, rings hidden, glow at `glow_hint_alpha`); a switch shows rings and full glows on its tick and fades the backdrop to `flow_backdrop_color` over `flow_fade_s`; switching back and a respawn restore the default look (a respawn with no fade); a refused switch changes nothing; the title overlay's prewarm material; identical traces with and without the node (owner, M3 step 3); each charged object's `default` or `electric` animation in those same cases, the placeholder look and default glow when `frames` and `glow_texture` are empty, and an assigned look and glow replacing them (M3 step 4) | V-02, V-03; no scenario covers the presentation |
 
 Files extended in M3:
 

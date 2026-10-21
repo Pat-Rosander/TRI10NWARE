@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M3 step 3, flow visuals, 2026-10-20: `FlowPresentation` (backdrop fade, rings in flow only, hint glow), the title's shader prewarm, the placeholder Level 1 backdrop, and the camera-follow test. Earlier: M3 step 2 (play loop), M3 step 1 (Level 1 nodes; the owner's painting is committed, `4cf3a1b`), M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M3 step 4, charged object looks (`/step M3.4`): `Sprite` becomes an `AnimatedSprite2D`, the `frames` and `glow_texture` exports, the placeholder `looks/default_frames.tres`, and `flow_presentation.gd` playing `default` or `electric`. Ask before editing `charged_object.tscn`. Then step 5 effects and sound, step 6 ship. M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
+- **Last completed:** M3 step 4, charged object looks, 2026-10-20: `Sprite` is an `AnimatedSprite2D`, `ChargedObject` exports `frames` and `glow_texture`, the placeholder `looks/default_frames.tres`, and `FlowPresentation` plays `electric` in flow and `default` otherwise. Earlier: M3 step 3 (flow visuals), M3 step 2 (play loop), M3 step 1 (Level 1 nodes; the owner's painting is committed, `4cf3a1b`), M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M3 step 5, effects and sound (`/step M3.5`): `effects.gd` and `effects_frames.tres` as `World/Effects` with a placeholder at `effects.png`; `sfx.gd` as `Sfx` in Main and `default_bus_layout.tres`; the 11 sound slots (register the owner's 8 WAVs as `owner draft`, 3 silent placeholders). Then step 6 ship. M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
 - **Waiting on the owner:**
+    - **M3.4 check:** follow "How to see it" in the M3 step 4 entry (open the three scripts for diagnostics, reload `level_1.tscn`/`gym.tscn`, look at the Inspector's **Frames** and **Glow Texture**). Add your charged-object types whenever you like ("To add a type" in that entry).
     - **M3.2 check:** open `game/world/main.gd`, `game/ui/title_overlay.gd`, `game/ui/pause_menu.gd` and `game/ui/completion_overlay.gd` once so the editor analyzes them (diagnostics). Then press F5 and follow "How to see it" in the M3 step 2 entry. Accept if Godot asks to re-save `main.tscn` or the new overlay scenes.
     - **M3.3 check:** follow "How to see it" in the M3 step 3 entry (open the four scripts for diagnostics, reload the three scenes, press F5 and Z). Optionally approve the "off-screen" → "invisibly, on screen" wording for the spec's `title_overlay.gd` row. Replace `level_1_backdrop.png` with your backdrop whenever you like.
     - **Level 1 (M3 step 1):** painted (commit `4cf3a1b`). Playtest: (1) the charged crossing (jump, Z for flow, jump again inside the ring, dash); (2) **try to cross with jump and dash only**. If (2) succeeds, widen the gap; if (1) fails, narrow it or move the object. Nothing automatic checks either until the postponed bypass search runs. Also open `game/objects/goal/goal_zone.gd` and `game/tests/unit/test_goal_zone.gd` once so the editor analyzes them (diagnostics). If `room_catalog.tres` was open in the Inspector, let Godot reload it.
@@ -957,3 +958,33 @@ On `room_enter` and `respawn` it does not animate: the room is a brand-new insta
 - Decision log, M3.3: rings in flow only (owner); `glow_hint_alpha` (owner); the new test file (owner); the tiles test updated to the v2 atlas (owner); only the backdrop fades, in real time; the prewarm engine quirk; the `ChargedObject` setters and the backdrop placeholder.
 - The spec's `title_overlay.gd` row still says "off-screen". If you want the wording to match the build, approve changing it to "invisibly, on screen".
 - Unit tests: 184 passed, 0 failed. Scenarios remain postponed (M1.8).
+
+## M3 step 4: Charged object looks (2026-10-20)
+
+**What was built:**
+
+- New: `game/objects/charged_object/looks/default_frames.tres`, the placeholder look: a `SpriteFrames` with animations `default` and `electric`, each one frame of `charged_object.png`.
+- `game/objects/charged_object/charged_object.tscn`: `Sprite` is now an `AnimatedSprite2D` showing `default_frames.tres`. `Glow` is unchanged (still its own `Sprite2D` with additive blending).
+- `game/objects/charged_object/charged_object.gd`: two new Inspector exports, `frames` (the object's look) and `glow_texture` (an optional type-specific glow), and a runtime `electric_look` switch.
+- `game/world/flow_presentation.gd`: sets each charged object's `electric_look` with its ring and glow.
+- `game/tests/unit/test_flow_presentation.gd`: animation checks added to the existing cases, plus two new cases (placeholder look; assigned look and glow). The spec's row for it is updated (approved through the edit prompt), and so is the M2 scene tree line for `Sprite` and `Glow`.
+- `docs/decision_log.md` (two M3.4 rows), `CREDITS.md` (the `charged_object.png` row names its new use).
+
+**How it works:**
+
+A charged object's look is now a `SpriteFrames` resource: a named list of animations, each a list of frames. Every look must have two animations, `default` and `electric`. Select a placed charged object, drag a `SpriteFrames` onto its **Frames** slot in the Inspector, and that object uses it. Leave the slot empty and it uses the placeholder. Because the script is a `@tool` script, the choice shows in the editor right away. The **Glow Texture** slot works the same way: empty keeps `charged_glow.png`. The glow stays a separate node because it is drawn with additive blending, which brightens whatever is behind it, and that should not apply to the object's own art.
+
+Which animation plays is decided in the same place as the rings and glows: `FlowPresentation`. On every `switch`, `room_enter` and `respawn` event it sets each object's `electric_look` to "is the player in flow?", and the object plays `electric` or `default`. Nothing in the rules reads it. The region, the encounter tracker and the charged jump never look at the sprite, so two types with different art behave identically. That is also why you must size `region_radius_px` to match your art by hand. The existing test that runs the same inputs with and without `FlowPresentation` still produces identical traces.
+
+If one of your looks is missing an animation (say you have only made `default` so far), the object keeps showing what it had and Godot prints a warning naming the object, instead of crashing.
+
+**Why:** spec **M3 build order** step 4 (owner, 2026-10-20); M3 files rows `default_frames.tres` and `flow_presentation.gd`; M3 "Files extended" row `charged_object.tscn`, `charged_object.gd`. AC V-02 (flow emphasizes electrical objects), V-03 (the cue never disagrees with the rules: the ring still comes from the rules' radius).
+
+**How to see it:** open `game/objects/charged_object/charged_object.gd`, `game/world/flow_presentation.gd` and `game/tests/unit/test_flow_presentation.gd` once so the editor analyzes them (diagnostics). Reload `level_1.tscn` and `gym.tscn` if they were open. Open `charged_object.tscn`: `Sprite` is now an `AnimatedSprite2D`, and the object looks exactly as before. Select the `ChargedObject` in `level_1.tscn`: the Inspector shows **Frames** and **Glow Texture**. Press F5 and Z: with the placeholder both animations are the same frame, so you see no change until your own looks arrive.
+
+**To add a type (owner):** save the sheet at `game/art/objects/charged/<type>.png`; in the FileSystem dock, create a new `SpriteFrames` resource at `game/objects/charged_object/looks/<type>_frames.tres`; in the SpriteFrames panel, rename the first animation to `default`, add one named `electric`, and fill both from the sheet; drag it onto an object's **Frames**; then set that object's `region_radius_px` to fit the art. Register both files in `CREDITS.md`.
+
+**Decisions and questions:**
+
+- Decision log, M3.4: a look with a missing animation keeps its current one and warns; the placeholder's settings (one frame, 5 fps, looping), the empty-glow fallback and the `electric_look` switch.
+- Unit tests: 186 passed, 0 failed. Scenarios remain postponed (M1.8); the scenario command has nothing to run and does not quit, so it was stopped.
