@@ -4,15 +4,16 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M6 step 2, crossings, 2026-10-21: `world.gd`'s Transition state (detection in step 7, start in step 10, an 18-step camera slide with the tick frozen, checkpoint = nearest entrance within 48 px of the crossed edge), `SolidGrid` openings and `join`, `RoomCatalog.room_at`/`neighbors`, `camera_rig.gd`'s slide, a carried collectible committing on leaving, and `tutorial_1` (left of `level_1`, now the start room) with a developer placeholder floor on row 16. Earlier: M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M6 step 3, map tools (`/step M6.3`; spec, **M6 build order**): `test_world_layout.gd` and the editor-only `world_map_preview.tscn`/`.gd`. Then step 4 (room info) and step 5 (coin counter and results). **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex. If the owner has set the spike tiles' `solidity`, the first session updates `test_level_tiles_resource` to the new tiles.
+- **Last completed:** M6 step 3, map tools, 2026-10-21: `test_world_layout.gd` (the catalog's layout rules, plus small made-up layouts proving each rule fails when it should) and the editor-only `world_map_preview.tscn`/`.gd` (every room at its map place, outlines, IDs, green shared openings, a "Rebuild map" button). `test_level_tiles_resource` now expects the owner's up spike at atlas (5, 2). Earlier: M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M6 step 4, room info (`/step M6.4`; spec, **M6 build order**): `room_info.gd`, each room's entry state, volt budget, recharge points and route (G-03); showing it in the debug overlay waits for M1.7. Then step 5 (coin counter and results) and step 6 (control hints). **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
 - **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
-- **Added 2026-10-21: M6 step 5, coin counter and results** (spec, M6 build order): HUD coin counter, run timer, results and saved best time on the completion overlay. M6 done-when is now step 6; steps 1–4 are unchanged.
+- **Added 2026-10-21: M6 step 5, coin counter and results** (spec, M6 build order): HUD coin counter, run timer, results and saved best time on the completion overlay. M6 done-when is now step 7, after step 6 (control hints); steps 1–4 are unchanged.
 - **Waiting on the owner:**
-    - **M6.2 check:** follow "How to see it" in the M6 step 2 entry: open the eight listed scripts for diagnostics, press F5 (you start in `tutorial_1`), cross into Level 1 and back in both states, at 0 and 1 volts, holding jump, dying after each crossing, and carrying the coin out. Watch the slide for gaps or flicker. **Every empty cell on Level 1's left edge (rows 0–11 too) and on `tutorial_1`'s right edge is passable**; close what you don't want with tiles, and keep the doorway clear on both sides. Repaint `tutorial_1` over the placeholder floor and design the tutorial. The uncommitted `uid=` change in `game/world/main.tscn` is yours to commit or drop.
+    - **M6.3 check:** follow "How to see it" in the M6 step 3 entry: open `world_map_preview.tscn` and check that the map matches your layout. Check it, and run the tests, each time you add a room to the catalog.
+- **M6.2 check:** follow "How to see it" in the M6 step 2 entry: open the eight listed scripts for diagnostics, press F5 (you start in `tutorial_1`), cross into Level 1 and back in both states, at 0 and 1 volts, holding jump, dying after each crossing, and carrying the coin out. Watch the slide for gaps or flicker. **Every empty cell on Level 1's left edge (rows 0–11 too) and on `tutorial_1`'s right edge is passable**; close what you don't want with tiles, and keep the doorway clear on both sides. Repaint `tutorial_1` over the placeholder floor and design the tutorial. Your uncommitted tile change in `tutorial_1.tscn` is yours to commit.
     - **M6.1 check:** follow "How to see it" in the M6 step 1 entry (let the editor rescan for the new `GameState` autoload and `Collectible` class, open the six scripts for diagnostics, press F5 and collect, lose and re-collect the Level 1 collectible). Move it if it's out of reach. Review the spec's new `test_collectibles.gd` row. The collectible sprite is now your lightning coin (2026-10-21); replace the two silent collectible sounds whenever you like.
     - **M3.7 check:** follow "How to see it" in the M3 step 7 entry (open the five scripts for diagnostics, reload `main.tscn`/`pause_menu.tscn` if Godot asks, press F5, listen through a death, pause and replay, and try the slider). Adjust `music_volume` in `tuning.tres` if 70 % doesn't suit the track.
-    - **M4.1:** set the spike tiles' `solidity` (4 up, 5 down, 6 left, 7 right) in the TileSet panel; open `game/core/solid_grid.gd` and `game/tests/unit/test_spikes.gd` once for diagnostics; paint the `spikes` station (painting guide in the M4 step 1 entry); playtest it, especially that a held jump grazes the ceiling spikes and lives. If `gym.tscn` or `room_catalog.tres` was open, let Godot reload them.
+    - **M4.1:** set the spike tiles' `solidity` (4 up, 5 down, 6 left, 7 right) in the TileSet panel (the up spike at atlas (5, 2) is done, 2026-10-21; add down, left and right spikes whenever you draw them, and the next session updates `test_level_tiles_resource`); open `game/core/solid_grid.gd` and `game/tests/unit/test_spikes.gd` once for diagnostics; paint the `spikes` station (painting guide in the M4 step 1 entry); playtest it, especially that a held jump grazes the ceiling spikes and lives. If `gym.tscn` or `room_catalog.tres` was open, let Godot reload them.
     - **M3.6 ship checks:** movement and visuals approved (owner, 2026-10-21; decision log M3.6). Still open: (1) the **web pause and focus check** in Chrome, Safari and Firefox (switch tabs, click outside the canvas, switch apps), which the owner runs last. It is untested and at risk: `main.gd` pauses only on the *application* focus notification, which the web runtime may not send; a failure goes to `known_issues.md` with a spec fix *proposed*. (2) Any builds not yet played (macOS from its itch.io zip, Windows on the PC, web). (3) Make the itch.io page and upload `builds/itch/*`. 13 placeholders still ship (list in the M3 step 6 entry).
     - **M3.5 check:** follow "How to see it" in the M3 step 5 entry (open `game/audio/sfx.gd`, `game/world/effects.gd` and `game/tests/unit/test_feedback.gd` for diagnostics, reload `main.tscn` if Godot asks, press F5 and listen). Confirm the license of your 8 WAVs in `CREDITS.md`. Replace `effects.png` (then its frames in `effects_frames.tres`) and the three silent WAVs whenever you like. Optionally approve fixing the spec layout's stale "13 unit-test files" (now 17).
     - **M3.4 check:** follow "How to see it" in the M3 step 4 entry (open the three scripts for diagnostics, reload `level_1.tscn`/`gym.tscn`, look at the Inspector's **Frames** and **Glow Texture**). Add your charged-object types whenever you like ("To add a type" in that entry).
@@ -1259,3 +1260,65 @@ During Transition the tick does not advance, so the rules, countdown and press w
 - Left for step 5: "play again" on the completion screen still rebuilds Level 1 at `start`. Step 5 turns it into a fresh run.
 - Skipped because it waits: `g01_transitions.json` (M1.8); drawing openings in the debug overlay (M1.7); the gym annex (postponed).
 - Not touched: the uncommitted `game/world/main.tscn` change (Godot adding `uid=` to four lines). It is left unstaged for you.
+
+## M6 step 3: Map tools (2026-10-21)
+
+**What was built:**
+
+- `game/tests/unit/test_world_layout.gd` (new): checks the room catalog.
+- `game/rooms/world_map_preview.gd` and `game/rooms/world_map_preview.tscn` (new): the editor-only world map. The export presets already exclude `rooms/world_map_preview.*` (M0 step 10), so they never ship.
+- `game/tests/unit/test_solid_grid.gd`: `test_level_tiles_resource` now expects your up spike at atlas tile (5, 2).
+- `docs/decision_log.md`: three M6.3 rows.
+
+**How it works:**
+
+The layout test has two parts. The first is a check function that takes plain data and returns a list of readable problems, for example `'b': no entrance within 48 px of its left edge (shared with 'a')`. The data is:
+
+- each room's record;
+- the start room and entrance;
+- the `room_id` written in each scene;
+- each room's entrance positions;
+- the body size.
+
+The second part is the real test. It loads `room_catalog.tres`, opens each room scene without adding it to the game, reads its `room_id` and entrances, and expects no problems. If the test fails, its message lists every problem at once.
+
+The rules come straight from the spec:
+
+- unique IDs;
+- each scene's `room_id` matches its record;
+- whole-tile positions and sizes;
+- at least 640 × 368;
+- no overlaps;
+- the start room and entrance exist;
+- every shared edge has an entrance within 48 px on both sides;
+- every entrance keeps the whole body inside its room.
+
+"Within 48 px" is measured straight across the edge, exactly as World measures it when it picks your checkpoint after a crossing. The body is the same 12 × 15 rectangle above the feet that the mover uses. A passing test therefore guarantees that a crossing always finds a checkpoint, and that respawning at an entrance can never start a crossing by accident. Thirteen smaller tests feed in tiny made-up layouts with one mistake each, to prove that each rule really catches its mistake. Without them, a test that only ever sees a good catalog could never fail. They also show the boundary cases: 48 px is in reach and 49 px is not, and a body one pixel past the edge is caught.
+
+The preview is a scene with one node and a `@tool` script, so it runs inside the editor. When you open it, it builds a copy of every room in the catalog at its place on the map. The copies are added without an "owner", which is how Godot marks nodes that must never be saved into the scene file. So the scene stays a single node on disk, and the copies don't appear in the Scene dock. On top of the rooms it draws:
+
+- a white outline around each room;
+- the room's ID in its top-left corner;
+- a thick green line along every shared opening, the stretch of edge where two rooms touch and you can cross.
+
+The Inspector has a **Rebuild map** button: press it after you change the catalog or a room. When the game runs, the script does nothing.
+
+While running the tests I found one older test failing. In the "tutorial complete" commit you set atlas tile (5, 2) to `solidity` 4 (an up spike) for the tutorial's spike floor, and `test_level_tiles_resource` still expected decoration there. I updated the test to your tile. The Status block had listed that update as expected.
+
+**Why:** spec **M6 build order** step 3 and **M6 files** (its three rows), **Room scene convention** (the `world_rect` rules), **How crossings work** (the 48 px checkpoint reach); AC G-01 and R-01. Also M6 done-when's last item: "`test_world_layout.gd` passes and the world map preview shows the layout correctly."
+
+**How to see it:**
+
+1. Unit tests: 257 pass, including the 14 in `test_world_layout.gd`. The "leaked at exit" warnings at the end of the run were there before this step.
+2. In Godot, let the editor rescan. Open `game/rooms/world_map_preview.gd` and `game/tests/unit/test_world_layout.gd` once so their diagnostics are fresh.
+3. Open `game/rooms/world_map_preview.tscn` from the FileSystem dock. You should see:
+    - `tutorial_1` and `level_1` side by side, each with a white outline and its name;
+    - a green line down their shared edge (x 0, the full 368 px height);
+    - the gym on its own, far to the right at x 32768 (zoom out or pan to find it).
+4. Try a mistake: in `room_catalog.tres`, change `level_1`'s `world_rect` x to −16. Press **Rebuild map**: the rooms overlap by one tile and the green line disappears. Save, then run the tests: `test_world_layout` reports `'tutorial_1' and 'level_1' overlap`. Then set x back to 0 and save again.
+5. If Godot offers to save `world_map_preview.tscn` after you open it, accepting is fine. Only the root node is saved.
+
+**Decisions and questions:**
+
+- Decide and log (decision log, M6.3): the 48 px reach is measured across the edge, as World does; the preview's colors, label size and Rebuild button; the updated tile test.
+- Not touched: your uncommitted tile change in `tutorial_1.tscn` is left unstaged for you.

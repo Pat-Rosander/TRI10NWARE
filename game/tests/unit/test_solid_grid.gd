@@ -301,9 +301,11 @@ func test_level_tiles_resource() -> void:
 	assert_eq(tiles.get_custom_data_layer_by_name("solidity"), 0, "named solidity")
 	assert_eq(tiles.get_custom_data_layer_type(0), TYPE_INT, "an integer")
 	var source: TileSetAtlasSource = tiles.get_source(0)
-	# The owner's level_1_tiles_v2.png atlas (2026-10-20): rows 0-2 are stone blocks, except two
-	# decoration pieces; rows 3-4 are telephone poles and wires, all decoration (L1-01).
-	var decoration_blocks: Array[Vector2i] = [Vector2i(2, 1), Vector2i(5, 2)]
+	# The owner's level_1_tiles_v2.png atlas (2026-10-20): rows 0-2 are stone blocks, except one
+	# decoration piece and the up spike the owner set at (5, 2) (2026-10-21); rows 3-4 are
+	# telephone poles and wires, all decoration (L1-01).
+	var decoration_blocks: Array[Vector2i] = [Vector2i(2, 1)]
+	var up_spike: Vector2i = Vector2i(5, 2)
 	var solid: int = 0
 	for i: int in source.get_tiles_count():
 		var id: Vector2i = source.get_tile_id(i)
@@ -311,6 +313,8 @@ func test_level_tiles_resource() -> void:
 		var expected: int = SolidGrid.ORDINARY
 		if id.y >= 3 or id in decoration_blocks:
 			expected = SolidGrid.DECORATION
+		elif id == up_spike:
+			expected = SolidGrid.SPIKE_UP
 		assert_eq(value, expected, "tile %s" % id)
 		if value == SolidGrid.ORDINARY:
 			solid += 1
