@@ -51,6 +51,8 @@ enum CountdownMode { CONTINUE, PAUSE, STOP }
 @export var charged_exit_margin_px: int
 @export var root_contact_margin_px: int
 @export var overlap_snap_px: int
+@export var spike_depth_px: int
+@export var spike_inset_px: int
 
 @export_group("Flow and volts")
 @export var max_volts: int

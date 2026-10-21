@@ -739,7 +739,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M1 Movement kit | 31 |
 | M2 Flow and charge | 32 |
 | M3 Level 1 room | 37 |
-| M4 Platforms and spikes | 7 |
+| M4 Platforms and spikes | 9 |
 | M5 Networks | 13 |
 | M6 Rooms and progress | 13 |
 | M7 Adding a level | 2 per room, plus any art and mockup files the level needs |
@@ -1782,6 +1782,16 @@ To support R-03, the `snapshot` event also records engine-wide counts: total nod
 
 **Goal:** default-only and flow-only platforms with one-way support and the overlap policy, and spikes that kill, proven in the gym.
 
+#### M4 build order
+
+M4 is built in these numbered steps, one session each (`/step M4.1` and so on; owner approval 2026-10-21). It is built ahead of Level 2, which will use both platforms and spikes and claims M4 when it is registered (owner, 2026-10-21). Spikes come first, so the owner can paint and playtest them after step 1. The sections below this list are the specification each step implements. Work that waits for the postponed M1 steps (**Postponed work**) is skipped and named in each step's journal entry.
+
+1. **Spike rules:** `solid_grid.gd`'s spike cells (`solidity` 4–7) and `touches_spike(rect)`; `pixel_mover.gd` notes a spike contact at the start position and at every pixel of step 6's move; `world.gd`'s step 10 spike death, after the goal and before the countdown; `spike_depth_px` and `spike_inset_px` in `tuning_data.gd`, `tuning.tres` and `test_tuning.gd`; the spike cases in `test_solid_grid.gd` and `test_pixel_mover.gd`; `test_spikes.gd`. The `spikes` station's entrance in `gym.tscn`, with the gym widened to hold it. **Owner hand-off:** the owner sets the spike tiles' `solidity` in the TileSet panel, paints the station and playtests.
+2. **Overlap policy:** `overlap_policy.gd` and `test_overlap_policy.gd`; pending tiles in `solid_grid.gd`; `flow_controller.gd` applies the policy on every switch; `player.gd` re-checks pending tiles in step 7; `test_platforms.gd`.
+3. **Platform tiles and looks:** the owner adds the platform art to `level_1_tiles.png` and sets `solidity` 2 and 3 on those tiles; `flow_presentation.gd` draws the currently non-solid family at `inactive_platform_alpha`.
+4. **Gym platform stations:** the four platform stations' entrances in `gym.tscn`. **Owner hand-off:** the owner paints them.
+5. **Done-when:** the owner's two reviews (**M4 done when**). The M4 scenario files (`p01`–`p04`, `h01`) wait for M1.8, and `debug_world_draw.gd`'s pending tiles for M1.7.
+
 #### M4 files
 
 | File | What it is | Why it exists |
@@ -1790,6 +1800,8 @@ To support R-03, the `snapshot` event also records engine-wide counts: total nod
 | `game/tests/unit/test_overlap_policy.gd` | Every branch, including the exact snap boundary | P-04 |
 | `game/verification/scenarios/p01_state_matrix.json` … `p04_overlap_policy.json` | 4 files, listed below | P-01 to P-04 |
 | `game/verification/scenarios/h01_spikes.json` | Listed below | Spikes kill exactly on hitbox contact; deaths reset like every death (R-01) |
+| `game/tests/unit/test_spikes.gd` | Spikes in the real player scene and `World`'s step 10: landing on, walking into and dashing through spikes kills; standing still on one kills; grazing the tips does not; both states; the goal beats a spike on the same tick, and a spike beats the countdown and a fall; one `death` with cause `spike` (standing rule, owner approval 2026-10-21) | Spike deaths, until `h01_spikes.json` runs |
+| `game/tests/unit/test_platforms.gd` | Platform families and the overlap policy in the real player scene: the state matrix, one-way support, support changes on a switch, snaps, pending tiles and their clearing (standing rule, owner approval 2026-10-21) | P-01 to P-04, until `p01`–`p04` run |
 
 Files extended in M4:
 
@@ -1800,13 +1812,15 @@ Files extended in M4:
 | `solid_grid.gd` | Spike cells and `touches_spike(rect)`, testing each spike's hitbox (**How spikes work**) |
 | `pixel_mover.gd` | Notes a spike contact at any pixel of a move, and at the start position |
 | `world.gd` | Step 10's spike death, after the goal and before the countdown |
-| `tuning_data.gd`, `tuning.tres`, `test_tuning.gd` | `spike_depth_px` and `spike_inset_px` |
+| `player.gd` | Builds nothing new for spikes; passes step 6's spike contact on to step 10 |
+| `tuning_data.gd`, `tuning.tres`, `test_tuning.gd`, `test_trace.gd` | `spike_depth_px` and `spike_inset_px` (the trace header's field count rises by 2) |
+| `room_catalog.tres` | The gym's `world_rect` grows to hold the `spikes` station |
 | `test_solid_grid.gd`, `test_pixel_mover.gd` | Spike hitboxes in all four directions at their exact edges; contact at any pixel of a fast move; spikes never block |
 | `flow_controller.gd` | Applies the overlap policy on every switch |
 | `player.gd` | Re-checks pending tiles every tick in step 7 |
 | `solid_grid.gd` | Pending tiles: a set of cells that stay passable for the player until the body clears them |
 | `flow_presentation.gd` | Draws the currently non-solid family at `inactive_platform_alpha` |
-| `gym.tscn` | Platform stations |
+| `gym.tscn` | The `spikes` station (step 1) and the platform stations (step 4) |
 | `debug_world_draw.gd` | Marks pending tiles |
 
 #### How the overlap policy works

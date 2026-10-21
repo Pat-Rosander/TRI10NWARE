@@ -15,7 +15,7 @@ world_rect = Rect2i(0, 0, 640, 368)
 script = ExtResource("2_entry")
 room_id = &"gym"
 scene = ExtResource("3_gym")
-world_rect = Rect2i(32768, 0, 5120, 512)
+world_rect = Rect2i(32768, 0, 5760, 512)
 
 [resource]
 script = ExtResource("1_catalog")

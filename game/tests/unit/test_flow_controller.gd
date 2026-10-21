@@ -132,7 +132,7 @@ func test_respawn_replaces_the_ledger() -> void:
 
 # A player standing at [param feet] in a fresh test room, with an empty trace.
 func _player(feet: Vector2i) -> Player:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	for x: int in 10:
 		grid.set_cell(Vector2i(x, 9), SolidGrid.ORDINARY)
 	for x: int in range(12, 20):
@@ -169,3 +169,8 @@ func _events(event_name: String) -> Array[Dictionary]:
 		if e["event"] == event_name:
 			found.append(e)
 	return found
+
+
+# A grid for [param room] with the spike hitbox from tuning.
+func _new_grid(room: Rect2i) -> SolidGrid:
+	return SolidGrid.new(room, Tuning.data.spike_depth_px, Tuning.data.spike_inset_px)

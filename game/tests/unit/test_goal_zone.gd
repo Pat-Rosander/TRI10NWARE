@@ -91,7 +91,7 @@ func test_goal_beats_countdown_and_countdown_beats_fall() -> void:
 # A player with its feet at [param feet], on a grid holding the pillar if [param pillar].
 func _setup(feet: Vector2i, pillar: bool = true) -> void:
 	Trace.begin_session(true)
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	if pillar:
 		for x: int in range(PILLAR_COLUMNS.x, PILLAR_COLUMNS.y + 1):
 			for y: int in range(SURFACE_ROW, 23):
@@ -117,3 +117,8 @@ func _tick(t: int, frame: InputFrame) -> void:
 	_player.step_move()
 	_player.step_sense()
 	_player.step_timers()
+
+
+# A grid for [param room] with the spike hitbox from tuning.
+func _new_grid(room: Rect2i) -> SolidGrid:
+	return SolidGrid.new(room, Tuning.data.spike_depth_px, Tuning.data.spike_inset_px)

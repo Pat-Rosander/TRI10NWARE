@@ -1,6 +1,7 @@
 # Tests SolidGrid: building from tile data, state-dependent platform tops, room-edge walls and
-# pits, and the shipped level_tiles.tres. Pending tiles are added with M4.
-# Serves AC M-01, M-02, M-03.
+# pits, spike hitboxes in all four directions at their exact edges, and the shipped
+# level_tiles.tres. Pending tiles are added with M4 step 2.
+# Serves AC M-01, M-02, M-03, R-01 (spike deaths).
 extends TestCase
 
 const T: int = SolidGrid.TILE_PX
@@ -20,7 +21,7 @@ func test_add_layer_reads_solidity() -> void:
 	layer.set_cell(Vector2i(4, 3), 0, ATLAS_DEFAULT)
 	layer.set_cell(Vector2i(6, 3), 0, ATLAS_FLOW)
 	layer.set_cell(Vector2i(8, 3), 0, ATLAS_DECORATION)
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.add_layer(layer)
 	assert_eq(grid.cell_flags(Vector2i(2, 3)), SolidGrid.SOLID, "ordinary")
 	assert_eq(grid.cell_flags(Vector2i(4, 3)), SolidGrid.DEFAULT_TOP, "default-only")
@@ -36,7 +37,7 @@ func test_layers_in_one_cell_combine() -> void:
 	var flow_layer: TileMapLayer = _make_layer(tiles)
 	default_layer.set_cell(Vector2i(5, 5), 0, ATLAS_DEFAULT)
 	flow_layer.set_cell(Vector2i(5, 5), 0, ATLAS_FLOW)
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.add_layer(default_layer)
 	grid.add_layer(flow_layer)
 	assert_eq(grid.cell_flags(Vector2i(5, 5)), SolidGrid.DEFAULT_TOP | SolidGrid.FLOW_TOP)
@@ -46,7 +47,7 @@ func test_layers_in_one_cell_combine() -> void:
 
 func test_room_offset_maps_local_cells_to_world() -> void:
 	for origin: Vector2i in [Vector2i(320, 160), Vector2i(-6400, -3200)]:
-		var grid: SolidGrid = SolidGrid.new(Rect2i(origin, ROOM.size))
+		var grid: SolidGrid = _new_grid(Rect2i(origin, ROOM.size))
 		grid.set_cell(Vector2i(1, 2), SolidGrid.ORDINARY)
 		var world_cell: Vector2i = origin / T + Vector2i(1, 2)
 		assert_eq(grid.cell_flags(world_cell), SolidGrid.SOLID, "origin %s" % origin)
@@ -64,7 +65,7 @@ func test_cell_of_floors_negative_pixels() -> void:
 
 
 func test_blocks_is_pixel_exact() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(10, 10), SolidGrid.ORDINARY)
 	var tile: Rect2i = Rect2i(10 * T, 10 * T, T, T)
 	var body: Vector2i = Vector2i(12, 15)
@@ -90,7 +91,7 @@ func test_blocks_is_pixel_exact() -> void:
 
 
 func test_decoration_and_platforms_never_block() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(3, 3), SolidGrid.DECORATION)
 	grid.set_cell(Vector2i(4, 3), SolidGrid.DEFAULT_ONLY)
 	grid.set_cell(Vector2i(5, 3), SolidGrid.FLOW_ONLY)
@@ -101,7 +102,7 @@ func test_decoration_and_platforms_never_block() -> void:
 
 
 func test_platform_tops_follow_state() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(4, 10), SolidGrid.DEFAULT_ONLY)
 	grid.set_cell(Vector2i(8, 10), SolidGrid.FLOW_ONLY)
 	var on_default: Rect2i = Rect2i(4 * T + 2, 10 * T - 15, 12, 15)
@@ -116,7 +117,7 @@ func test_platform_tops_follow_state() -> void:
 
 
 func test_platform_top_needs_exact_alignment() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(4, 10), SolidGrid.DEFAULT_ONLY)
 	var body: Rect2i = Rect2i(4 * T + 2, 10 * T - 15, 12, 15)
 	assert_true(grid.platform_top_at(body), "feet on the top edge")
@@ -131,14 +132,14 @@ func test_platform_top_needs_exact_alignment() -> void:
 
 
 func test_solid_cells_are_not_platform_tops() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(4, 10), SolidGrid.ORDINARY)
 	assert_false(grid.platform_top_at(Rect2i(4 * T, 10 * T - 15, 12, 15)))
 
 
 func test_edges_are_walls_and_the_bottom_is_a_pit() -> void:
 	var room: Rect2i = Rect2i(320, 160, 640, 368)
-	var grid: SolidGrid = SolidGrid.new(room)
+	var grid: SolidGrid = _new_grid(room)
 	var body: Vector2i = Vector2i(12, 15)
 	var mid_y: int = room.position.y + 100
 	var mid_x: int = room.position.x + 100
@@ -159,7 +160,7 @@ func test_edges_are_walls_and_the_bottom_is_a_pit() -> void:
 
 
 func test_corner_cells() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	@warning_ignore("integer_division")
 	var cells: Rect2i = Rect2i(0, 0, ROOM.size.x / T, ROOM.size.y / T)
 	assert_eq(grid.cell_flags(Vector2i(-1, -1)), SolidGrid.SOLID, "above-left")
@@ -172,7 +173,7 @@ func test_corner_cells() -> void:
 
 
 func test_cells_painted_outside_the_room_are_ignored() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	@warning_ignore("integer_division")
 	var below: Vector2i = Vector2i(5, ROOM.size.y / T + 1)
 	grid.set_cell(below, SolidGrid.ORDINARY)
@@ -180,10 +181,86 @@ func test_cells_painted_outside_the_room_are_ignored() -> void:
 
 
 func test_unknown_solidity_is_an_error() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
-	grid.set_cell(Vector2i(1, 1), 7)
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(1, 1), 8)
 	assert_eq(take_errors().size(), 1, "one error")
 	assert_eq(grid.cell_flags(Vector2i(1, 1)), 0, "ignored")
+
+
+func test_spike_hitboxes_in_all_four_directions() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	var cell: Vector2i = Vector2i(5, 5)
+	# The cell spans x 80-95 and y 80-95; the hitbox is 6 deep with 2 px insets (tuning).
+	var expected: Dictionary[int, Rect2i] = {
+		SolidGrid.SPIKE_UP: Rect2i(82, 90, 12, 6),
+		SolidGrid.SPIKE_DOWN: Rect2i(82, 80, 12, 6),
+		SolidGrid.SPIKE_LEFT: Rect2i(90, 82, 6, 12),
+		SolidGrid.SPIKE_RIGHT: Rect2i(80, 82, 6, 12),
+	}
+	var flags: Dictionary[int, int] = {
+		SolidGrid.SPIKE_UP: SolidGrid.SPIKE_UP_CELL,
+		SolidGrid.SPIKE_DOWN: SolidGrid.SPIKE_DOWN_CELL,
+		SolidGrid.SPIKE_LEFT: SolidGrid.SPIKE_LEFT_CELL,
+		SolidGrid.SPIKE_RIGHT: SolidGrid.SPIKE_RIGHT_CELL,
+	}
+	for solidity: int in expected:
+		var box: Rect2i = expected[solidity]
+		var label: String = "solidity %d" % solidity
+		grid = _new_grid(ROOM)
+		grid.set_cell(cell, solidity)
+		assert_eq(grid.cell_flags(cell), flags[solidity], label + ": its own flag")
+		assert_eq(grid.spike_hitbox(cell, flags[solidity]), box, label + ": hitbox")
+		var last: Vector2i = box.end - Vector2i.ONE
+		assert_true(_pixel_hits(grid, box.position), label + ": first pixel")
+		assert_true(_pixel_hits(grid, last), label + ": last pixel")
+		assert_false(_pixel_hits(grid, box.position - Vector2i(1, 0)), label + ": left of it")
+		assert_false(_pixel_hits(grid, box.position - Vector2i(0, 1)), label + ": above it")
+		assert_false(_pixel_hits(grid, last + Vector2i(1, 0)), label + ": right of it")
+		assert_false(_pixel_hits(grid, last + Vector2i(0, 1)), label + ": below it")
+	# The tips of an up-pointing spike, and its inset ends, are harmless.
+	grid = _new_grid(ROOM)
+	grid.set_cell(cell, SolidGrid.SPIKE_UP)
+	assert_false(grid.touches_spike(Rect2i(80, 80, 16, 10)), "the tips")
+	assert_false(grid.touches_spike(Rect2i(80, 80, 2, 16)), "the left inset")
+	assert_false(grid.touches_spike(Rect2i(94, 80, 2, 16)), "the right inset")
+
+
+func test_touching_a_hitbox_edge_is_not_contact() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(5, 5), SolidGrid.SPIKE_UP)
+	# A 12 x 15 body beside the hitbox (x 82-93, y 90-95), then 1 px into it.
+	assert_false(grid.touches_spike(Rect2i(70, 81, 12, 15)), "right edge on its left edge")
+	assert_true(grid.touches_spike(Rect2i(71, 81, 12, 15)), "1 px into it from the left")
+	assert_false(grid.touches_spike(Rect2i(94, 81, 12, 15)), "left edge on its right edge")
+	assert_true(grid.touches_spike(Rect2i(93, 81, 12, 15)), "1 px into it from the right")
+	assert_false(grid.touches_spike(Rect2i(82, 75, 12, 15)), "feet on its top edge")
+	assert_true(grid.touches_spike(Rect2i(82, 76, 12, 15)), "feet 1 px into it")
+	assert_false(grid.touches_spike(Rect2i(82, 76, 0, 15)), "an empty rect")
+
+
+func test_spikes_never_block() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	for solidity: int in [SolidGrid.SPIKE_UP, SolidGrid.SPIKE_DOWN, SolidGrid.SPIKE_LEFT,
+			SolidGrid.SPIKE_RIGHT]:
+		grid.set_cell(Vector2i(solidity, 5), solidity)
+	var row: Rect2i = Rect2i(4 * T, 5 * T, 4 * T, T)
+	assert_false(grid.blocks(row), "no spike blocks")
+	assert_true(grid.touches_spike(row), "but the row has spikes")
+	for flow: bool in [false, true]:
+		grid.set_flow(flow)
+		assert_false(grid.platform_top_at(Rect2i(4 * T, 4 * T, 4 * T, T)),
+				"never a platform top (flow %s)" % flow)
+
+
+func test_spike_on_ground_is_two_cells() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(5, 6), SolidGrid.ORDINARY)
+	grid.set_cell(Vector2i(5, 5), SolidGrid.SPIKE_UP)
+	# A body standing on the ground cell, over the spike.
+	var body: Rect2i = Rect2i(82, 81, 12, 15)
+	assert_false(grid.blocks(body), "the spike cell is open")
+	assert_true(grid.blocks(body.grow_individual(0, 0, 0, 1)), "the ground below is solid")
+	assert_true(grid.touches_spike(body), "standing in it touches the hitbox")
 
 
 func test_level_tiles_resource() -> void:
@@ -238,3 +315,13 @@ func _make_layer(tiles: TileSet) -> TileMapLayer:
 	var layer: TileMapLayer = TileMapLayer.new()
 	layer.tile_set = tiles
 	return layer
+
+
+# True if the single world pixel [param px] touches a spike hitbox.
+func _pixel_hits(grid: SolidGrid, px: Vector2i) -> bool:
+	return grid.touches_spike(Rect2i(px, Vector2i.ONE))
+
+
+# A grid for [param room] with the spike hitbox from tuning.
+func _new_grid(room: Rect2i) -> SolidGrid:
+	return SolidGrid.new(room, Tuning.data.spike_depth_px, Tuning.data.spike_inset_px)

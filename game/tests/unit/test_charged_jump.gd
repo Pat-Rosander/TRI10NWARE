@@ -155,7 +155,7 @@ func _setup_inside(objects: Array[ChargedObject]) -> void:
 
 func _setup(feet: Vector2i, objects: Array[ChargedObject]) -> void:
 	_player = add_node(PLAYER_SCENE.instantiate()) as Player
-	_player.respawn(feet, SolidGrid.new(ROOM), 1, objects)
+	_player.respawn(feet, _new_grid(ROOM), 1, objects)
 	_tick(1, _switch_press())
 	Trace.begin_session(true)
 	Trace.tick = 1
@@ -228,3 +228,8 @@ func _events(event_name: String) -> Array[Dictionary]:
 		if e["event"] == event_name:
 			found.append(e)
 	return found
+
+
+# A grid for [param room] with the spike hitbox from tuning.
+func _new_grid(room: Rect2i) -> SolidGrid:
+	return SolidGrid.new(room, Tuning.data.spike_depth_px, Tuning.data.spike_inset_px)

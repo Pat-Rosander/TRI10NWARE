@@ -9,7 +9,7 @@ const CATALOG: RoomCatalog = preload("res://rooms/room_catalog.tres")
 const START_ENTRANCE: StringName = &"start"
 
 ## Step 10's result, decided in this fixed order (Same-tick contract).
-enum Outcome { NONE, COMPLETE, COUNTDOWN, FELL }
+enum Outcome { NONE, COMPLETE, SPIKE, COUNTDOWN, FELL }
 ## The play states. Ticks count only in PLAYING, DYING and RESPAWNING.
 enum PlayState { TITLE, PLAYING, DYING, RESPAWNING, COMPLETE }
 
@@ -125,12 +125,15 @@ func set_input_source(source: InputSource) -> void:
 
 
 ## Step 10's decision for [param player] in a room with [param goals]: the goal (grounded, feet
-## inside a zone), then countdown expiry, then a fall; the first that applies wins.
+## inside a zone), then a spike touched during the move, then countdown expiry, then a fall; the
+## first that applies wins.
 static func outcome(player: Player, goals: Array[GoalZone]) -> Outcome:
 	if player.state.grounded:
 		for goal: GoalZone in goals:
 			if goal.contains_feet(player.mover.position):
 				return Outcome.COMPLETE
+	if player.touched_spike():
+		return Outcome.SPIKE
 	if player.flow.countdown_expired:
 		return Outcome.COUNTDOWN
 	if player.fell():
@@ -231,13 +234,15 @@ func _step_timers() -> void:
 	_player.step_timers()
 
 
-# Step 10: goal, countdown expiry, falls, in that order. A completion stops the ticks until the
+# Step 10: goal, spike, countdown expiry, falls, in that order. A completion stops the ticks until the
 # completion overlay calls replay(); a death starts the death freeze.
 func _step_outcomes() -> void:
 	match outcome(_player, _goals):
 		Outcome.COMPLETE:
 			Trace.record("room_complete", {"room": String(room_id)})
 			play_state = PlayState.COMPLETE
+		Outcome.SPIKE:
+			_die("spike")
 		Outcome.COUNTDOWN:
 			_die("countdown")
 		Outcome.FELL:

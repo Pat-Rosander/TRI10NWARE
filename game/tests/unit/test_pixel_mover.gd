@@ -1,7 +1,7 @@
 # Tests PixelMover against small hand-made grids: stopping flush at walls, floors and ceilings at
 # every speed up to dash speed, one-way tops, sub-pixel rounding, the grounded and wall queries,
-# the wall_check_px guard, and each movement assist, including where it must not apply.
-# Serves AC M-01, M-02, M-03, D-04, D-05.
+# the wall_check_px guard, each movement assist, including where it must not apply, and spike
+# contact at the start and at every pixel of a move. Serves AC M-01, M-02, M-03, D-04, D-05, R-01.
 extends TestCase
 
 const T: int = SolidGrid.TILE_PX
@@ -22,7 +22,7 @@ const BOX: Rect2i = Rect2i(6 * T, 6 * T, 24 * T, 9 * T)
 
 
 func test_body_rect_has_its_feet_at_the_bottom_center() -> void:
-	var mover: PixelMover = _make_mover(SolidGrid.new(ROOM), Vector2i(100, 200))
+	var mover: PixelMover = _make_mover(_new_grid(ROOM), Vector2i(100, 200))
 	assert_eq(mover.body_rect(mover.position), Rect2i(94, 185, 12, 15))
 	assert_eq(mover.body_rect(Vector2i(0, 0)).end, Vector2i(6, 0), "feet line is the bottom edge")
 
@@ -56,7 +56,7 @@ func test_blocked_axis_stops_while_the_other_continues() -> void:
 
 
 func test_room_edges_are_walls_and_the_bottom_is_a_pit() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	var mover: PixelMover = _make_mover(grid, Vector2i(30, 100))
 	for i: int in 10:
 		mover.velocity_x = -DASH_SPEED
@@ -86,7 +86,7 @@ func test_room_edges_are_walls_and_the_bottom_is_a_pit() -> void:
 
 
 func test_one_way_top_catches_a_falling_body() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(10, 10), SolidGrid.DEFAULT_ONLY)
 	var mover: PixelMover = _make_mover(grid, Vector2i(10 * T + 8, 10 * T - 30))
 	var landed: bool = false
@@ -103,7 +103,7 @@ func test_one_way_top_catches_a_falling_body() -> void:
 
 
 func test_one_way_top_lets_rising_and_sideways_bodies_through() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(10, 10), SolidGrid.DEFAULT_ONLY)
 	# Rising from below the tile, through it.
 	var mover: PixelMover = _make_mover(grid, Vector2i(10 * T + 8, 11 * T + 20))
@@ -126,7 +126,7 @@ func test_one_way_top_lets_rising_and_sideways_bodies_through() -> void:
 
 
 func test_one_way_top_lets_a_body_already_inside_fall_through() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(10, 10), SolidGrid.DEFAULT_ONLY)
 	grid.set_cell(Vector2i(10, 11), SolidGrid.ORDINARY)
 	# Feet 5 px into the platform row: it falls on to the solid tile below, not the top.
@@ -140,7 +140,7 @@ func test_one_way_top_lets_a_body_already_inside_fall_through() -> void:
 
 
 func test_one_way_top_of_the_inactive_family_does_not_catch() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(10, 10), SolidGrid.DEFAULT_ONLY)
 	grid.set_cell(Vector2i(20, 10), SolidGrid.FLOW_ONLY)
 	grid.set_flow(true)
@@ -152,7 +152,7 @@ func test_one_way_top_of_the_inactive_family_does_not_catch() -> void:
 
 
 func test_exact_half_rounds_away_from_zero() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	for sign_x: int in [1, -1]:
 		var mover: PixelMover = _make_mover(grid, Vector2i(320, 200))
 		mover.velocity_x = sign_x * 30.0
@@ -170,7 +170,7 @@ func test_exact_half_rounds_away_from_zero() -> void:
 
 
 func test_mirrored_moves_give_mirrored_positions() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	var start: Vector2i = Vector2i(320, 200)
 	for speed: float in [1.0, 7.5, 13.0, 47.3, 100.0, 179.9, 210.0, 333.3, 480.0]:
 		var right: PixelMover = _make_mover(grid, start)
@@ -200,7 +200,7 @@ func test_block_resets_the_remainder_of_that_axis_only() -> void:
 
 
 func test_no_drift_at_constant_speed() -> void:
-	var grid: SolidGrid = SolidGrid.new(Rect2i(0, 0, 4000, 368))
+	var grid: SolidGrid = _new_grid(Rect2i(0, 0, 4000, 368))
 	var mover: PixelMover = _make_mover(grid, Vector2i(100, 200))
 	mover.velocity_x = 180.0
 	for i: int in 600:
@@ -232,7 +232,7 @@ func test_is_grounded() -> void:
 			"1 px inside a live top")
 	assert_false(_make_mover(grid, Vector2i(14 * T + 8, 8 * T)).is_grounded(),
 			"on an inactive top")
-	assert_false(_make_mover(SolidGrid.new(ROOM), Vector2i(200, ROOM.end.y)).is_grounded(),
+	assert_false(_make_mover(_new_grid(ROOM), Vector2i(200, ROOM.end.y)).is_grounded(),
 			"at the pit")
 
 
@@ -257,7 +257,7 @@ func test_wall_query_reaches_the_full_wall_check_distance() -> void:
 
 
 func test_platforms_are_never_walls_and_room_edges_are() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	grid.set_cell(Vector2i(10, 10), SolidGrid.DEFAULT_ONLY)
 	grid.set_cell(Vector2i(12, 10), SolidGrid.FLOW_ONLY)
 	var y: int = 10 * T + 12
@@ -473,6 +473,51 @@ func test_post_dash_snap_refusals() -> void:
 	assert_eq(mover.position.y, 157, "an upward dash: not moved")
 
 
+func test_standing_still_on_a_spike_is_contact() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(10, 11), SolidGrid.ORDINARY)
+	grid.set_cell(Vector2i(10, 10), SolidGrid.SPIKE_UP)
+	var mover: PixelMover = _make_mover(grid, Vector2i(168, 11 * T))
+	mover.move()
+	assert_true(mover.spike_hit, "contact at the start position")
+	assert_eq(mover.position, Vector2i(168, 11 * T), "spikes do not move the body")
+
+
+func test_a_fast_move_cannot_skip_a_spike() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	# A right-pointing spike: its hitbox is x 160-165, y 162-173.
+	grid.set_cell(Vector2i(10, 10), SolidGrid.SPIKE_RIGHT)
+	var mover: PixelMover = _make_mover(grid, Vector2i(154, 176))
+	mover.velocity_x = 1500.0
+	mover.move()
+	assert_eq(mover.position.x, 179, "moved the full 25 px, never stopped")
+	assert_false(grid.touches_spike(mover.body_rect(mover.position)), "ends past the hitbox")
+	assert_true(mover.spike_hit, "contact at a pixel in between")
+	assert_eq(mover.wall_hit, 0, "a spike is not a wall")
+
+
+func test_grazing_the_tips_is_not_contact() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	# An up-pointing spike: its hitbox is y 170-175; feet at y 170 skim its top edge.
+	grid.set_cell(Vector2i(10, 10), SolidGrid.SPIKE_UP)
+	var mover: PixelMover = _make_mover(grid, Vector2i(140, 170))
+	mover.velocity_x = 1200.0
+	mover.move()
+	assert_eq(mover.position.x, 160, "crossed the spike cell")
+	assert_false(mover.spike_hit, "no contact through the tips")
+
+
+func test_spike_contact_is_reset_by_each_move() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(10, 10), SolidGrid.SPIKE_UP)
+	var mover: PixelMover = _make_mover(grid, Vector2i(168, 176))
+	mover.velocity_x = 1200.0
+	mover.move()
+	assert_true(mover.spike_hit, "left from a spike")
+	mover.move()
+	assert_false(mover.spike_hit, "the next move starts clear")
+
+
 func _make_mover(grid: SolidGrid, feet: Vector2i, corner: int = CORNER,
 		dash_corner: int = DASH_CORNER) -> PixelMover:
 	var mover: PixelMover = PixelMover.new(grid, BODY, WALL_CHECK, TICKS, corner, dash_corner,
@@ -501,7 +546,7 @@ func _oneway_at(solidity: int, below: int, vy: float) -> PixelMover:
 
 # A grid in ROOM with [param solidity] painted at each of [param cells].
 func _grid_with(cells: Array[Vector2i], solidity: int = SolidGrid.ORDINARY) -> SolidGrid:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	for cell: Vector2i in cells:
 		grid.set_cell(cell, solidity)
 	return grid
@@ -509,7 +554,7 @@ func _grid_with(cells: Array[Vector2i], solidity: int = SolidGrid.ORDINARY) -> S
 
 # A closed box of ordinary tiles around BOX, one tile thick, inside ROOM.
 func _make_box() -> SolidGrid:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	var cells: Rect2i = Rect2i(BOX.position / T, BOX.size / T).grow(1)
 	for y: int in range(cells.position.y, cells.end.y):
 		for x: int in range(cells.position.x, cells.end.x):
@@ -579,3 +624,8 @@ func _fall_onto(grid: SolidGrid, x: int) -> int:
 		if mover.floor_hit:
 			return mover.position.y
 	return -1
+
+
+# A grid for [param room] with the spike hitbox from tuning.
+func _new_grid(room: Rect2i) -> SolidGrid:
+	return SolidGrid.new(room, Tuning.data.spike_depth_px, Tuning.data.spike_inset_px)

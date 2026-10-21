@@ -68,7 +68,8 @@ func goal_zones() -> Array[GoalZone]:
 
 ## Builds the room's SolidGrid from its three tile layers. Call after the room is placed.
 func build_grid() -> SolidGrid:
-	var grid: SolidGrid = SolidGrid.new(bounds)
+	var grid: SolidGrid = SolidGrid.new(bounds, Tuning.data.spike_depth_px,
+			Tuning.data.spike_inset_px)
 	for layer_name: String in ["WorldTiles", "DefaultTiles", "FlowTiles"]:
 		grid.add_layer(get_node(layer_name) as TileMapLayer)
 	return grid

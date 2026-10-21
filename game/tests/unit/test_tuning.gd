@@ -41,6 +41,8 @@ const EXPECTED: Dictionary[String, Variant] = {
 	"charged_exit_margin_px": 1,
 	"root_contact_margin_px": 4,
 	"overlap_snap_px": 6,
+	"spike_depth_px": 6,
+	"spike_inset_px": 2,
 	"max_volts": 3,
 	"countdown_s": 3.0,
 	"countdown_in_default": TuningData.CountdownMode.CONTINUE,

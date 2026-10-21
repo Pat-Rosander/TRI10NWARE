@@ -128,3 +128,8 @@ entrance_id = &"unpowered_object"
 position = Vector2(4504, 416)
 script = ExtResource("3_entrance")
 entrance_id = &"zero_volt_lane"
+
+[node name="Spikes" type="Marker2D" parent="Entrances"]
+position = Vector2(5160, 416)
+script = ExtResource("3_entrance")
+entrance_id = &"spikes"

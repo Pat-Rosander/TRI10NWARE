@@ -1,6 +1,7 @@
 # Moves the player's body against a SolidGrid in whole pixels: a per-axis sub-pixel remainder,
-# then horizontal and vertical moves one pixel at a time, the grounded and wall queries, and the
-# four movement assists. Serves AC M-01, M-02, M-03, D-04, D-05.
+# then horizontal and vertical moves one pixel at a time, the grounded and wall queries, the
+# four movement assists, and spike contact at every pixel. Serves AC M-01, M-02, M-03, D-04, D-05,
+# R-01 (spike deaths).
 class_name PixelMover
 extends RefCounted
 
@@ -20,6 +21,9 @@ var remainder_y: float = 0.0
 var wall_hit: int = 0
 var ceiling_hit: bool = false
 var floor_hit: bool = false
+## True if the last move() touched a spike hitbox: at its start position or at any pixel it
+## passed through. Spikes never stop the move.
+var spike_hit: bool = false
 ## Assists applied by the last move(), as the displacement each added: the corner correction's
 ## sideways shift, and the dash corner correction's upward shift (negative). 0 if none.
 var corner_shift: int = 0
@@ -65,12 +69,15 @@ func body_rect(at: Vector2i) -> Rect2i:
 ## fits: the dash corner correction for a horizontal or up-diagonal dash ([param dash_dir] is
 ## the active dash's direction, or zero), and the corner correction for a rising body, which
 ## breaks a tie toward the horizontal velocity, then [param facing]. Each at most once per move.
+## Every position the body takes, the start included, is tested against spike hitboxes.
 func move(facing: int = 1, dash_dir: Vector2i = Vector2i.ZERO) -> void:
 	wall_hit = 0
 	ceiling_hit = false
 	floor_hit = false
 	corner_shift = 0
 	dash_corner_shift = 0
+	spike_hit = false
+	_note_spike()
 	var dash_corner_allowed: bool = dash_dir.x != 0 and dash_dir.y <= 0
 	remainder_x += velocity_x / _ticks_per_second
 	var dx: int = roundi(remainder_x)
@@ -88,7 +95,9 @@ func move(facing: int = 1, dash_dir: Vector2i = Vector2i.ZERO) -> void:
 				break
 			position.y -= lift
 			dash_corner_shift = -lift
+			_note_spike()
 		position.x += sx
+		_note_spike()
 	remainder_y += velocity_y / _ticks_per_second
 	var dy: int = roundi(remainder_y)
 	remainder_y -= dy
@@ -108,7 +117,9 @@ func move(facing: int = 1, dash_dir: Vector2i = Vector2i.ZERO) -> void:
 				break
 			position.x += shift
 			corner_shift = shift
+			_note_spike()
 		position.y += sy
+		_note_spike()
 
 
 ## True if moving the body one pixel down would be blocked: by a solid cell, or by a platform
@@ -157,6 +168,12 @@ func post_dash_snap(dash_dir_y: int) -> int:
 			return position.y - start
 	position.y = start
 	return 0
+
+
+# Notes a spike contact at the body's current position.
+func _note_spike() -> void:
+	if not spike_hit and grid.touches_spike(body_rect(position)):
+		spike_hit = true
 
 
 # Moving up, only solid cells block. Moving down, a platform top blocks only when the feet are

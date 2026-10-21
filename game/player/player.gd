@@ -192,6 +192,11 @@ func step_timers() -> void:
 	flow.step_timer()
 
 
+## Step 10: true if step 6's move touched a spike hitbox.
+func touched_spike() -> bool:
+	return mover.spike_hit
+
+
 ## Step 10: true if the feet are below the room's failure line (bounds bottom + fall_margin_px).
 func fell() -> bool:
 	return mover.position.y > mover.grid.bounds.end.y + Tuning.data.fall_margin_px

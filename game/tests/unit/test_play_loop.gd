@@ -205,7 +205,7 @@ func _setup() -> void:
 
 # Moves the player onto a pillar built in code, under a goal zone covering its top.
 func _stand_on_goal() -> void:
-	var grid: SolidGrid = SolidGrid.new(ROOM)
+	var grid: SolidGrid = _new_grid(ROOM)
 	for x: int in range(10, 15):
 		for y: int in range(SURFACE_ROW, 23):
 			grid.set_cell(Vector2i(x, y), SolidGrid.ORDINARY)
@@ -244,3 +244,8 @@ func _count(name: String) -> int:
 func _tick_of(name: String) -> int:
 	var found: Array[Dictionary] = _events(name)
 	return int(found[0]["tick"]) if not found.is_empty() else -1
+
+
+# A grid for [param room] with the spike hitbox from tuning.
+func _new_grid(room: Rect2i) -> SolidGrid:
+	return SolidGrid.new(room, Tuning.data.spike_depth_px, Tuning.data.spike_inset_px)

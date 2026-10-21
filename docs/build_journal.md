@@ -4,10 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M3 step 6, ship, 2026-10-20: version 0.2.0 (owner), builds `0.2.0-4357afe` for macOS, Windows and web plus the three `builds/itch/` zips, all from commit `4357afe`; packaging, signature, packs and the local web server checked; README and support matrix updated. The owner's checks below are still open. Earlier: M3 step 5 (effects and sound), M3 step 4 (charged object looks), M3 step 3 (flow visuals), M3 step 2 (play loop), M3 step 1 (Level 1; painted, `4cf3a1b`), M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** the M3 build order is finished. Next comes the owner's choice: M4 (platforms and spikes), or the postponed work (M1 steps 7–9, then the Level 1 gate evidence). Before that, a short session acts on the owner's M3.6 results: it records the web pause and focus result (a failure goes to `known_issues.md`, with a spec fix *proposed*, not built) and the gate step 8 approval or the requested changes (decision log; the M3 done-when approval item). The owner makes the itch.io page and uploads (no session does itch.io work). M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
+- **Last completed:** M4 step 1, spike rules, 2026-10-21: spike cells and hitboxes in `SolidGrid`, contact at every pixel of the move, step 10's spike death, the two spike tuning fields, `test_spikes.gd`, and the `spikes` gym entrance (gym widened to 5760 px). The spec now has an **M4 build order** (owner, 2026-10-21; M4 is built ahead of Level 2). Earlier: M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M4 step 2, overlap policy (`/step M4.2`): `overlap_policy.gd` and its test, pending tiles in `solid_grid.gd`, the policy on every switch in `flow_controller.gd`, the step 7 pending re-check in `player.gd`, and `test_platforms.gd` (spec, **M4 build order**). It does not need the owner's platform art: its tests build grids in code. If the owner has set the spike tiles' `solidity` by then, first update `test_level_tiles_resource` to the new tiles (see M4.1 "How to see it"). Still postponed: **M1 steps 7–9** and M3's gate evidence (spec, **Postponed work**). Do not build them, or anything that waits on them, unless the owner asks. No session does itch.io work.
 - **Waiting on the owner:**
-    - **M3.6 ship checks:** follow "How to see it" in the M3 step 6 entry. (1) The **web pause and focus check** in Chrome, Safari and Firefox (switch tabs, click outside the canvas, switch apps). It is untested and at risk: `main.gd` pauses only on the *application* focus notification, which the web runtime may not send. (2) Play the macOS build from its itch.io zip (first-launch steps), the Windows build on the PC, and the web build. (3) Approve the builds or list changes (gate step 8). 13 placeholders still ship; the list is in the entry. (4) Make the itch.io page and upload `builds/itch/*`. Also reload the project in Godot (Project → Reload Current Project) if it asks: `project.godot`'s version changed to 0.2.0.
+    - **M4.1:** set the spike tiles' `solidity` (4 up, 5 down, 6 left, 7 right) in the TileSet panel; open `game/core/solid_grid.gd` and `game/tests/unit/test_spikes.gd` once for diagnostics; paint the `spikes` station (painting guide in the M4 step 1 entry); playtest it, especially that a held jump grazes the ceiling spikes and lives. If `gym.tscn` or `room_catalog.tres` was open, let Godot reload them.
+    - **M3.6 ship checks:** movement and visuals approved (owner, 2026-10-21; decision log M3.6). Still open: (1) the **web pause and focus check** in Chrome, Safari and Firefox (switch tabs, click outside the canvas, switch apps), which the owner runs last. It is untested and at risk: `main.gd` pauses only on the *application* focus notification, which the web runtime may not send; a failure goes to `known_issues.md` with a spec fix *proposed*. (2) Any builds not yet played (macOS from its itch.io zip, Windows on the PC, web). (3) Make the itch.io page and upload `builds/itch/*`. 13 placeholders still ship (list in the M3 step 6 entry).
     - **M3.5 check:** follow "How to see it" in the M3 step 5 entry (open `game/audio/sfx.gd`, `game/world/effects.gd` and `game/tests/unit/test_feedback.gd` for diagnostics, reload `main.tscn` if Godot asks, press F5 and listen). Confirm the license of your 8 WAVs in `CREDITS.md`. Replace `effects.png` (then its frames in `effects_frames.tres`) and the three silent WAVs whenever you like. Optionally approve fixing the spec layout's stale "13 unit-test files" (now 17).
     - **M3.4 check:** follow "How to see it" in the M3 step 4 entry (open the three scripts for diagnostics, reload `level_1.tscn`/`gym.tscn`, look at the Inspector's **Frames** and **Glow Texture**). Add your charged-object types whenever you like ("To add a type" in that entry).
     - **M3.2 check:** open `game/world/main.gd`, `game/ui/title_overlay.gd`, `game/ui/pause_menu.gd` and `game/ui/completion_overlay.gd` once so the editor analyzes them (diagnostics). Then press F5 and follow "How to see it" in the M3 step 2 entry. Accept if Godot asks to re-save `main.tscn` or the new overlay scenes.
@@ -1083,3 +1084,54 @@ Checks run in this session, all passed:
 - No decide-and-log choices were needed: the export ran unchanged and rewrote nothing.
 - *Open:* the web pause and focus result (above). If it fails, the fix is a spec change for the owner to approve, not something a session builds unasked.
 - *Open:* the owner's approval of every build, or the changes they request (gate step 8).
+
+## M4 step 1: spike rules (2026-10-21)
+
+**What was built:**
+
+- `docs/TRI10NWARE.md` (owner-approved edit): the new **M4 build order** (five steps, spikes first, built ahead of Level 2); M4 files rows for `test_spikes.gd` and `test_platforms.gd` (standing rule); extended-file rows for `player.gd`, `test_trace.gd` and `room_catalog.tres`; `gym.tscn`'s row now covers the `spikes` station; "Where each file is created" M4 count 7 → 9.
+- `game/core/solid_grid.gd`: spike `solidity` values 4–7, their cell flags, `touches_spike(rect)` and `spike_hitbox(cell, spike)`; the constructor takes `spike_depth_px` and `spike_inset_px`.
+- `game/core/pixel_mover.gd`: `spike_hit`, set by `move()` at the start position and at every pixel it moves.
+- `game/player/player.gd`: `touched_spike()` for step 10.
+- `game/world/world.gd`: `Outcome.SPIKE` between the goal and the countdown; `death` with cause `spike`.
+- `game/rooms/room.gd`: passes the two tuning values when it builds the grid.
+- `game/config/tuning_data.gd`, `game/config/tuning.tres`: `spike_depth_px` 6, `spike_inset_px` 2.
+- `game/rooms/room_catalog.tres`: gym `world_rect` 5120 × 512 → 5760 × 512.
+- `game/verification/gym/gym.tscn`: the `Spikes` entrance (`spikes`) at (5160, 416).
+- Tests: new `game/tests/unit/test_spikes.gd` (+ `.uid`); spike cases in `test_solid_grid.gd` and `test_pixel_mover.gd`; the two fields in `test_tuning.gd`; `test_trace.gd`'s header count 47 → 49; `test_charged_jump.gd`, `test_flow_controller.gd`, `test_goal_zone.gd`, `test_play_loop.gd` build grids through a new `_new_grid()` helper.
+- `docs/decision_log.md`: the two tuning rows; Owner rows M3.6 (partial approval) and M4 (build now, build order); five M4.1 rows.
+
+**How it works:** a spike is a tile like any other. When a room is built, `SolidGrid` reads each cell's `solidity`. Values 4–7 (spikes pointing up, down, left, right) get their own flag, separate from "solid". So the existing collision questions (`blocks()`, `platform_top_at()`) never see spikes, and the player walks straight into a spike cell. That is how "spikes never block" holds without a special case.
+
+What kills is the **hitbox**, a strip along the spike's base: 6 px deep, stopping 2 px short of each end. For an up-pointing spike, the strip is the bottom 6 px of the cell, minus 2 px on each side. The pointy top 10 px is harmless, so grazing the tips is safe. `touches_spike(rect)` looks only at the cells the body overlaps, builds each spike's strip, and asks whether the body *overlaps* it. A body that only touches the strip's edge, such as one standing on its top line, does not die.
+
+`PixelMover` already moves one pixel at a time so it can stop flush at walls. It now asks `touches_spike` at the start position and after every pixel step, and sets `spike_hit` if any of them overlaps. That is why a fast dash can't skip a spike between ticks (a test moves 25 px in one tick, right through a 6 px strip), and why standing still on one kills. In step 10, `World.outcome()` now checks goal, spike, countdown, fall, in that order. A spike death goes through the same `_die()` as every other death, so the freeze, the respawn and the reset are identical.
+
+**Why:** spec **M4 build order** step 1, **How spikes work**, **The tile set**, **Step 10, outcomes**, **Same-tick contract** (goal, spike, countdown, fall); ground rules 8 (tuning passed in), 9 (no tunable numbers in code) and 15 (only integer rectangle tests); AC R-01 and R-02 (spike deaths reset like every death).
+
+**How to see it:**
+
+1. Run the unit tests: 228 pass. The new block is `test_spikes.gd`.
+2. Open `game/core/solid_grid.gd` and `game/tests/unit/test_spikes.gd` once, so the editor analyzes them (diagnostics). The other changed scripts are already clean.
+3. **Set the spike tiles' `solidity`** in the TileSet panel (`level_tiles.tres`): 4 on the tile whose points face up, 5 down, 6 left, 7 right. Then `test_level_tiles_resource` in `test_solid_grid.gd` will fail, because it pins the shipped tile set exactly. That's expected; the next session updates it to your spike tiles' atlas coordinates (tell it which they are, or it reads them from the file).
+4. Paint the `spikes` station (guide below), set `start_room` to `gym` in `room_catalog.tres` (don't commit that), and press F5. The debug menu can't jump to the station yet (postponed M1.7), so start from the `start` entrance or temporarily set `start_entrance` to `spikes`.
+
+**Painting guide for the `spikes` station.** Columns and rows are tiles from the gym's top-left corner. The station uses columns 320–359. Its floor top is row 26 (y 416), like every station, with floor tiles from row 26 down on `WorldTiles`. Spike tiles can go on `WorldTiles` too. The entrance marker sits at column 322.
+
+| Part | Where | Notes |
+| --- | --- | --- |
+| Floor | Columns 320–359, row 26 down | Continuous, so every part has clear floor beside it |
+| Floor spikes (up, 4) | Columns 326–329, row 25 | Walk into them, land on them from a jump, dash into them |
+| Ceiling and ceiling spikes (down, 5) | Ordinary ceiling on row 20, columns 333–340; spikes on row 21, columns 334–339 | A held jump's head peaks at about y 345 (M2.4 entry), inside the tips (y 342–351) and 3 px below the hitbox (y 336–341): it should graze and live, and an upward dash should die. If a held jump dies, move both rows up one |
+| Shaft walls | Ordinary walls on columns 346 and 351, rows 12–25 | 4 open columns between them |
+| Wall spikes | Right-pointing (7) on column 347 and left-pointing (6) on column 350, rows 16–21 | Spikes on both inner faces. Rows 22–25 stay clear, so standing in the shaft is safe and a jump reaches them |
+
+The right edge (column 359) is already a wall, because room edges count as walls. Divider walls are up to you.
+
+**Decisions and questions:**
+
+- Owner decisions (plan review): M4 is built now, ahead of Level 2, spikes first, and the new build order is in the spec. The step 1 gym skeleton is in step 1. `test_spikes.gd` is approved under the standing rule. You set the spike tiles' `solidity` yourself, so this session did not touch `level_tiles.tres`. M3.6 results: movement and visuals approved; the web pause and focus check comes last (decision log, M3.6).
+- Decide and log (decision log, M4.1): the spike cell flags and the constructor parameters; edge contact is not contact; contact is noted only inside step 6's move, so a body that the step 7 or step 9 snaps place on a spike dies one tick later; the unknown-solidity test now uses 8; the gym's width and the station columns.
+- The `test_platforms.gd` row was added to the spec now, with step 2's file, so the table matches the build order.
+- Skipped because they wait for the postponed M1 steps: `h01_spikes.json` (M1.8; `test_spikes.gd` stands in for it).
+- Check run: import clean; 228 unit tests pass. A throwaway headless script (not committed) loaded the gym and found 17 entrances, including `spikes`, with bounds 5760 × 512. Its jump-height measurement didn't run, because scripts started with `-s` load no autoloads. So the ceiling row above comes from the M2.4 figure, and your playtest confirms it.

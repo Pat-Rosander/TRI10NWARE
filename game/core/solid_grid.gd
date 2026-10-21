@@ -1,6 +1,6 @@
-# The mover's view of one room: which 16 px cells are solid, one-way platform tops or open,
-# read once from the room's tile layers, plus the room-edge walls and pit. No physics engine.
-# Serves AC M-01, M-02, M-03 (collision) and, from M4, P-01 to P-04.
+# The mover's view of one room: which 16 px cells are solid, one-way platform tops, spikes or
+# open, read once from the room's tile layers, plus the room-edge walls and pit. No physics engine.
+# Serves AC M-01, M-02, M-03 (collision), R-01 (spike deaths) and, from M4, P-01 to P-04.
 class_name SolidGrid
 extends RefCounted
 
@@ -12,11 +12,21 @@ const DECORATION: int = 0
 const ORDINARY: int = 1
 const DEFAULT_ONLY: int = 2
 const FLOW_ONLY: int = 3
+const SPIKE_UP: int = 4
+const SPIKE_DOWN: int = 5
+const SPIKE_LEFT: int = 6
+const SPIKE_RIGHT: int = 7
 
 ## Cell flags. A cell painted on several layers keeps every flag it was given.
 const SOLID: int = 1
 const DEFAULT_TOP: int = 2
 const FLOW_TOP: int = 4
+## Spike cells, one flag per direction the spikes point. Never solid: spikes do not block.
+const SPIKE_UP_CELL: int = 8
+const SPIKE_DOWN_CELL: int = 16
+const SPIKE_LEFT_CELL: int = 32
+const SPIKE_RIGHT_CELL: int = 64
+const SPIKE_CELLS: int = SPIKE_UP_CELL | SPIKE_DOWN_CELL | SPIKE_LEFT_CELL | SPIKE_RIGHT_CELL
 
 ## The room's place on the world map in pixels (its `world_rect`).
 var bounds: Rect2i
@@ -24,11 +34,17 @@ var bounds: Rect2i
 var _cell_bounds: Rect2i
 var _cells: Dictionary[Vector2i, int] = {}
 var _active_top: int = DEFAULT_TOP
+var _spike_depth: int
+var _spike_inset: int
 
 
 ## [param room_bounds] is the room's `world_rect`; position and size are whole tiles.
-func _init(room_bounds: Rect2i) -> void:
+## [param spike_depth_px] and [param spike_inset_px] come from tuning and shape every spike's
+## hitbox.
+func _init(room_bounds: Rect2i, spike_depth_px: int, spike_inset_px: int) -> void:
 	bounds = room_bounds
+	_spike_depth = spike_depth_px
+	_spike_inset = spike_inset_px
 	_cell_bounds = Rect2i(cell_of(bounds.position), bounds.size / TILE_PX)
 
 
@@ -54,6 +70,14 @@ func set_cell(cell: Vector2i, solidity: int) -> void:
 			flag = DEFAULT_TOP
 		FLOW_ONLY:
 			flag = FLOW_TOP
+		SPIKE_UP:
+			flag = SPIKE_UP_CELL
+		SPIKE_DOWN:
+			flag = SPIKE_DOWN_CELL
+		SPIKE_LEFT:
+			flag = SPIKE_LEFT_CELL
+		SPIKE_RIGHT:
+			flag = SPIKE_RIGHT_CELL
 		_:
 			push_error("SolidGrid: unknown solidity %d at %s" % [solidity, cell])
 			return
@@ -102,6 +126,44 @@ func platform_top_at(rect: Rect2i) -> bool:
 		if cell_flags(Vector2i(x, row)) & _active_top:
 			return true
 	return false
+
+
+## True if the world-pixel [param rect] overlaps the hitbox of a spike: a strip spike_depth_px
+## deep along the side the spikes stand on, stopping spike_inset_px short of each end. Touching a
+## hitbox's edge is not overlapping it, and the rest of a spike cell is harmless.
+func touches_spike(rect: Rect2i) -> bool:
+	if rect.size.x <= 0 or rect.size.y <= 0:
+		return false
+	var first: Vector2i = cell_of(rect.position)
+	var last: Vector2i = cell_of(rect.end - Vector2i.ONE)
+	for y: int in range(first.y, last.y + 1):
+		for x: int in range(first.x, last.x + 1):
+			var cell: Vector2i = Vector2i(x, y)
+			var flags: int = cell_flags(cell) & SPIKE_CELLS
+			if flags == 0:
+				continue
+			for spike: int in [SPIKE_UP_CELL, SPIKE_DOWN_CELL, SPIKE_LEFT_CELL, SPIKE_RIGHT_CELL]:
+				if (flags & spike) != 0 and rect.intersects(spike_hitbox(cell, spike)):
+					return true
+	return false
+
+
+## The hitbox, in world pixels, of a spike pointing as [param spike] (one of the spike cell flags)
+## in the world [param cell].
+func spike_hitbox(cell: Vector2i, spike: int) -> Rect2i:
+	var origin: Vector2i = cell * TILE_PX
+	var length: int = TILE_PX - 2 * _spike_inset
+	match spike:
+		SPIKE_UP_CELL:
+			return Rect2i(origin.x + _spike_inset, origin.y + TILE_PX - _spike_depth,
+					length, _spike_depth)
+		SPIKE_DOWN_CELL:
+			return Rect2i(origin.x + _spike_inset, origin.y, length, _spike_depth)
+		SPIKE_LEFT_CELL:
+			return Rect2i(origin.x + TILE_PX - _spike_depth, origin.y + _spike_inset,
+					_spike_depth, length)
+		_:
+			return Rect2i(origin.x, origin.y + _spike_inset, _spike_depth, length)
 
 
 ## The world cell containing the world pixel [param px].
