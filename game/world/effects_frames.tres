@@ -1,14 +1,6 @@
-[gd_resource type="SpriteFrames" load_steps=8 format=3]
+[gd_resource type="SpriteFrames" load_steps=8 format=3 uid="uid://c2k2sxknkoxls"]
 
-[ext_resource type="Texture2D" path="res://art/effects/effects.png" id="1_effects"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_death"]
-atlas = ExtResource("1_effects")
-region = Rect2(0, 0, 16, 16)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_respawn"]
-atlas = ExtResource("1_effects")
-region = Rect2(16, 0, 16, 16)
+[ext_resource type="Texture2D" uid="uid://wrn880upahv1" path="res://art/effects/effects.png" id="1_effects"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_charged_jump"]
 atlas = ExtResource("1_effects")
@@ -18,32 +10,24 @@ region = Rect2(32, 0, 16, 16)
 atlas = ExtResource("1_effects")
 region = Rect2(48, 0, 16, 16)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_land"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_death"]
 atlas = ExtResource("1_effects")
-region = Rect2(64, 0, 16, 16)
+region = Rect2(0, 0, 16, 16)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_goal"]
 atlas = ExtResource("1_effects")
 region = Rect2(80, 0, 16, 16)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_land"]
+atlas = ExtResource("1_effects")
+region = Rect2(64, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_respawn"]
+atlas = ExtResource("1_effects")
+region = Rect2(16, 0, 16, 16)
+
 [resource]
 animations = [{
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_death")
-}],
-"loop": false,
-"name": &"death",
-"speed": 5.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_respawn")
-}],
-"loop": false,
-"name": &"respawn",
-"speed": 5.0
-}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_charged_jump")
@@ -62,10 +46,10 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_land")
+"texture": SubResource("AtlasTexture_death")
 }],
 "loop": false,
-"name": &"land",
+"name": &"death",
 "speed": 5.0
 }, {
 "frames": [{
@@ -74,5 +58,21 @@ animations = [{
 }],
 "loop": false,
 "name": &"goal",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_land")
+}],
+"loop": false,
+"name": &"land",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_respawn")
+}],
+"loop": false,
+"name": &"respawn",
 "speed": 5.0
 }]
