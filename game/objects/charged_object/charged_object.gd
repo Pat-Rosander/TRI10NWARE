@@ -1,7 +1,8 @@
 # A charged object: a circular region (origin = its center) that gives one charged jump per
 # visit while powered. Holds powered and an EncounterTracker, senses the player in step 7, and
-# draws its ring from the same radius the rules use, so the cue can never disagree with them.
-# Serves AC C-01, C-02, C-03, C-04, V-03.
+# draws its ring from the same radius the rules use, so the cue can never disagree with them;
+# FlowPresentation decides when the ring shows and how strong the glow is. Serves AC C-01, C-02,
+# C-03, C-04, V-02, V-03.
 @tool
 class_name ChargedObject
 extends Node2D
@@ -20,6 +21,10 @@ const _RING_POINTS: int = 64
 var powered: bool = false: set = _set_powered
 ## Outside, armed or spent. Runtime only; a rebuilt room gives a fresh one.
 var tracker: EncounterTracker
+## Whether the ring is drawn; FlowPresentation shows it in flow only. The editor always draws it.
+var ring_shown: bool = false: set = _set_ring_shown
+## The glow's alpha, set by FlowPresentation: a faint hint in default, full in flow.
+var glow_strength: float = 1.0: set = _set_glow_strength
 
 @onready var _glow: Sprite2D = $Glow
 
@@ -29,9 +34,12 @@ func _ready() -> void:
 		return
 	tracker = EncounterTracker.new()
 	powered = always_powered
+	glow_strength = Tuning.data.glow_hint_alpha
 
 
 func _draw() -> void:
+	if not ring_shown and not Engine.is_editor_hint():
+		return
 	draw_arc(Vector2.ZERO, effective_radius(), 0.0, TAU, _RING_POINTS, _RING_COLOR, 1.0)
 
 
@@ -84,6 +92,17 @@ func _log_encounter(before: EncounterTracker.State) -> void:
 func _set_region_radius_px(value: int) -> void:
 	region_radius_px = value
 	queue_redraw()
+
+
+func _set_ring_shown(value: bool) -> void:
+	ring_shown = value
+	queue_redraw()
+
+
+func _set_glow_strength(value: float) -> void:
+	glow_strength = value
+	if _glow != null:
+		_glow.modulate.a = value
 
 
 func _set_powered(value: bool) -> void:

@@ -21,7 +21,7 @@ func test_header_fields() -> void:
 	assert_eq(data["target"], OS.get_name(), "target")
 	assert_eq(data["tick_rate"], 60, "tick_rate")
 	var tuning: Dictionary = data["tuning"]
-	assert_eq(tuning.size(), 46, "every tuning field")
+	assert_eq(tuning.size(), 47, "every tuning field")
 	assert_eq(tuning["coyote_s"], 0.1, "a tuning value")
 
 

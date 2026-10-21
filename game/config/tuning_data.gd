@@ -68,6 +68,7 @@ enum CountdownMode { CONTINUE, PAUSE, STOP }
 @export var flow_backdrop_color: Color
 @export var flow_fade_s: float
 @export var inactive_platform_alpha: float
+@export var glow_hint_alpha: float
 
 @export_group("Input")
 @export var stick_deadzone: float

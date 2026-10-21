@@ -18,3 +18,4 @@ One row per art, audio or font file in the game. `status` is `placeholder`, `own
 | `game/art/ui/dash_pip.png` | Dash pip: available (green), spent; 2 frames of 8 × 8 (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
 | `game/art/ui/state_icons.png` | State icons: default, flow, flow-at-0-volts warning; 3 frames of 12 × 12, colored squares (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
 | `game/art/ui/countdown_ring.png` | Countdown ring for the HUD's radial TextureProgressBar, 48 × 48 (slot) | placeholder | developer (generated) | none (flat color) | — | 2026-10-19 |
+| `game/art/backdrop/level_1_backdrop.png` | Level 1 backdrop (slot), 640 × 368, flat blue-grey; dimmed in flow | placeholder | developer (generated) | none (flat color) | — | 2026-10-20 |

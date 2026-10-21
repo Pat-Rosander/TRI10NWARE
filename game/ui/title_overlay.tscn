@@ -17,6 +17,13 @@ mouse_filter = 2
 theme = ExtResource("2_theme")
 color = Color(0, 0, 0, 0.75)
 
+[node name="Prewarm" type="Control" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1.0
+offset_bottom = 1.0
+mouse_filter = 2
+
 [node name="Center" type="VBoxContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 8

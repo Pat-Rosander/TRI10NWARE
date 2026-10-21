@@ -920,6 +920,7 @@ Field names carry their unit as a suffix: `_px`, `_px_s` (pixels per second), `_
 | `flow_backdrop_color` | `Color(0.55, 0.5, 0.7)` | Owner (art) | Multiplied onto the backdrop in flow. A placeholder; the owner sets it to suit the art |
 | `flow_fade_s` | 0.15 | Ours | Backdrop fade time |
 | `inactive_platform_alpha` | 0.35 | Ours | How faint the currently non-solid platform family is drawn |
+| `glow_hint_alpha` | 0.3 | Ours | How strong a powered object's glow is in default, where it only hints (full in flow; owner, 2026-10-20) |
 | `stick_deadzone` | 0.2 | Ours | Radial stick deadzone before 8-way snapping |
 | `trace_memory_limit` | 100000 | Ours | Events kept in memory during normal play |
 
@@ -1667,6 +1668,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/verification/scenarios/l1_02_powered_on_retry.json` … `r03_repeated_retries.json` | 6 files, listed below | L1-02 to L1-04, R-01 to R-03 |
 | `game/tests/unit/test_goal_zone.gd` | Step 10's completion check in the real player scene on a grid built in code: the goal zone's edges; completion on the landing tick; no completion from side contact or flying through the zone; goal, then countdown, then fall on one tick (standing rule, M3 step 1) | L1-04, until `l1_04`'s scenarios run |
 | `game/tests/unit/test_play_loop.gd` | World's play states through a real World, player scene and start room: no ticks on the title; death freeze, respawn and `control_return` on their exact ticks; the reset after a death; a jump held through death never fires; presses during the lock make no token; restart; completion stops ticks until replay; `main.tscn` wires the overlays (standing rule, M3 step 2) | R-01, R-02, R-04, L1-04, until `r01`, `r02` and `l1_04`'s retry case run |
+| `game/tests/unit/test_flow_presentation.gd` | `FlowPresentation` through the real main scene and Level 1: the default look on load (backdrop undimmed, rings hidden, glow at `glow_hint_alpha`); a switch shows rings and full glows on its tick and fades the backdrop to `flow_backdrop_color` over `flow_fade_s`; switching back and a respawn restore the default look (a respawn with no fade); a refused switch changes nothing; the title overlay's prewarm material; identical traces with and without the node (owner, M3 step 3) | V-02, V-03; no scenario covers the presentation |
 
 Files extended in M3:
 

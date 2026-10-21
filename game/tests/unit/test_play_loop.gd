@@ -142,6 +142,19 @@ func test_completion_stops_ticks_until_replay() -> void:
 	assert_eq(_world.tick, done_tick + 1, "ticks resume")
 
 
+func test_camera_follows_the_player_clamped_to_the_room() -> void:
+	_setup()
+	_world.start()
+	_run(3)
+	var camera: Camera2D = _world.get_node("Camera") as Camera2D
+	var half: Vector2i = Vector2i(camera.get_viewport_rect().size) / 2
+	var feet: Vector2i = _player.mover.position
+	var expected: Vector2i = Vector2i(clampi(feet.x, half.x, ROOM.end.x - half.x),
+			clampi(feet.y, half.y, ROOM.end.y - half.y))
+	assert_eq(Vector2i(camera.position), expected, "centered on the player, clamped to the room")
+	assert_false(camera.position_smoothing_enabled, "no smoothing")
+
+
 func test_main_scene_wires_the_overlays() -> void:
 	Trace.begin_session(true)
 	var main: Node = add_node(MAIN_SCENE.instantiate())

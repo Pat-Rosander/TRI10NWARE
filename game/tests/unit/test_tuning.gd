@@ -52,6 +52,7 @@ const EXPECTED: Dictionary[String, Variant] = {
 	"flow_backdrop_color": Color(0.55, 0.5, 0.7, 1.0),
 	"flow_fade_s": 0.15,
 	"inactive_platform_alpha": 0.35,
+	"glow_hint_alpha": 0.3,
 	"stick_deadzone": 0.2,
 	"trace_memory_limit": 100000,
 }

@@ -194,17 +194,20 @@ func test_level_tiles_resource() -> void:
 	assert_eq(tiles.get_custom_data_layer_by_name("solidity"), 0, "named solidity")
 	assert_eq(tiles.get_custom_data_layer_type(0), TYPE_INT, "an integer")
 	var source: TileSetAtlasSource = tiles.get_source(0)
+	# The owner's level_1_tiles_v2.png atlas (2026-10-20): rows 0-2 are stone blocks, except two
+	# decoration pieces; rows 3-4 are telephone poles and wires, all decoration (L1-01).
+	var decoration_blocks: Array[Vector2i] = [Vector2i(2, 1), Vector2i(5, 2)]
 	var solid: int = 0
 	for i: int in source.get_tiles_count():
-		var value: int = source.get_tile_data(source.get_tile_id(i), 0).get_custom_data("solidity")
-		assert_true(value == SolidGrid.DECORATION or value == SolidGrid.ORDINARY,
-				"tile %s is decoration or ordinary until M4" % source.get_tile_id(i))
+		var id: Vector2i = source.get_tile_id(i)
+		var value: int = source.get_tile_data(id, 0).get_custom_data("solidity")
+		var expected: int = SolidGrid.ORDINARY
+		if id.y >= 3 or id in decoration_blocks:
+			expected = SolidGrid.DECORATION
+		assert_eq(value, expected, "tile %s" % id)
 		if value == SolidGrid.ORDINARY:
 			solid += 1
-	assert_eq(solid, 15, "the 15 block tiles are solid")
-	for pole: Vector2i in [Vector2i(3, 2), Vector2i(4, 2), Vector2i(5, 2), Vector2i(0, 3)]:
-		assert_eq(source.get_tile_data(pole, 0).get_custom_data("solidity"), SolidGrid.DECORATION,
-				"telephone pole piece %s" % pole)
+	assert_eq(solid, 16, "the 16 block tiles are solid")
 
 
 # A four-tile atlas with one tile per solidity value, on a blank texture.
