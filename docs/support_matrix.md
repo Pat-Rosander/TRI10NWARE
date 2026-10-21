@@ -10,13 +10,13 @@ What the game has actually been tested on (AC D-02). Anything not listed as test
 | Renderer | Compatibility (OpenGL 3.3 on desktop, WebGL 2 on the web), on every target |
 | Simulation | 60 ticks per second, fixed |
 | Build Mac | MacBook Air (Mac14,2), Apple M2, 16 GB, macOS 15.5 (24F74) |
-| Last build checked | `0.1.0-4fa9196` (M0 step 10) |
+| Last build checked | `0.2.0-4357afe` (M3 step 6, the shipped Level 1 build) |
 
 ## Targets
 
 | Target | Binary | OS / browser | CPU | Hardware | What was tested | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| macOS | Universal (x86_64 + arm64), ad-hoc signed | macOS 15.5 | Apple M2 (arm64) | Build Mac | Headless launch and quit, exit 0; signature verified after the itch.io zip round trip (M0 step 10). Windowed launch not yet checked | Partly tested |
+| macOS | Universal (x86_64 + arm64), ad-hoc signed | macOS 15.5 | Apple M2 (arm64) | Build Mac | Headless launch and quit, exit 0; universal; signature verified after the itch.io zip round trip (M0 step 10; again for `0.2.0-4357afe`, M3 step 6). Windowed play not yet checked | Partly tested |
 | macOS | Universal | Any | Intel (x86_64) | — | Nothing | Unverified |
 | macOS | Universal | Versions other than 15.5 | — | — | Nothing | Unverified |
 | Windows | x86_64, single `.exe` | Windows 10 / 11 | x86_64 | Owner's Windows PC (details to record) | Nothing yet | Unverified |

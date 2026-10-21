@@ -118,7 +118,7 @@ This runs the import step, the unit tests and the scenarios headless at a fixed 
 tools/export_all.sh
 ```
 
-The working tree must be clean: every build is stamped with the commit it came from, so uncommitted changes are refused. The script writes the build ID (`<version>-<commit>`, for example `0.1.0-4fa9196`) into the builds, exports all three targets and packages them:
+The working tree must be clean: every build is stamped with the commit it came from, so uncommitted changes are refused. The script writes the build ID (`<version>-<commit>`, for example `0.2.0-4357afe`) into the builds, exports all three targets and packages them:
 
 | Output | What |
 | --- | --- |
@@ -127,7 +127,7 @@ The working tree must be clean: every build is stamped with the commit it came f
 | `builds/web/` | Web build (`index.html` and its files) |
 | `builds/itch/TRI10NWARE_web.zip`, `TRI10NWARE_macos.zip`, `TRI10NWARE_windows.zip` | The itch.io upload files |
 
-If the script stops after exporting with "the working tree is not clean", the export rewrote `.import` or `.uid` files. Commit them and run it again. Editor runs show the build ID `0.1.0-dev`.
+If the script stops after exporting with "the working tree is not clean", the export rewrote `.import` or `.uid` files. Commit them and run it again. Editor runs show the build ID `0.2.0-dev` (the version comes from `application/config/version` in `game/project.godot`).
 
 ### Serving the web build locally
 

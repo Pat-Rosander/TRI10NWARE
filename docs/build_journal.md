@@ -4,9 +4,10 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M3 step 5, effects and sound, 2026-10-20: `Sfx` in Main (8-player pool on the SFX bus, 11 sound slots, the countdown tick), `World/Effects` (8-sprite pool, 6 effects), `default_bus_layout.tres`, placeholders `effects.png` and three silent WAVs, the owner's 8 WAVs registered as `owner draft`, and `test_feedback.gd`. Earlier: M3 step 4 (charged object looks), M3 step 3 (flow visuals), M3 step 2 (play loop), M3 step 1 (Level 1; painted, `4cf3a1b`), M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M3 step 6, ship (`/step M3.6`): `tools/export_all.sh` from a clean commit, the three builds and `builds/itch/`, the web build over `tools/serve_web.sh`, the web pause and focus check, the README's first-launch steps, and the owner's play of every build. The owner makes the itch.io page and uploads (no session does itch.io work). M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
+- **Last completed:** M3 step 6, ship, 2026-10-20: version 0.2.0 (owner), builds `0.2.0-4357afe` for macOS, Windows and web plus the three `builds/itch/` zips, all from commit `4357afe`; packaging, signature, packs and the local web server checked; README and support matrix updated. The owner's checks below are still open. Earlier: M3 step 5 (effects and sound), M3 step 4 (charged object looks), M3 step 3 (flow visuals), M3 step 2 (play loop), M3 step 1 (Level 1; painted, `4cf3a1b`), M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** the M3 build order is finished. Next comes the owner's choice: M4 (platforms and spikes), or the postponed work (M1 steps 7–9, then the Level 1 gate evidence). Before that, a short session acts on the owner's M3.6 results: it records the web pause and focus result (a failure goes to `known_issues.md`, with a spec fix *proposed*, not built) and the gate step 8 approval or the requested changes (decision log; the M3 done-when approval item). The owner makes the itch.io page and uploads (no session does itch.io work). M3's gate evidence stays postponed (spec, **Postponed M3 gate evidence**), and so do **M1 steps 7–9** (spec, **Postponed work**): do not build them, or anything that waits on them, unless the owner asks.
 - **Waiting on the owner:**
+    - **M3.6 ship checks:** follow "How to see it" in the M3 step 6 entry. (1) The **web pause and focus check** in Chrome, Safari and Firefox (switch tabs, click outside the canvas, switch apps). It is untested and at risk: `main.gd` pauses only on the *application* focus notification, which the web runtime may not send. (2) Play the macOS build from its itch.io zip (first-launch steps), the Windows build on the PC, and the web build. (3) Approve the builds or list changes (gate step 8). 13 placeholders still ship; the list is in the entry. (4) Make the itch.io page and upload `builds/itch/*`. Also reload the project in Godot (Project → Reload Current Project) if it asks: `project.godot`'s version changed to 0.2.0.
     - **M3.5 check:** follow "How to see it" in the M3 step 5 entry (open `game/audio/sfx.gd`, `game/world/effects.gd` and `game/tests/unit/test_feedback.gd` for diagnostics, reload `main.tscn` if Godot asks, press F5 and listen). Confirm the license of your 8 WAVs in `CREDITS.md`. Replace `effects.png` (then its frames in `effects_frames.tres`) and the three silent WAVs whenever you like. Optionally approve fixing the spec layout's stale "13 unit-test files" (now 17).
     - **M3.4 check:** follow "How to see it" in the M3 step 4 entry (open the three scripts for diagnostics, reload `level_1.tscn`/`gym.tscn`, look at the Inspector's **Frames** and **Glow Texture**). Add your charged-object types whenever you like ("To add a type" in that entry).
     - **M3.2 check:** open `game/world/main.gd`, `game/ui/title_overlay.gd`, `game/ui/pause_menu.gd` and `game/ui/completion_overlay.gd` once so the editor analyzes them (diagnostics). Then press F5 and follow "How to see it" in the M3 step 2 entry. Accept if Godot asks to re-save `main.tscn` or the new overlay scenes.
@@ -18,7 +19,7 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
     - **Finish the gym** before the postponed M1 step 8 (painting guide in the M1 step 5 entry; details in the M1 step 6 entry, "Gym check"). Move the `WallShaft` marker (x 976) and the `CornerCeiling` marker (x 1480) out of the solid tiles. Give `dash_chamber`, `coyote_ledge` and `buffer_drop` their floors (from column 100 on, row 26 is open to the pit), and finish `corner_ceiling` and the 12 × 8 dash chamber box. While `gym.tscn` is open in the editor, no session may edit it.
     - Answer the slot-name question below, and confirm the license of `game/art/player/player_frames.png` in `CREDITS.md`.
     - Review `docs/support_matrix.md`, and fill in each row you test (OS or browser version, hardware, build ID).
-    - Check the builds (M0 step 10 entry, "How to see it"): run `tools/export_all.sh`, launch the macOS app with `-- --debug-tools` and press backtick to see the build ID; open the web build through `tools/serve_web.sh` at `http://localhost:8000/?debug=1`; upload `TRI10NWARE_web.zip` to a draft itch.io page; on the Windows PC, run `TRI10NWARE.exe -- --debug-tools`.
+    - The M0 step 10 build check is now part of the M3.6 ship checks above (same builds, newer commit). Optionally, also run the macOS app with `-- --debug-tools`, or the web build at `http://localhost:8000/?debug=1`, and press backtick to see the debug overlay.
     - Check the debug overlay (M0 step 8 entry, "How to see it"): run with `-- --debug-tools`, press backtick, and try 1, 2 and 3. Accept if Godot asks to re-save `main.tscn` or `debug_overlay.tscn`.
     - Check the window size: with "Embed Game on Next Play" off, press F5. The window should be the largest whole multiple of 640 × 360 that fits the screen (on the MacBook Air, 1280 × 720, centered), with crisp, unblurred pixels. Already confirmed on 2026-10-17: Option+Return toggles fullscreen, and the trace is saved on window close with `--debug-tools`. Not yet checked: that a run *without* the flag writes no trace.
     - Fill in the license column for the three `game/art/legacy/` rows in `CREDITS.md`.
@@ -1030,3 +1031,55 @@ To use your own effects art, save it over `game/art/effects/effects.png`, then o
 - The spec's repository layout still says `13 unit-test files`; there are now 17. That count was out of date before this step; I left it for you to approve a fix.
 - Your 8 WAVs are registered with license "owner to confirm".
 - Unit tests: 213 passed, 0 failed (27 new). The headless run shows no script errors. The editor diagnostics had not analyzed the three new scripts yet (they were not open). Scenarios remain postponed (M1.8).
+
+## M3 step 6: Ship (2026-10-20)
+
+**What was built:**
+
+- `game/project.godot` (changed): `application/config/version` 0.1.0 → **0.2.0** (owner decision), in its own commit, `4357afe` (`M3 step 6: version 0.2.0`), so the export could run from a clean tree.
+- The three builds and the itch.io upload files, made by `tools/export_all.sh` from commit `4357afe`: build ID **`0.2.0-4357afe`**. They sit in `builds/` (git-ignored): `builds/itch/TRI10NWARE_web.zip` (9.1 MB), `TRI10NWARE_macos.zip` (61 MB), `TRI10NWARE_windows.zip` (33 MB).
+- `README.md` (changed): the build-ID example and the editor's `0.2.0-dev` ID, which now says where the version lives. The first-launch steps (macOS Open Anyway, Windows SmartScreen), serving the web build, and the itch.io upload steps were already complete from M0 step 11. They were re-read against this build and needed no change.
+- `docs/support_matrix.md` (changed): last build checked is `0.2.0-4357afe`; the macOS row records this session's checks.
+- `docs/decision_log.md` (changed, in `4357afe`): the owner's version decision.
+
+No code file was created or changed, so there was nothing for diagnostics to check.
+
+**How it works:** shipping uses no new machinery. It runs the delivery path that M0 step 10 built, then checks what came out. `export_all.sh` refuses to run with uncommitted changes, because the build ID names a commit, and a build with changes that aren't in that commit would be lying about its source. That is why the version bump went into a commit of its own *before* the export, and why this journal entry is a second commit *after* it. The builds name `4357afe`, and this step's later commit changes only documents, so the shipped game is exactly `4357afe`. The export rewrote no `.import` or `.uid` file, so it needed only one run, and it deleted `build_info.cfg` on exit as designed. Editor runs now show `0.2.0-dev`.
+
+Checks run in this session, all passed:
+
+1. `tools/run_tests.sh`: 213 passed, 0 failed; scenarios skipped (they wait for the postponed M1 step 8); exit 0.
+2. `tools/export_all.sh`: exit 0, `Build 0.2.0-4357afe`; tree clean afterward.
+3. **Zip layouts:** the web zip has `index.html` and its eight sibling files at the top level; the Windows zip holds `TRI10NWARE.exe`, `README.md` and `CREDITS.md`; the macOS zip holds `TRI10NWARE.app`, `README.md` and `CREDITS.md`.
+4. **macOS app**, taken from the itch.io zip: `codesign --verify --deep --strict` passes (ad-hoc signature intact after the zip round trip), `lipo` reports `x86_64 arm64`, and a headless launch and quit exits 0.
+5. **Packs** (web `index.pck`, the macOS app's `.pck`, and the pack embedded in the `.exe`): each contains `build_info.cfg` with `version="0.2.0"` and `commit="4357afe"`, and no exported test scene. The web pack contains all 11 sound slots, `level_1.tscn`, `effects_frames.tres` and `default_bus_layout.tres`.
+6. **Web over HTTP:** `tools/serve_web.sh` served `index.html` (`text/html`), `index.wasm` (`application/wasm`), `index.pck` and `index.js`, all 200 with `Cache-Control: no-store`; the server was stopped afterward.
+
+**What only the owner can check (still open):**
+
+- **Web pause and focus (spec, Pause and focus; R-04).** In a real browser, switching tabs and clicking outside the game must pause it. I have no browser here, so this is untested, and **there is a known risk.** `main.gd` opens the pause menu only on `NOTIFICATION_APPLICATION_FOCUS_OUT`. The exported web runtime (`index.js`) reports the canvas's `focus` and `blur` events to Godot as *window* focus events (Godot's `NOTIFICATION_WM_WINDOW_FOCUS_OUT`). It also has a separate page-blur hook, and it isn't clear from the JavaScript alone whether that reaches the *application* notification. So the web build may not pause on focus loss, even though the desktop builds do. The input stage still releases held keys on focus loss either way (decision log, M0.6), so no key gets stuck. If the check fails, the spec says to record it in `docs/known_issues.md` and **propose** the fix in the spec before building it, for example also pausing on `NOTIFICATION_WM_WINDOW_FOCUS_OUT`. A session does that once you report the result.
+- **Playing every build and approving it** (gate step 8, without its evidence): movement feel and visuals on macOS (windowed, from the itch.io zip, following the README's first-launch steps), on Windows (the PC), and on the web (locally, and on itch.io once uploaded).
+- **Placeholders that ship in this build** (from `CREDITS.md`): `icon.svg` (Godot's icon), `charged_object.png`, `charged_glow.png`, `switch_burst.png`, `volt_pip.png`, `dash_pip.png`, `state_icons.png`, `countdown_ring.png`, `level_1_backdrop.png`, `effects.png`, and the silent `switch_refused.wav`, `countdown_tick.wav` and `room_complete.wav`. Gate step 8 says your art for every Level 1 slot must have arrived for approval. You can approve the build as it is and replace these later (then re-export), or replace them first.
+- **itch.io** (gate step 7): make the page and upload the three files. No session does this.
+
+**Why:** spec, M3 build order step 6; **Level 1 gate** steps 2, 7 (owner) and 8; **Pause and focus** (R-04); M0 step 10 (delivery path, itch.io files) and M0 step 11 (README). AC: D-01 (every build names its commit), D-03 (the web build is served over HTTP and the README covers first launch), D-08 (reproducible from the repository), R-04 (pause on focus loss: desktop by `main.gd`, web pending the check). Gate steps 1, 3–6 and the M3 done-when items stay postponed (spec, **Postponed M3 gate evidence**).
+
+**How to see it:**
+
+1. **Web pause and focus check.** Run `tools/serve_web.sh` and open `http://localhost:8000/` in Chrome, Safari and Firefox. Click to start, then:
+   - (a) switch to another tab, wait 5 s and come back;
+   - (b) click on the page outside the game canvas (make the window wider than the game if needed);
+   - (c) click into another app, then come back.
+
+   For each, say whether the pause menu was showing when you came back. A good test: enter flow at 0 volts so the countdown runs, then switch away for longer than 3 s. If the game wasn't paused, you'll come back to a death. Then tell the next session the results; any failure goes to `known_issues.md` with a proposed fix.
+2. **macOS:** unzip `builds/itch/TRI10NWARE_macos.zip` somewhere else (for example Downloads), follow the README's macOS first-launch steps, and play Level 1 windowed and fullscreen. The title shows build `0.2.0-4357afe`. Check that losing focus (Cmd+Tab) opens the pause menu.
+3. **Windows:** copy `builds/itch/TRI10NWARE_windows.zip` to the PC, follow the README's Windows steps, play, and fill in that `support_matrix.md` row (Windows version, hardware). Also note whether the `.exe` shows the game icon or Godot's.
+4. **Approval:** tell a session "approve the M3 builds" (or list the changes you want). It records gate step 8 in the decision log and ticks the matching M3 done-when item, the one about owner approval.
+5. **itch.io:** follow the README's "Uploading to itch.io".
+
+**Decisions and questions:**
+
+- *Owner decision (2026-10-20):* version **0.2.0** for the shipped Level 1 build (decision log, M3.6).
+- No decide-and-log choices were needed: the export ran unchanged and rewrote nothing.
+- *Open:* the web pause and focus result (above). If it fails, the fix is a spec change for the owner to approve, not something a session builds unasked.
+- *Open:* the owner's approval of every build, or the changes they request (gate step 8).
