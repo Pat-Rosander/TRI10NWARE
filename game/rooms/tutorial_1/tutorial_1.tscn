@@ -1,14 +1,29 @@
-[gd_scene load_steps=6 format=4 uid="uid://bta5an0ljo8c"]
+[gd_scene load_steps=8 format=4 uid="uid://bta5an0ljo8c"]
 
 [ext_resource type="Script" uid="uid://c77marlx58f6c" path="res://rooms/room.gd" id="1_room"]
 [ext_resource type="TileSet" uid="uid://b65vntye0tecc" path="res://tiles/level_tiles.tres" id="2_tiles"]
 [ext_resource type="Texture2D" uid="uid://bljb4mew0rftl" path="res://art/backdrop/bg_layer1.png" id="2_ueftx"]
 [ext_resource type="Script" uid="uid://cbr2itwxp42qq" path="res://rooms/room_entrance.gd" id="3_entrance"]
 [ext_resource type="Texture2D" uid="uid://dux2iwis13ekj" path="res://art/backdrop/bg_layer2.png" id="3_nos1v"]
+[ext_resource type="Script" uid="uid://b37sfq6rb0f00" path="res://rooms/room_info.gd" id="7_info"]
+
+[sub_resource type="Resource" id="RoomInfo_room"]
+script = ExtResource("7_info")
+entry_states = Dictionary[StringName, int]({
+&"east": 0,
+&"start": 0
+})
+entry_volts = Dictionary[StringName, int]({
+&"east": 3,
+&"start": 3
+})
+route = "Placeholder until the owner designs the tutorial: from start, run and jump right to the east opening into level_1."
+notes = "Movement only (G-03: tutorials may use simple alternation). A crossing back from level_1 carries the player's state and volts unchanged, so they may differ from what is assumed at east."
 
 [node name="Tutorial1" type="Node2D"]
 script = ExtResource("1_room")
 room_id = &"tutorial_1"
+info = SubResource("RoomInfo_room")
 
 [node name="Backdrop" type="Node2D" parent="."]
 

@@ -1,7 +1,8 @@
 # Checks the world map in room_catalog.tres: unique IDs, scene IDs matching their records, whole-
 # tile rects of at least 640 x 368, no overlaps, the start room and entrance, an entrance within
-# 48 px of every shared edge on both sides, and every entrance's body inside its room. Small
-# layouts built in code prove each check catches its mistake. Serves AC G-01, R-01.
+# 48 px of every shared edge on both sides, and every entrance's body inside its room. Every game
+# room (not under verification/) has a complete, affordable RoomInfo. Small layouts and records
+# built in code prove each check catches its mistake. Serves AC G-01, G-03, R-01.
 extends TestCase
 
 const CATALOG_PATH: String = "res://rooms/room_catalog.tres"
@@ -9,6 +10,8 @@ const WorldScript: GDScript = preload("res://world/world.gd")
 const TILE_PX: int = 16
 const MIN_SIZE: Vector2i = Vector2i(640, 368)
 const BODY: Vector2i = Vector2i(12, 15)
+const VERIFICATION_DIR: String = "res://verification/"
+const MAX_VOLTS: int = 3
 
 
 func test_catalog_has_no_layout_problems() -> void:
@@ -110,6 +113,94 @@ func test_entrance_body_must_stay_inside_its_room() -> void:
 	_expect(layout, "'a': entrance 'start' puts the body outside the room")
 
 
+func test_game_rooms_have_room_info() -> void:
+	var catalog: RoomCatalog = load(CATALOG_PATH) as RoomCatalog
+	var problems: Array[String] = []
+	for entry: RoomEntry in catalog.rooms:
+		if entry == null or entry.scene == null \
+				or entry.scene.resource_path.begins_with(VERIFICATION_DIR):
+			continue
+		var room: Room = entry.scene.instantiate() as Room
+		var entrance_ids: Array[StringName] = []
+		for entrance: RoomEntrance in room.entrances():
+			entrance_ids.append(entrance.entrance_id)
+		var existing: Dictionary = {}
+		if room.info != null:
+			for path: NodePath in room.info.recharge_points:
+				if room.has_node(path):
+					existing[path] = true
+		problems.append_array(room_info_problems(entry.room_id, room.info, entrance_ids,
+				existing, Tuning.data.max_volts))
+		room.free()
+	assert_eq(problems, [] as Array[String], "\n  " + "\n  ".join(problems))
+
+
+func test_good_room_info_has_no_problems() -> void:
+	assert_eq(_info_problems_of(_info()), [] as Array[String])
+
+
+func test_room_info_must_exist() -> void:
+	assert_eq(room_info_problems(&"a", null, [&"start"] as Array[StringName], {}, MAX_VOLTS),
+			["'a': no RoomInfo"] as Array[String])
+
+
+func test_every_entrance_needs_a_state_and_volts() -> void:
+	var info: RoomInfo = _info()
+	info.entry_states.erase(&"east")
+	_expect_info(info, "'a': entrance 'east' has no entry state")
+	info = _info()
+	info.entry_volts.erase(&"east")
+	_expect_info(info, "'a': entrance 'east' has no entry volts")
+
+
+func test_room_info_must_not_name_unknown_entrances() -> void:
+	var info: RoomInfo = _info()
+	info.entry_states[&"north"] = FlowLedger.State.DEFAULT
+	info.entry_volts[&"north"] = 3
+	_expect_info(info, "'a': room info names unknown entrance 'north'")
+
+
+func test_entry_volts_must_be_in_range() -> void:
+	var info: RoomInfo = _info()
+	info.entry_volts[&"east"] = 4
+	_expect_info(info, "'a': entrance 'east' assumes 4 volts, outside 0 to 3")
+	info.entry_volts[&"east"] = -1
+	_expect_info(info, "'a': entrance 'east' assumes -1 volts, outside 0 to 3")
+
+
+func test_volt_budget_must_be_in_range() -> void:
+	var info: RoomInfo = _info()
+	info.recharge_points = [^"Objects/Source"] as Array[NodePath]
+	info.volt_budget = 4
+	_expect_info(info, "'a': volt budget 4 is outside 0 to 3")
+
+
+func test_recharge_points_must_exist() -> void:
+	var info: RoomInfo = _info()
+	info.recharge_points = [^"Objects/Missing"] as Array[NodePath]
+	_expect_info(info, "'a': recharge point 'Objects/Missing' is not in the room")
+
+
+func test_route_must_be_written() -> void:
+	var info: RoomInfo = _info()
+	info.route = "  \n"
+	_expect_info(info, "'a': no completion route")
+
+
+func test_budget_must_be_affordable_from_every_entrance() -> void:
+	var info: RoomInfo = _info()
+	info.entry_volts[&"east"] = 0
+	_expect_info(info,
+			"'a': entrance 'east' assumes 0 volts, below the budget of 1, with no recharge point")
+	# Entering with exactly the budget is affordable.
+	info.entry_volts[&"east"] = 1
+	assert_eq(_info_problems_of(info), [] as Array[String])
+	# A recharge point makes a short entry affordable (level design rule 3).
+	info.entry_volts[&"east"] = 0
+	info.recharge_points = [^"Objects/Source"] as Array[NodePath]
+	assert_eq(_info_problems_of(info), [] as Array[String])
+
+
 ## Every layout rule [param rooms] breaks, as readable messages; empty when the layout is good.
 ## [param scene_ids] maps each room ID to its scene's `room_id`; [param entrances] maps each room
 ## ID to a Dictionary of entrance ID to room-local feet; [param body] is the player's body size.
@@ -137,6 +228,7 @@ static func layout_problems(rooms: Array[RoomEntry], start_room: StringName,
 		var feet: Dictionary = entrances.get(id, {})
 		for entrance_id: StringName in _sorted_keys(feet):
 			var at: Vector2i = feet[entrance_id]
+			@warning_ignore("integer_division")
 			var body_rect: Rect2i = Rect2i(at.x - body.x / 2, at.y - body.y, body.x, body.y)
 			if not Rect2i(Vector2i.ZERO, rect.size).encloses(body_rect):
 				problems.append("'%s': entrance '%s' puts the body outside the room" % [
@@ -154,6 +246,48 @@ static func layout_problems(rooms: Array[RoomEntry], start_room: StringName,
 		problems.append("start room '%s' is not in the catalog" % start_room)
 	elif not (entrances.get(start_room, {}) as Dictionary).has(start_entrance):
 		problems.append("start room '%s' has no entrance '%s'" % [start_room, start_entrance])
+	return problems
+
+
+## Every G-03 record rule [param info] breaks for room [param room_id], whose entrances are
+## [param entrance_ids]; [param existing_paths] holds each recharge point that resolves to a node.
+## Empty when the record is complete and the budget is affordable from every entrance.
+static func room_info_problems(room_id: StringName, info: RoomInfo,
+		entrance_ids: Array[StringName], existing_paths: Dictionary,
+		max_volts: int) -> Array[String]:
+	var problems: Array[String] = []
+	if info == null:
+		problems.append("'%s': no RoomInfo" % room_id)
+		return problems
+	var sorted_ids: Array[StringName] = entrance_ids.duplicate()
+	sorted_ids.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
+	for entrance_id: StringName in sorted_ids:
+		if not info.entry_states.has(entrance_id):
+			problems.append("'%s': entrance '%s' has no entry state" % [room_id, entrance_id])
+		if not info.entry_volts.has(entrance_id):
+			problems.append("'%s': entrance '%s' has no entry volts" % [room_id, entrance_id])
+	var named: Dictionary = {}
+	for entrance_id: StringName in info.entry_states.keys() + info.entry_volts.keys():
+		named[entrance_id] = true
+	for entrance_id: StringName in _sorted_keys(named):
+		if not entrance_ids.has(entrance_id):
+			problems.append("'%s': room info names unknown entrance '%s'" % [room_id, entrance_id])
+	for entrance_id: StringName in _sorted_keys(info.entry_volts):
+		var volts: int = info.entry_volts[entrance_id]
+		if volts < 0 or volts > max_volts:
+			problems.append("'%s': entrance '%s' assumes %d volts, outside 0 to %d" % [
+					room_id, entrance_id, volts, max_volts])
+		elif volts < info.volt_budget and info.recharge_points.is_empty():
+			problems.append("'%s': entrance '%s' assumes %d volts, below the budget of %d, with no recharge point"
+					% [room_id, entrance_id, volts, info.volt_budget])
+	if info.volt_budget < 0 or info.volt_budget > max_volts:
+		problems.append("'%s': volt budget %d is outside 0 to %d" % [
+				room_id, info.volt_budget, max_volts])
+	for path: NodePath in info.recharge_points:
+		if not existing_paths.has(path):
+			problems.append("'%s': recharge point '%s' is not in the room" % [room_id, path])
+	if info.route.strip_edges().is_empty():
+		problems.append("'%s': no completion route" % room_id)
 	return problems
 
 
@@ -231,4 +365,25 @@ func _problems_of(layout: Dictionary) -> Array[String]:
 
 func _expect(layout: Dictionary, problem: String) -> void:
 	var problems: Array[String] = _problems_of(layout)
+	assert_true(problems.has(problem), "expected '%s', got %s" % [problem, problems])
+
+
+# A good record for room 'a': entrances 'east' and 'start' at 3 volts in default, budget 1, a
+# route, and no recharge point. 'Objects/Source' is the one path that resolves.
+func _info() -> RoomInfo:
+	var info: RoomInfo = RoomInfo.new()
+	info.entry_states = {&"east": FlowLedger.State.DEFAULT, &"start": FlowLedger.State.DEFAULT}
+	info.entry_volts = {&"east": 3, &"start": 3}
+	info.volt_budget = 1
+	info.route = "From start to the goal."
+	return info
+
+
+func _info_problems_of(info: RoomInfo) -> Array[String]:
+	return room_info_problems(&"a", info, [&"east", &"start"] as Array[StringName],
+			{^"Objects/Source": true}, MAX_VOLTS)
+
+
+func _expect_info(info: RoomInfo, problem: String) -> void:
+	var problems: Array[String] = _info_problems_of(info)
 	assert_true(problems.has(problem), "expected '%s', got %s" % [problem, problems])

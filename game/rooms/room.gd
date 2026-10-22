@@ -1,6 +1,6 @@
 # Every room scene's root. World talks to rooms only through it: bounds from the catalog, the
-# entrance, charged-object, goal-zone and collectible lookups and the room's SolidGrid. In the
-# editor it outlines its bounds. Serves AC R-01, L1-04, G-02.
+# entrance, charged-object, goal-zone and collectible lookups, the room's SolidGrid and its
+# RoomInfo. In the editor it outlines its bounds. Serves AC R-01, L1-04, G-02, G-03.
 @tool
 class_name Room
 extends Node2D
@@ -12,6 +12,8 @@ const _BOUNDS_COLOR: Color = Color(1.0, 0.6, 0.1, 0.9)
 
 ## Matches this room's `RoomEntry` in the catalog.
 @export var room_id: StringName: set = _set_room_id
+## The room's design record (G-03); every game room has one, verification rooms need not.
+@export var info: RoomInfo
 
 ## The room's `world_rect` from the catalog; empty if the room is not in it.
 var bounds: Rect2i = Rect2i()

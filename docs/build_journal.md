@@ -4,13 +4,14 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M6 step 3, map tools, 2026-10-21: `test_world_layout.gd` (the catalog's layout rules, plus small made-up layouts proving each rule fails when it should) and the editor-only `world_map_preview.tscn`/`.gd` (every room at its map place, outlines, IDs, green shared openings, a "Rebuild map" button). `test_level_tiles_resource` now expects the owner's up spike at atlas (5, 2). Earlier: M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M6 step 4, room info (`/step M6.4`; spec, **M6 build order**): `room_info.gd`, each room's entry state, volt budget, recharge points and route (G-03); showing it in the debug overlay waits for M1.7. Then step 5 (coin counter and results) and step 6 (control hints). **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
+- **Last completed:** M6 step 4, room info, 2026-10-21: `room_info.gd` (`RoomInfo`: entry state and volts per entrance, volt budget, recharge points, route, notes), `room.gd`'s `info` export, filled records in `level_1` and `tutorial_1`, and room-info checks in `test_world_layout.gd` (including the owner's feasibility rule). Earlier: M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M6 step 5, coin counter and results (`/step M6.5`; spec, **M6 build order**): HUD coin counter, run timer, results and saved best time on the completion overlay. Then step 6 (control hints) and step 7 (done-when). Room info in the debug overlay waits for M1.7. **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
 - **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
 - **Added 2026-10-21: M6 step 5, coin counter and results** (spec, M6 build order): HUD coin counter, run timer, results and saved best time on the completion overlay. M6 done-when is now step 7, after step 6 (control hints); steps 1–4 are unchanged.
 - **Waiting on the owner:**
+    - **M6.4 check:** follow "How to see it" in the M6 step 4 entry: let the editor rescan for the new `RoomInfo` class, open the three scripts for diagnostics, and read and rewrite the **Info** records on `Level1` and `Tutorial1`. Keep each new entrance's state and volts in its room's record.
     - **M6.3 check:** follow "How to see it" in the M6 step 3 entry: open `world_map_preview.tscn` and check that the map matches your layout. Check it, and run the tests, each time you add a room to the catalog.
-- **M6.2 check:** follow "How to see it" in the M6 step 2 entry: open the eight listed scripts for diagnostics, press F5 (you start in `tutorial_1`), cross into Level 1 and back in both states, at 0 and 1 volts, holding jump, dying after each crossing, and carrying the coin out. Watch the slide for gaps or flicker. **Every empty cell on Level 1's left edge (rows 0–11 too) and on `tutorial_1`'s right edge is passable**; close what you don't want with tiles, and keep the doorway clear on both sides. Repaint `tutorial_1` over the placeholder floor and design the tutorial. Your uncommitted tile change in `tutorial_1.tscn` is yours to commit.
+- **M6.2 check:** follow "How to see it" in the M6 step 2 entry: open the eight listed scripts for diagnostics, press F5 (you start in `tutorial_1`), cross into Level 1 and back in both states, at 0 and 1 volts, holding jump, dying after each crossing, and carrying the coin out. Watch the slide for gaps or flicker. **Every empty cell on Level 1's left edge (rows 0–11 too) and on `tutorial_1`'s right edge is passable**; close what you don't want with tiles, and keep the doorway clear on both sides. Repaint `tutorial_1` over the placeholder floor and design the tutorial.
     - **M6.1 check:** follow "How to see it" in the M6 step 1 entry (let the editor rescan for the new `GameState` autoload and `Collectible` class, open the six scripts for diagnostics, press F5 and collect, lose and re-collect the Level 1 collectible). Move it if it's out of reach. Review the spec's new `test_collectibles.gd` row. The collectible sprite is now your lightning coin (2026-10-21); replace the two silent collectible sounds whenever you like.
     - **M3.7 check:** follow "How to see it" in the M3 step 7 entry (open the five scripts for diagnostics, reload `main.tscn`/`pause_menu.tscn` if Godot asks, press F5, listen through a death, pause and replay, and try the slider). Adjust `music_volume` in `tuning.tres` if 70 % doesn't suit the track.
     - **M4.1:** set the spike tiles' `solidity` (4 up, 5 down, 6 left, 7 right) in the TileSet panel (the up spike at atlas (5, 2) is done, 2026-10-21; add down, left and right spikes whenever you draw them, and the next session updates `test_level_tiles_resource`); open `game/core/solid_grid.gd` and `game/tests/unit/test_spikes.gd` once for diagnostics; paint the `spikes` station (painting guide in the M4 step 1 entry); playtest it, especially that a held jump grazes the ceiling spikes and lives. If `gym.tscn` or `room_catalog.tres` was open, let Godot reload them.
@@ -1322,3 +1323,45 @@ While running the tests I found one older test failing. In the "tutorial complet
 
 - Decide and log (decision log, M6.3): the 48 px reach is measured across the edge, as World does; the preview's colors, label size and Rebuild button; the updated tile test.
 - Not touched: your uncommitted tile change in `tutorial_1.tscn` is left unstaged for you.
+
+## M6 step 4: Room info (2026-10-21)
+
+**What was built:**
+
+- New `game/rooms/room_info.gd` (`RoomInfo`, a Resource).
+- `game/rooms/room.gd` gains an exported `info`.
+- `game/rooms/level_1/level_1.tscn` and `game/rooms/tutorial_1/tutorial_1.tscn` each get a `RoomInfo` saved inside the scene.
+- `game/tests/unit/test_world_layout.gd` gains the room-info checks, ten new tests, and one warning fix.
+- `docs/TRI10NWARE.md`: the `test_world_layout.gd` row now names the room-info checks (approved with the plan).
+- `docs/decision_log.md`.
+
+**How it works:** a room's design facts now live in the room itself. Select a room scene's root node and the Inspector shows **Info**, a `RoomInfo` with six fields:
+
+- **Entry States:** the state (default or flow) the room assumes at each entrance, keyed by entrance ID.
+- **Entry Volts:** the volts the room assumes at each entrance.
+- **Volt Budget:** how many volts one attempt through the room spends. It is at most 3, because a death refills volts, so the budget describes one attempt, not a run (level design rule 2).
+- **Recharge Points:** paths to the room's power sources. None exist until M5, so both rooms leave this empty.
+- **Route:** the intended way through.
+- **Notes:** anything else.
+
+No rule reads this record. It describes the design, and later the debug overlay (M1.7) will show it and the ledger will copy it.
+
+The record is checked automatically. `test_game_rooms_have_room_info` builds every catalog room that isn't under `verification/` and asks `room_info_problems` what is wrong with its record. It reports a missing record, an entrance with no state or volts, a record naming an entrance the room doesn't have, volts or a budget outside 0 to 3, a recharge point that names no node, and an empty route. Your feasibility rule is in too: if an entrance assumes fewer volts than the budget and the room has no recharge point, a player entering that way can't afford the route (rules 2 and 3), so the test fails. Ten small tests feed in made-up records with one mistake each, so every message is proven to fire. The feasibility test also shows the two cases that pass: entering with exactly the budget, and a short entry in a room with a recharge point.
+
+The values I filled in are yours to rewrite. `level_1` assumes `start` in default at 3 volts with a budget of 1 (the one switch into flow). `tutorial_1` assumes both entrances in default at 3 volts with a budget of 0, and its route is a placeholder until you design the tutorial.
+
+**Why:** spec **M6 build order** step 4, the `room_info.gd` row of **M6 files**, "`room.gd`: exposes its `RoomInfo`", the room scene convention ("info from M6"), **Level design rules** 2 and 3; AC G-03.
+
+**Skipped (Postponed work):** showing room info in `debug_overlay.gd` and `debug_world_draw.gd` waits for M1.7. Copying it into `ledger.csv` waits for the gate evidence.
+
+**How to see it:**
+
+1. Unit tests: 267 pass, including the ten new ones in `test_world_layout.gd`. The 9 deliberate errors are unchanged.
+2. Let the editor rescan, so it learns the new `RoomInfo` class. Until it does, VS Code shows "Could not find type RoomInfo" in `test_world_layout.gd`; the headless run compiles the same file cleanly. Then open `room_info.gd`, `room.gd` and `test_world_layout.gd` once so their diagnostics are fresh.
+3. Open `level_1.tscn`, select the root `Level1`, and expand **Info** in the Inspector. Do the same for `Tutorial1`. Rewrite the route and notes freely. When you add an entrance, give it a state and volts here too, or the test reminds you.
+
+**Decisions and questions:**
+
+- Owner (decision log, M6.4): game rooms only; checks in `test_world_layout.gd`, including the feasibility rule.
+- Decide and log (decision log, M6.4): the field shapes, the starting values, and the integer-division warning fix left by M6.3.
+- No open questions.
