@@ -745,7 +745,7 @@ Every file appears once, in the milestone or package that creates it. Later mile
 | M4 Platforms and spikes | 9 |
 | M5 Networks | 13 |
 | M6 Rooms and progress | 17 |
-| M7 Adding rooms | 2 per room, plus any art and mockup files the room needs |
+| M7 Adding rooms | 1 (`test_goals.gd`, step 1), then 2 per room, plus any art and mockup files the room needs |
 | M8 Reset sweep | 0 (evidence only) |
 | M9 Evidence package | 0 (evidence only) |
 
@@ -930,6 +930,7 @@ Field names carry their unit as a suffix: `_px`, `_px_s` (pixels per second), `_
 | `coin_counter_s` | 2.0 | Ours | How long the HUD's coin counter stays after the last touch or commit (M6 step 5) |
 | `hint_s` | 5.0 | Ours | How long a control hint stays fully visible on first entry to its room (M6 step 6) |
 | `hint_fade_s` | 0.5 | Ours | How long a control hint takes to fade out (M6 step 6) |
+| `level_banner_s` | 1.5 | Ours | How long the "Level N complete" banner shows when a banner goal is reached (M7 step 1) |
 
 Docs: [Resources](https://docs.godotengine.org/en/4.5/tutorials/scripting/resources.html), [GDScript exported properties](https://docs.godotengine.org/en/4.5/tutorials/scripting/gdscript/gdscript_exports.html), [Singletons (Autoload)](https://docs.godotengine.org/en/4.5/tutorials/scripting/singletons_autoload.html).
 
@@ -978,7 +979,7 @@ The event catalog is fixed. New events are added here first.
 | `transition_start` | from_room, to_room, edge | The player crosses an opening |
 | `transition_end` | room, checkpoint | The crossing finishes and the rules resume |
 | `room_complete` | room | The goal is reached |
-| `goal_banner` | level | Level 1's goal is reached and play continues into the next room (once a room follows `level_1`) |
+| `goal_banner` | level | Level 1's goal is reached and play continues into the next room (from M7 step 1) |
 | `collectible` | id, change (touched, committed, lost) | Collectible state changes |
 | `snapshot` | position, velocity, state, volts, dash, countdown, grounded | Scenario runner requests a state capture |
 
@@ -1750,7 +1751,7 @@ Death to control takes 0.6 s, under the 1 s limit (R-02). **The player reset is 
 
 The room is a fresh instance, so encounters, effects and timers start clean.
 
-**Completion (step 10):** the player is grounded and their feet are inside a `GoalZone`. Log `room_complete` once. Until a room follows `level_1`, Level 1's goal shows the completion overlay. Once one does (owner, 2026-10-21: one map of rooms), Level 1's goal becomes a banner goal and its destination leads on into the next room: reaching it shows a brief level-complete banner and sound without stopping play (`goal_banner`, satisfying L1-04's "visibly completes"), and only the final room's goal ends the game (M7). The banner triggers on the goal zone in step 10, never on the crossing that follows; a goal zone never sits on a room edge.
+**Completion (step 10):** the player is grounded and their feet are inside a `GoalZone`. Log `room_complete` once. Until M7 step 1, Level 1's goal shows the completion overlay. From M7 step 1 (owner, 2026-10-21: one map of rooms; not gated on a following room), Level 1's goal is a banner goal and its destination leads on into the next room: reaching it shows a brief level-complete banner and sound without stopping play (`goal_banner`, satisfying L1-04's "visibly completes"), and only the final room's goal ends the game (M7). The banner triggers on the goal zone in step 10, never on the crossing that follows; a goal zone never sits on a room edge.
 
 **Pause and focus (R-04):** the `pause` action, or `NOTIFICATION_APPLICATION_FOCUS_OUT`, pauses the scene tree. That stops `World`'s ticks, freezing the countdown. Resuming marks inputs stale. On the web build, check that switching tabs and clicking outside the game pause it. If they do not, record it in `docs/known_issues.md` and propose the fix in this document before building it.
 
@@ -2106,6 +2107,19 @@ Progress lasts for the session only; closing the app starts a new game. This ans
 
 **Goal:** add each room the owner designs to the one map (owner, 2026-10-21: one level, no Level 2). This plan does not invent rooms, room counts or the ending. A room's mockup, if the owner has one, is used as **How mockups are used** describes and saved as `docs/reference/mockups/<room_id>.png`; otherwise the owner's painted room is its own reference. Any new feature a room needs is written up as a feature package first, or goes to the Parked list.
 
+#### M7 build order
+
+M7's numbered steps are **not gated** (owner, 2026-10-21): each runs whenever the owner asks (`/step M7.1` and so on), whether or not a room follows `level_1` yet. Adding each room (below) needs no session; the owner builds rooms by hand.
+
+1. **Level goals** (runnable now):
+    - `goal_zone.gd` gains two exports: `banner_level: int` (0 = no banner) and `completes_game: bool` (on by default, so a goal with neither set behaves as goals do today).
+    - **A `completes_game` goal** does what every goal did before: `room_complete`, `GameState.mark_completed()` (which stops the run timer), and the completion overlay with the results (M6 step 5).
+    - **A `banner_level` goal** (with `completes_game` off) logs `room_complete` and `goal_banner` (`level` = `banner_level`) the first time it is reached in a run (`GameState` remembers it, like hints), plays `room_complete.wav`, and shows a centered "Level N complete" banner in the HUD for `level_banner_s` (1.5 s, new tuning field). Play never stops and the run timer keeps running; the player walks on through the destination into the next room. Reaching it again in the same run, or after a death, does nothing.
+    - **`level_1`'s goal becomes a banner goal now:** `banner_level` 1, `completes_game` off. Until the owner gives the final room's `GoalZone` `completes_game`, **the game has no ending**, so the completion overlay, results and best time are unreachable in play. That is accepted for building rooms (owner, 2026-10-21).
+    - A unit test (pre-approved, `test_goals.gd`): a banner goal logs once per run and never stops play or the timer; it does not fire again after a death or re-entry; a new run fires it again; a `completes_game` goal ends the run and shows the overlay. The new tuning field also changes `test_tuning.gd` and `test_trace.gd`'s `test_header_fields` count.
+    - Ask the owner to close `level_1.tscn` before editing it.
+    - **Owner, later:** put a `GoalZone` with `completes_game` on (the default) on the final room's destination.
+
 **For each room:**
 
 1. **Register it.** Add a row to the Rooms table below. Any new art file the room needs is listed here before it is created.
@@ -2121,7 +2135,7 @@ Until M1.8 runs, steps 4 and 5 wait (**Postponed work**); the owner plays each r
 | `game/rooms/<room_id>/<room_id>.tscn` | The room |
 | `game/verification/scenarios/route_<room_id>.json` | Proves the room can be completed as designed (G-03, G-04) |
 
-**Level goals and the final room** (owner decision 2026-10-16). When the first room after `level_1` is built (owner, 2026-10-21), Level 1's goal becomes a banner goal, with the level-complete banner from M3, and play continues into the next room. `goal_zone.gd` gains two exports in this milestone: `banner_level` (shows the banner and logs `goal_banner` without stopping play) and `completes_game` (only on the final room's goal; calls `GameState.mark_completed()` and shows the completion overlay with the game's ending message). The banner's duration becomes the tuning value `level_banner_s` (1.5 s) at that point.
+**Level goals and the final room** (owner decision 2026-10-16). From M7 step 1 (ungated, owner 2026-10-21), Level 1's goal is a banner goal, with the level-complete banner from M3, and play continues into the next room. `goal_zone.gd` gains two exports in that step: `banner_level` (shows the banner and logs `goal_banner` without stopping play) and `completes_game` (only on the final room's goal; calls `GameState.mark_completed()` and shows the completion overlay with the game's ending message). The banner's duration is the tuning value `level_banner_s` (1.5 s).
 
 **Rooms table** (filled as mockups arrive):
 

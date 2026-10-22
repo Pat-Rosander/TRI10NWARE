@@ -315,6 +315,7 @@ Kind: **D&L** = decide and log; **Owner** = owner decision; **Engine** = workaro
 | M4.2 | 2026-10-21 | D&L | Pending tiles are released at the start of step 7, before the one-way help and grounded sensing | A tile cleared on this tick's move counts this tick | `test_a_pending_tile_never_lets_the_body_through_another_platform` |
 | M4.2 | 2026-10-21 | D&L | Pending tiles are not carried across a room crossing | No switch can happen during the slide, and pending tiles belong to the room left behind | — |
 | M4.2 | 2026-10-21 | D&L | With the 12 × 15 body and 16 px tiles, a solid cell that blocks the snap is always one the body already overlaps, so the "body fits" check is defensive; its test places the body in that cell on purpose | Geometry: the snapped head stays in the row the head is already in | `test_no_snap_under_a_low_ceiling` |
+| M7 | 2026-10-21 | Owner | M7 gets a build order whose steps are not gated. Step 1, level goals: `goal_zone.gd` gains `banner_level` and `completes_game` (default on); `level_1`'s goal becomes a banner goal now ("Level 1 complete" banner for `level_banner_s` 1.5 s, once per run, play continues), so the game has no ending until the final room's goal gets `completes_game`. Test `test_goals.gd` pre-approved | Lets the owner build rooms past `level_1` immediately | `test_goals.gd`; owner playtest |
 
 ## 3. Disclosed deviations
 
