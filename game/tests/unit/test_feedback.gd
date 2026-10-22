@@ -205,7 +205,11 @@ func test_death_and_respawn_sounds() -> void:
 func test_room_complete_sound() -> void:
 	_setup()
 	Trace.record("room_complete", {"room": "level_1"})
-	assert_eq(_sounds, [&"room_complete"], "completion")
+	assert_eq(_sounds, [], "a level's goal is silent")
+	GameState.mark_completed()
+	Trace.record("room_complete", {"room": "level_1"})
+	assert_eq(_sounds, [&"room_complete"], "the final goal sounds")
+	GameState.reset()
 
 
 func test_collectible_sounds_and_none_for_a_loss() -> void:

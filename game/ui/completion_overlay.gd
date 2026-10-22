@@ -1,5 +1,5 @@
 # The completion screen: shown when room_complete is logged for a completed game (a completes_game
-# goal; a banner goal's room_complete never shows it), with the run's results from GameState
+# goal; a level goal's room_complete never shows it), with the run's results from GameState
 # (coins committed, the run's time, the best time and "New best!"); jump starts a fresh run
 # through World.replay(), which builds the start room and marks inputs stale, so the dismissing
 # jump never becomes a jump. Serves AC L1-04, V-04.

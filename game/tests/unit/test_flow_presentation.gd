@@ -1,13 +1,15 @@
 # Tests FlowPresentation through the real main scene and Level 1: the default look on load; a
 # switch shows rings, full glows and the `electric` animation on its tick and fades the backdrop
 # over flow_fade_s; a switch back and a respawn restore the default look; a refused switch
-# changes nothing; the charged object's placeholder look and its frames and glow_texture
-# exports; the title overlay holds the prewarm material; and the visuals never change the
-# rules' trace. Serves AC V-02, V-03.
+# changes nothing; a bare charged object's placeholder look, Level 1's own look, and the frames
+# and glow_texture exports; the title overlay holds the prewarm material; and the visuals never
+# change the rules' trace. Serves AC V-02, V-03.
 extends TestCase
 
 const MAIN_SCENE: PackedScene = preload("res://world/main.tscn")
 const WorldScript: GDScript = preload("res://world/world.gd")
+const CHARGED_OBJECT_SCENE: PackedScene = preload(
+		"res://objects/charged_object/charged_object.tscn")
 
 var _main: Node
 var _world: WorldScript
@@ -78,17 +80,26 @@ func test_refused_switch_changes_nothing() -> void:
 
 func test_empty_frames_use_the_placeholder_look() -> void:
 	_setup()
+	var object: ChargedObject = add_node(CHARGED_OBJECT_SCENE.instantiate()) as ChargedObject
+	var frames: SpriteFrames = _sprite(object).sprite_frames
+	assert_eq(object.frames, null, "a bare charged object sets no look")
+	assert_eq(frames, ChargedObject.DEFAULT_FRAMES, "placeholder look")
+	for animation: StringName in [&"default", &"electric"]:
+		assert_eq(frames.get_frame_count(animation), 1, "%s has one frame" % animation)
+		assert_eq(frames.get_frame_texture(animation, 0).resource_path,
+				"res://art/objects/charged_object.png",
+				"%s shows charged_object.png" % animation)
+	assert_eq(_glow(object).texture, ChargedObject.DEFAULT_GLOW, "default glow")
+
+
+func test_level_1_objects_use_their_own_look() -> void:
+	_setup()
 	for object: ChargedObject in _objects():
-		var frames: SpriteFrames = _sprite(object).sprite_frames
-		assert_eq(object.frames, null, "%s: Level 1 sets no look yet" % object.name)
-		assert_eq(frames, ChargedObject.DEFAULT_FRAMES, "%s: placeholder look" % object.name)
+		assert_true(object.frames != null, "%s: Level 1 sets the owner's look" % object.name)
+		assert_eq(_sprite(object).sprite_frames, object.frames, "%s: that look is used" % object.name)
 		for animation: StringName in [&"default", &"electric"]:
-			assert_eq(frames.get_frame_count(animation), 1, "%s has one frame" % animation)
-			assert_eq(frames.get_frame_texture(animation, 0).resource_path,
-					"res://art/objects/charged_object.png",
-					"%s shows charged_object.png" % animation)
-		assert_eq(_glow(object).texture, ChargedObject.DEFAULT_GLOW,
-				"%s: default glow" % object.name)
+			assert_true(object.frames.has_animation(animation),
+					"%s: the look has %s" % [object.name, animation])
 
 
 func test_frames_and_glow_texture_exports_replace_the_look() -> void:

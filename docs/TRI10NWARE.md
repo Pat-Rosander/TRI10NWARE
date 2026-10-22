@@ -357,7 +357,7 @@ These were chosen while planning the implementation; each was weighed against th
 | Velocity and remainder stored in a `Vector2` | Separate 64-bit `float` values per axis | A `Vector2` holds 32-bit floats in standard builds: tuning values get silently shortened and traces show values like 0.6499999761581421 (owner, 2026-10-18) |
 | A pixel-by-pixel sweep, or tile-column math, for the wall check | One overlap test at the full `wall_check_px`, guarded below 16 by a unit test | Celeste's method; exact while every solid is a 16 px tile. A sweep matters only for solids thinner than a tile, and there are none (owner, 2026-10-18) |
 | A wall that must run alongside a minimum height of the body | Any overlap counts | Celeste allows wall jumps off a corner sliver; the narrow-chamber climb does not need the restriction, and adding it would change a rule (owner, 2026-10-18) |
-| A level-complete screen between levels | Level 1's goal shows a banner and leads on into the next room; there are no further levels (owner, 2026-10-21: one map) | Keeps the world connected for backtracking (owner, 2026-10-16) |
+| A level-complete screen between levels | Level 1's goal shows only the goal effect and leads on into the next room; there are no further levels (owner, 2026-10-21: one map) | Keeps the world connected for backtracking (owner, 2026-10-16) |
 | Debug tools available to every player | Enabled only by a launch argument or a local URL parameter | The debug menu would be a level select (owner, 2026-10-16) |
 
 ## Open decisions
@@ -930,7 +930,6 @@ Field names carry their unit as a suffix: `_px`, `_px_s` (pixels per second), `_
 | `coin_counter_s` | 2.0 | Ours | How long the HUD's coin counter stays after the last touch or commit (M6 step 5) |
 | `hint_s` | 5.0 | Ours | How long a control hint stays fully visible on first entry to its room (M6 step 6) |
 | `hint_fade_s` | 0.5 | Ours | How long a control hint takes to fade out (M6 step 6) |
-| `level_banner_s` | 1.5 | Ours | How long the "Level N complete" banner shows when a banner goal is reached (M7 step 1) |
 
 Docs: [Resources](https://docs.godotengine.org/en/4.5/tutorials/scripting/resources.html), [GDScript exported properties](https://docs.godotengine.org/en/4.5/tutorials/scripting/gdscript/gdscript_exports.html), [Singletons (Autoload)](https://docs.godotengine.org/en/4.5/tutorials/scripting/singletons_autoload.html).
 
@@ -1343,7 +1342,7 @@ Every known case where two things meet on the same tick, in one place. A new cas
 | A collectible touched or carried on a tick the player dies | It never commits; commits are checked in step 10, after the death checks | M6 |
 | A room crossing begins | The tick stops advancing; presses during the slide are discarded; held buttons are read fresh when the rules resume | M6 |
 | Choosing the checkpoint after a crossing | The new room's entrance nearest the player's feet, among those within 48 px of the edge actually crossed; ties go to the lowest `entrance_id` | M6 |
-| A level's goal is reached | The banner (or, for Level 1 alone and for the final room, the completion overlay) triggers on the goal zone in step 10, never on a crossing; goal zones never sit on a room edge | M3, M7 |
+| A level's goal is reached | Its `room_complete` and `goal_banner` (or, for the final room, the completion overlay) trigger on the goal zone in step 10, never on a crossing; goal zones never sit on a room edge. A level goal is live only until it is first reached in a run: on that tick it wins step 10, and afterwards it blocks no death (decision log, M7.1) | M3, M7 |
 
 #### The tile set
 
@@ -1751,7 +1750,7 @@ Death to control takes 0.6 s, under the 1 s limit (R-02). **The player reset is 
 
 The room is a fresh instance, so encounters, effects and timers start clean.
 
-**Completion (step 10):** the player is grounded and their feet are inside a `GoalZone`. Log `room_complete` once. Until M7 step 1, Level 1's goal shows the completion overlay. From M7 step 1 (owner, 2026-10-21: one map of rooms; not gated on a following room), Level 1's goal is a banner goal and its destination leads on into the next room: reaching it shows a brief level-complete banner and sound without stopping play (`goal_banner`, satisfying L1-04's "visibly completes"), and only the final room's goal ends the game (M7). The banner triggers on the goal zone in step 10, never on the crossing that follows; a goal zone never sits on a room edge.
+**Completion (step 10):** the player is grounded and their feet are inside a `GoalZone`. Log `room_complete` once. Until M7 step 1, Level 1's goal shows the completion overlay. From M7 step 1 (owner, 2026-10-21: one map of rooms; not gated on a following room), Level 1's goal is a level goal and its destination leads on into the next room: reaching it plays the goal effect on the player, with no banner and no sound, without stopping play (`room_complete` and `goal_banner`; the goal effect is L1-04's "visibly completes", owner 2026-10-21), and only the final room's goal ends the game (M7). It triggers on the goal zone in step 10, never on the crossing that follows; a goal zone never sits on a room edge.
 
 **Pause and focus (R-04):** the `pause` action, or `NOTIFICATION_APPLICATION_FOCUS_OUT`, pauses the scene tree. That stops `World`'s ticks, freezing the countdown. Resuming marks inputs stale. On the web build, check that switching tabs and clicking outside the game pause it. If they do not, record it in `docs/known_issues.md` and propose the fix in this document before building it.
 
@@ -2112,11 +2111,11 @@ Progress lasts for the session only; closing the app starts a new game. This ans
 M7's numbered steps are **not gated** (owner, 2026-10-21): each runs whenever the owner asks (`/step M7.1` and so on), whether or not a room follows `level_1` yet. Adding each room (below) needs no session; the owner builds rooms by hand.
 
 1. **Level goals** (runnable now):
-    - `goal_zone.gd` gains two exports: `banner_level: int` (0 = no banner) and `completes_game: bool` (on by default, so a goal with neither set behaves as goals do today).
+    - `goal_zone.gd` gains two exports: `banner_level: int` (the level number logged in `goal_banner`; 0 logs none) and `completes_game: bool` (on by default, so a goal with neither set behaves as goals do today).
     - **A `completes_game` goal** does what every goal did before: `room_complete`, `GameState.mark_completed()` (which stops the run timer), and the completion overlay with the results (M6 step 5).
-    - **A `banner_level` goal** (with `completes_game` off) logs `room_complete` and `goal_banner` (`level` = `banner_level`) the first time it is reached in a run (`GameState` remembers it, like hints), plays `room_complete.wav`, and shows a centered "Level N complete" banner in the HUD for `level_banner_s` (1.5 s, new tuning field). Play never stops and the run timer keeps running; the player walks on through the destination into the next room. Reaching it again in the same run, or after a death, does nothing.
-    - **`level_1`'s goal becomes a banner goal now:** `banner_level` 1, `completes_game` off. Until the owner gives the final room's `GoalZone` `completes_game`, **the game has no ending**, so the completion overlay, results and best time are unreachable in play. That is accepted for building rooms (owner, 2026-10-21).
-    - A unit test (pre-approved, `test_goals.gd`): a banner goal logs once per run and never stops play or the timer; it does not fire again after a death or re-entry; a new run fires it again; a `completes_game` goal ends the run and shows the overlay. The new tuning field also changes `test_tuning.gd` and `test_trace.gd`'s `test_header_fields` count.
+    - **A level goal** (`completes_game` off) logs `room_complete` and `goal_banner` (`level` = `banner_level`, for the trace) the first time it is reached in a run (`GameState` remembers it, like hints). It shows only the goal effect on the player (`effects.gd`): no banner and no sound; `room_complete.wav` plays only for a completed game (owner, 2026-10-21). Play never stops and the run timer keeps running; the player walks on through the destination into the next room. Reaching it again in the same run, or after a death, does nothing.
+    - **`level_1`'s goal becomes a level goal now:** `banner_level` 1, `completes_game` off. Until the owner gives the final room's `GoalZone` `completes_game`, **the game has no ending**, so the completion overlay, results and best time are unreachable in play. That is accepted for building rooms (owner, 2026-10-21).
+    - A unit test (pre-approved, `test_goals.gd`): a level goal logs once per run, never stops play or the timer, and plays the goal effect but no sound; it does not fire again after a death or re-entry; a new run fires it again; a `completes_game` goal ends the run, sounds and shows the overlay.
     - Ask the owner to close `level_1.tscn` before editing it.
     - **Owner, later:** put a `GoalZone` with `completes_game` on (the default) on the final room's destination.
 2. **Room setup** (repeatable, owner 2026-10-21): run once per new room as `/step M7.2`, naming the room in the prompt and where it sits (its neighbor and side, or its `world_rect`). It does the setup work of **For each room** below; the owner does the design.
@@ -2144,7 +2143,7 @@ Until M1.8 runs, steps 4 and 5 wait (**Postponed work**); the owner plays each r
 | `game/rooms/<room_id>/<room_id>.tscn` | The room |
 | `game/verification/scenarios/route_<room_id>.json` | Proves the room can be completed as designed (G-03, G-04) |
 
-**Level goals and the final room** (owner decision 2026-10-16). From M7 step 1 (ungated, owner 2026-10-21), Level 1's goal is a banner goal, with the level-complete banner from M3, and play continues into the next room. `goal_zone.gd` gains two exports in that step: `banner_level` (shows the banner and logs `goal_banner` without stopping play) and `completes_game` (only on the final room's goal; calls `GameState.mark_completed()` and shows the completion overlay with the game's ending message). The banner's duration is the tuning value `level_banner_s` (1.5 s).
+**Level goals and the final room** (owner decision 2026-10-16). From M7 step 1 (ungated, owner 2026-10-21), Level 1's goal is a level goal: it shows only the goal effect (no banner, no sound; owner 2026-10-21), and play continues into the next room. `goal_zone.gd` gains two exports in that step: `banner_level` (the level number logged in `goal_banner`, without stopping play) and `completes_game` (only on the final room's goal; calls `GameState.mark_completed()` and shows the completion overlay with the game's ending message).
 
 **Rooms table** (filled as mockups arrive):
 

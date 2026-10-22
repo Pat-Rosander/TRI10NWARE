@@ -1,8 +1,9 @@
 # World, the referee: the project's only _physics_process. Runs the 11-step tick in a fixed order,
 # so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 runs the
 # play states (title, death and respawn, completion), and from M6 touches, commits and loses
-# collectibles and runs crossings between neighboring rooms, and from M7 tells banner goals from
-# the final goal; it also counts the run's ticks in GameState. Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-01, G-02.
+# collectibles and runs crossings between neighboring rooms, and from M7 tells level goals from
+# the final goal; it also counts the run's ticks in GameState. Serves AC D-04, D-05, R-01, R-02,
+# R-04, L1-04, G-01, G-02.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
@@ -171,12 +172,12 @@ static func outcome(player: Player, goals: Array[GoalZone]) -> Outcome:
 
 
 ## The first goal in [param goals] (node-name order) that [param player] stands in, or null. A
-## completes_game goal is always live; a banner goal only until it is reached once in the run.
+## completes_game goal is always live; a level goal only until it is reached once in the run.
 static func reached_goal(player: Player, goals: Array[GoalZone]) -> GoalZone:
 	if not player.state.grounded:
 		return null
 	for goal: GoalZone in goals:
-		if goal.completes_game or not GameState.is_banner_shown(goal.id):
+		if goal.completes_game or not GameState.is_goal_reached(goal.id):
 			if goal.contains_feet(player.mover.position):
 				return goal
 	return null
@@ -286,9 +287,10 @@ func _step_timers() -> void:
 
 
 # Step 10: goal, spike, countdown expiry, falls, then a crossing, in that order. A completes_game
-# goal stops the ticks until the completion overlay calls replay(); a banner goal logs its banner
-# once per run and play goes on; a death starts the death freeze (and loses carried collectibles). Without a death, carried collectibles commit on a grounded
-# tick, or on any tick a crossing begins.
+# goal stops the ticks until the completion overlay calls replay(); a level goal logs
+# room_complete once per run and play goes on; a death starts the death freeze (and loses carried
+# collectibles). Without a death, carried collectibles commit on a grounded tick, or on any tick a
+# crossing begins.
 func _step_outcomes() -> void:
 	var result: Outcome = outcome(_player, _goals)
 	if result == Outcome.NONE and _pending != null:
@@ -308,8 +310,8 @@ func _step_outcomes() -> void:
 
 
 # A completes_game goal ends the run. Completion and results come before the record, because the
-# completion overlay reads them when it is logged. A banner goal is remembered for the run and
-# logs its banner; play is not stopped.
+# completion overlay reads them when it is logged. A level goal is remembered for the run and
+# logs room_complete and goal_banner (for the trace); play is not stopped.
 func _reach_goal(goal: GoalZone) -> void:
 	if goal.completes_game:
 		GameState.mark_completed()
@@ -317,7 +319,7 @@ func _reach_goal(goal: GoalZone) -> void:
 		Trace.record("room_complete", {"room": String(room_id)})
 		play_state = PlayState.COMPLETE
 		return
-	GameState.mark_banner_shown(goal.id)
+	GameState.mark_goal_reached(goal.id)
 	Trace.record("room_complete", {"room": String(room_id)})
 	if goal.banner_level > 0:
 		Trace.record("goal_banner", {"level": goal.banner_level})

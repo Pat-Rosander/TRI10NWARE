@@ -1,7 +1,8 @@
 # A room's goal: a thin rectangle on a platform's top surface. The node's origin sits on the
 # surface at the zone's left end; World reaches it in step 10 when the player is grounded with feet
 # inside it, so touching the platform's side or flying past never counts. A completes_game goal
-# ends the run; a banner goal shows "Level N complete" once per run and play goes on (M7 step 1).
+# ends the run; a level's goal logs room_complete and goal_banner once per run, shows only the goal
+# effect, and play goes on (M7 step 1).
 # Serves AC L1-04.
 @tool
 class_name GoalZone
@@ -13,7 +14,7 @@ const _OUTLINE_COLOR: Color = Color(0.3, 1.0, 0.4, 0.9)
 @export var width_px: int = 64: set = _set_width_px
 ## How far above the surface the zone reaches, in px. The surface row itself is always inside.
 @export var height_px: int = 4: set = _set_height_px
-## The level number the "Level N complete" banner shows; 0 means no banner.
+## The level number logged in goal_banner when this level's goal is reached; 0 logs none.
 @export var banner_level: int = 0
 ## True if reaching this goal ends the game (the final room's goal). Off for a banner goal.
 @export var completes_game: bool = true

@@ -1,8 +1,7 @@
 # The HUD: volt pips, state icon, dash pip and the zero-volt countdown, read from the player every
 # frame; the volt pips flash on switch_refused; the top-right coin counter slides in when a
-# collectible is touched or committed and shows GameState's committed count; a centered
-# "Level N complete" banner shows on goal_banner for level_banner_s of run ticks, so it waits while
-# paused (M7 step 1). A read-only view that never changes state. Serves AC V-03, V-04, G-02, L1-04.
+# collectible is touched or committed and shows GameState's committed count. A read-only view that
+# never changes state. Serves AC V-03, V-04, G-02.
 extends CanvasLayer
 
 const VOLT_SHEET: Texture2D = preload("res://art/ui/volt_pip.png")
@@ -36,9 +35,6 @@ var _flash_left_s: float = 0.0
 # Rendered seconds left before the coin counter slides out, and how far in it is (0 to 1).
 var _coin_left_s: float = 0.0
 var _coin_shown: float = 0.0
-# Run ticks the level banner has been shown for, and GameState.run_ticks when last read.
-var _banner_elapsed: int = 0
-var _banner_last_run_ticks: int = 0
 
 @onready var _volt_pips: HBoxContainer = %VoltPips
 @onready var _state_icon: TextureRect = %StateIcon
@@ -49,7 +45,6 @@ var _banner_last_run_ticks: int = 0
 @onready var _coin_slot: Control = %CoinSlot
 @onready var _coin_counter: HBoxContainer = %CoinCounter
 @onready var _coin_count: Label = %CoinCount
-@onready var _level_banner: Label = %LevelBanner
 
 
 func _ready() -> void:
@@ -68,7 +63,6 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_show_coins(delta)
-	_show_banner()
 	if player == null or player.flow.ledger == null:
 		return
 	var ledger: FlowLedger = player.flow.ledger
@@ -135,31 +129,8 @@ func _show_coins(delta: float) -> void:
 	_coin_count.text = str(GameState.committed_ids().size())
 
 
-## True while the level banner is on screen.
-func is_banner_showing() -> bool:
-	return _level_banner.visible
-
-
-# Advances the level banner by the run ticks that passed since the last frame; hides it after
-# level_banner_ticks.
-func _show_banner() -> void:
-	if not _level_banner.visible:
-		return
-	var now: int = GameState.run_ticks
-	if now > _banner_last_run_ticks:
-		_banner_elapsed += now - _banner_last_run_ticks
-	_banner_last_run_ticks = now
-	if _banner_elapsed >= Tuning.level_banner_ticks:
-		_level_banner.hide()
-
-
 func _on_event_logged(entry: Dictionary) -> void:
-	if entry["event"] == "goal_banner":
-		_level_banner.text = "Level %d complete" % entry["data"].get("level", 0)
-		_banner_elapsed = 0
-		_banner_last_run_ticks = GameState.run_ticks
-		_level_banner.show()
-	elif entry["event"] == "switch_refused":
+	if entry["event"] == "switch_refused":
 		_flash_left_s = FLASH_S
 	elif entry["event"] == "collectible":
 		var change: String = entry["data"].get("change", "")

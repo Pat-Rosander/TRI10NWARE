@@ -74,7 +74,6 @@ enum CountdownMode { CONTINUE, PAUSE, STOP }
 @export var coin_counter_s: float
 @export var hint_s: float
 @export var hint_fade_s: float
-@export var level_banner_s: float
 
 @export_group("Input")
 @export var stick_deadzone: float

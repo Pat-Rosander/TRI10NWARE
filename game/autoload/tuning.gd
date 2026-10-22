@@ -22,7 +22,6 @@ var room_transition_ticks: int
 var flow_fade_ticks: int
 var hint_ticks: int
 var hint_fade_ticks: int
-var level_banner_ticks: int
 
 
 # Runs in _init, not _ready, so the values exist before any other autoload's _ready.
@@ -48,7 +47,6 @@ func _init() -> void:
 	flow_fade_ticks = seconds_to_ticks(data.flow_fade_s)
 	hint_ticks = seconds_to_ticks(data.hint_s)
 	hint_fade_ticks = seconds_to_ticks(data.hint_fade_s)
-	level_banner_ticks = seconds_to_ticks(data.level_banner_s)
 
 
 ## Converts a duration in seconds to the nearest whole number of 60 Hz ticks.

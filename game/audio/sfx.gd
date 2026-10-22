@@ -1,6 +1,7 @@
 # Sound feedback: plays the sound for each Trace event that has one, through a small pool of
 # AudioStreamPlayers on the SFX bus, and the countdown tick each time the HUD's shown second
-# changes. It only listens and reads, so no rule depends on it. Serves AC V-04.
+# changes; room_complete sounds only for a completed game, never for a level's goal. It only
+# listens and reads, so no rule depends on it. Serves AC V-04.
 extends Node
 
 ## Emitted each time a sound starts, with its slot name. Tests listen to it.
@@ -81,8 +82,12 @@ func _on_event_logged(entry: Dictionary) -> void:
 		"switch":
 			var to_flow: bool = data["to"] == FlowLedger.state_name(FlowLedger.State.FLOW)
 			play(&"switch_to_flow" if to_flow else &"switch_to_default")
-		"switch_refused", "death", "room_complete":
+		"switch_refused", "death":
 			play(StringName(entry["event"]))
+		"room_complete":
+			# Only the final goal sounds; a level's goal (M7 step 1) shows just the goal effect.
+			if GameState.completed:
+				play(&"room_complete")
 		"respawn":
 			# A respawn's fresh dash charge was not a charged refill.
 			_charged_refill = false
