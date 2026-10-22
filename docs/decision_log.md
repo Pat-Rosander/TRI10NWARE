@@ -63,6 +63,8 @@ Current values in `game/config/tuning.tres`. Source: **AC** values are fixed by 
 | `music_volume` | 0.7 | | Owner | Added M3.7 (owner, 2026-10-21) |
 | `trace_memory_limit` | 100000 | | Ours | Start value |
 | `coin_counter_s` | 2.0 | | Ours | Added M6.5 (owner, 2026-10-21) |
+| `hint_s` | 5.0 | | Ours | Added M6.6 (owner, 2026-10-21) |
+| `hint_fade_s` | 0.5 | | Ours | Added M6.6 (owner, 2026-10-21) |
 
 **Tuning changes** (one row per retune, with the playtest or scenario behind it):
 
@@ -299,6 +301,9 @@ Kind: **D&L** = decide and log; **Owner** = owner decision; **Engine** = workaro
 | M6.5 | 2026-10-21 | D&L | Completion text: "Coins: N", "Time: M:SS.hh", "Best: M:SS.hh" (hidden while there is none), "New best!" | The spec names the contents, not the words | Owner review |
 | M6.5 | 2026-10-21 | D&L | `test_runner.gd` points `GameState.best_path` at `user://test_best.cfg` and clears the in-memory best before any test, and deletes that file after the run, so the tests (which complete rooms) never overwrite the player's saved best | `test_play_loop.gd` and `test_run_results.gd` finish runs | No `best.cfg` written by the test run |
 | M6.5 | 2026-10-21 | D&L | `test_play_loop.gd`'s replay test now expects the start room and its start entrance; what else it checks is unchanged | The owner's replay decision above | The test passes |
+| M6.6 | 2026-10-21 | D&L | A hint's clock is the run's tick count (`GameState.run_ticks`), read each rendered frame, not rendered seconds: `hint_s` and `hint_fade_s` become `Tuning.hint_ticks` (300) and `hint_fade_ticks` (30), converted once in `tuning.gd` like `flow_fade_ticks`. So it stands still behind the title, while paused and during a crossing's slide by construction, debug slow motion slows it too, and the fade's opacity steps once per tick | The spec's "timer runs only while the game is playing" holds exactly, on every target, without the hint reading World's state | `test_hints.gd`; `test_tuning.gd` |
+| M6.6 | 2026-10-21 | D&L | A hint is recorded as shown in `GameState` on its first counted tick, not on `room_enter` | At launch `room_enter` for the start room is logged behind the title, and `World.start()` then resets the run, which would forget a mark made earlier and let a later re-entry show it again | `test_no_repeat_after_a_death_or_a_re_entry` |
+| M6.6 | 2026-10-21 | D&L | `hint.tscn`'s `Label` uses `ui/theme.tres` (the pixel font at its default 8 px), with its top-left at the node's origin. Placed at (64, 168) in both rooms, above the start entrance. Texts: "Jump: C, Space or J. / Dash: X or K, aimed with the arrow keys or WASD." (two lines) and "Switch to flow: Z or L." | The spec's suggested texts; the owner rewrites and moves them freely | Owner visual check |
 
 ## 3. Disclosed deviations
 

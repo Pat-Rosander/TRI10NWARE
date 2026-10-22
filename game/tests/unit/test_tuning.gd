@@ -56,6 +56,8 @@ const EXPECTED: Dictionary[String, Variant] = {
 	"inactive_platform_alpha": 0.35,
 	"glow_hint_alpha": 0.3,
 	"coin_counter_s": 2.0,
+	"hint_s": 5.0,
+	"hint_fade_s": 0.5,
 	"stick_deadzone": 0.2,
 	"music_volume": 0.7,
 	"trace_memory_limit": 100000,
@@ -75,6 +77,8 @@ const EXPECTED_TICKS: Dictionary[String, int] = {
 	"respawn_ticks": 15,
 	"room_transition_ticks": 18,
 	"flow_fade_ticks": 9,
+	"hint_ticks": 300,
+	"hint_fade_ticks": 30,
 }
 
 

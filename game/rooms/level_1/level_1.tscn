@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=4 uid="uid://dhffvb6nejput"]
+[gd_scene load_steps=12 format=4 uid="uid://dhffvb6nejput"]
 
 [ext_resource type="Script" uid="uid://c77marlx58f6c" path="res://rooms/room.gd" id="1_room"]
 [ext_resource type="Texture2D" uid="uid://bljb4mew0rftl" path="res://art/backdrop/bg_layer1.png" id="2_5o230"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://c7gvw3tp0t3la" path="res://objects/goal/goal_zone.gd" id="5_goal"]
 [ext_resource type="PackedScene" path="res://objects/collectible/collectible.tscn" id="6_collectible"]
 [ext_resource type="Script" uid="uid://b37sfq6rb0f00" path="res://rooms/room_info.gd" id="7_info"]
+[ext_resource type="PackedScene" path="res://objects/hint/hint.tscn" id="8_hint"]
 
 [sub_resource type="Resource" id="RoomInfo_room"]
 script = ExtResource("7_info")
@@ -60,6 +61,10 @@ position = Vector2(312, 200)
 position = Vector2(512, 240)
 script = ExtResource("5_goal")
 width_px = 208
+
+[node name="Hint" parent="Objects" instance=ExtResource("8_hint")]
+position = Vector2(64, 168)
+text = "Switch to flow: Z or L."
 
 [node name="Collectibles" type="Node2D" parent="."]
 

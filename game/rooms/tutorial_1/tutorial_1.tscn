@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=4 uid="uid://bta5an0ljo8c"]
+[gd_scene load_steps=9 format=4 uid="uid://bta5an0ljo8c"]
 
 [ext_resource type="Script" uid="uid://c77marlx58f6c" path="res://rooms/room.gd" id="1_room"]
 [ext_resource type="TileSet" uid="uid://b65vntye0tecc" path="res://tiles/level_tiles.tres" id="2_tiles"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://cbr2itwxp42qq" path="res://rooms/room_entrance.gd" id="3_entrance"]
 [ext_resource type="Texture2D" uid="uid://dux2iwis13ekj" path="res://art/backdrop/bg_layer2.png" id="3_nos1v"]
 [ext_resource type="Script" uid="uid://b37sfq6rb0f00" path="res://rooms/room_info.gd" id="7_info"]
+[ext_resource type="PackedScene" path="res://objects/hint/hint.tscn" id="8_hint"]
 
 [sub_resource type="Resource" id="RoomInfo_room"]
 script = ExtResource("7_info")
@@ -50,6 +51,11 @@ tile_set = ExtResource("2_tiles")
 tile_set = ExtResource("2_tiles")
 
 [node name="Objects" type="Node2D" parent="."]
+
+[node name="Hint" parent="Objects" instance=ExtResource("8_hint")]
+position = Vector2(64, 168)
+text = "Jump: C, Space or J.
+Dash: X or K, aimed with the arrow keys or WASD."
 
 [node name="Collectibles" type="Node2D" parent="."]
 

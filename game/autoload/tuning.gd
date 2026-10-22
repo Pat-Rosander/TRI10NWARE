@@ -20,6 +20,8 @@ var death_freeze_ticks: int
 var respawn_ticks: int
 var room_transition_ticks: int
 var flow_fade_ticks: int
+var hint_ticks: int
+var hint_fade_ticks: int
 
 
 # Runs in _init, not _ready, so the values exist before any other autoload's _ready.
@@ -43,6 +45,8 @@ func _init() -> void:
 	respawn_ticks = seconds_to_ticks(data.respawn_s)
 	room_transition_ticks = seconds_to_ticks(data.room_transition_s)
 	flow_fade_ticks = seconds_to_ticks(data.flow_fade_s)
+	hint_ticks = seconds_to_ticks(data.hint_s)
+	hint_fade_ticks = seconds_to_ticks(data.hint_fade_s)
 
 
 ## Converts a duration in seconds to the nearest whole number of 60 Hz ticks.

@@ -1,7 +1,8 @@
 # GameState autoload, the save record: committed collectible IDs, permanent unlock flags and the
 # completion flag, kept apart from the temporary electricity a death resets, plus the run's tick
-# count and the best completion time. Progress lives in memory for the session only; the best time
-# is the one value saved to disk (user://best.cfg, M6 step 5). Serves AC G-02.
+# count, the best completion time and the control hints already shown this run. Progress lives in
+# memory for the session only; the best time is the one value saved to disk (user://best.cfg,
+# M6 step 5). Serves AC G-02.
 extends Node
 
 ## Where the best completion time is saved. In the browser, user:// is browser storage.
@@ -22,6 +23,7 @@ var best_path: String = BEST_PATH
 
 var _collectibles: Dictionary = {}
 var _unlocks: Dictionary = {}
+var _hints: Dictionary = {}
 
 
 func _ready() -> void:
@@ -57,16 +59,27 @@ func is_unlocked(flag: StringName) -> bool:
 	return _unlocks.has(flag)
 
 
+## Records the hint [param id] ("<room_id>/<NodeName>") as shown for the rest of this run.
+func mark_hint_shown(id: String) -> void:
+	_hints[id] = true
+
+
+## True if the hint [param id] has been shown this run.
+func is_hint_shown(id: String) -> bool:
+	return _hints.has(id)
+
+
 ## Records that the game has been completed.
 func mark_completed() -> void:
 	completed = true
 
 
-## Starts a new run: no collectibles, no unlocks, not completed, the timer at zero. The best time
-## is kept.
+## Starts a new run: no collectibles, no unlocks, no hints shown, not completed, the timer at
+## zero. The best time is kept.
 func reset() -> void:
 	_collectibles.clear()
 	_unlocks.clear()
+	_hints.clear()
 	completed = false
 	run_ticks = 0
 	last_run_was_best = false

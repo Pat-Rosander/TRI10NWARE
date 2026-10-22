@@ -4,10 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M6 step 5, coin counter and results, 2026-10-21: the run timer, best time (`user://best.cfg`) and `format_time` in `GameState`; World counting ticks, finishing the run before `room_complete`, and replay starting a fresh run in `tutorial_1`; the HUD's top-right coin counter; results on the completion overlay; `coin_counter_s`; `test_run_results.gd`. Earlier: M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M6 step 6, control hints (`/step M6.6`; spec, **M6 build order**): `hint.tscn`/`hint.gd`, `hint_s` and `hint_fade_s`, shown hints in `GameState`, one hint each in `tutorial_1` and `level_1`, `test_hints.gd`. **Close `tutorial_1.tscn` and `level_1.tscn` in the editor before that session.** Then step 7 (done-when). Room info in the debug overlay waits for M1.7. **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
+- **Last completed:** M6 step 6, control hints, 2026-10-21: `hint.tscn`/`hint.gd` (shown once per run on the first `room_enter`, held `hint_s`, faded over `hint_fade_s`, timed by the run's ticks), shown hints in `GameState`, `hint_s`/`hint_fade_s` (and `Tuning.hint_ticks`/`hint_fade_ticks`), one hint each in `tutorial_1` and `level_1`, `test_hints.gd`. Earlier: M6 step 5 (coin counter and results), M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M6 step 7, done-when (`/step M6.7`; spec, **M6 done when**): the owner's checks. `g01`, `g02` and `n03`'s re-entry case wait for M1.8. Room info in the debug overlay waits for M1.7. **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
 - **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
 - **Waiting on the owner:**
+    - **M6.6 check:** follow "How to see it" in the M6 step 6 entry: let the editor rescan for the new `Hint` class, open `hint.gd`, `test_hints.gd`, `game_state.gd` and `tuning.gd` for diagnostics, press F5, read both hints and check they wait behind the title and in pause, then rewrite their text and move them (`Objects/Hint` in `tutorial_1` and `level_1`).
     - **M6.5 check:** follow "How to see it" in the M6 step 5 entry: open the seven scripts for diagnostics, press F5, watch the coin counter (touch, land, pause), finish Level 1, read the results, play again (starts in `tutorial_1`), and relaunch to see the best time kept. Rewrite the completion wording in `completion_overlay.gd` if you like.
     - **M6.4 check:** follow "How to see it" in the M6 step 4 entry: let the editor rescan for the new `RoomInfo` class, open the three scripts for diagnostics, and read and rewrite the **Info** records on `Level1` and `Tutorial1`. Keep each new entrance's state and volts in its room's record.
     - **M6.3 check:** follow "How to see it" in the M6 step 3 entry: open `world_map_preview.tscn` and check that the map matches your layout. Check it, and run the tests, each time you add a room to the catalog.
@@ -1404,3 +1405,39 @@ Tests complete rooms, which would now save a best time. So the test runner point
 - Owner (decision log, M6.5): replay starts in the start room; the three spec edits; "New best!" on the first completion too.
 - Decide and log (decision log, M6.5): time format and rounding, ties, the save file's format and silent failures, where the tick is counted and why the run finishes before `room_complete`, the counter's slide and pause behavior, the completion wording, the test runner's test file, the `test_play_loop` change.
 - No open questions.
+
+## M6 step 6: Control hints (2026-10-21)
+
+**What was built:**
+
+- `game/objects/hint/hint.gd`, `game/objects/hint/hint.tscn` (new): `class_name Hint`, a `@tool` `Node2D` with a `Label` in the theme's pixel font and an exported multiline `text`.
+- `game/autoload/game_state.gd`: the hints shown this run (`mark_hint_shown`, `is_hint_shown`), cleared by `reset()`.
+- `game/config/tuning_data.gd`, `game/config/tuning.tres`: `hint_s` (5.0) and `hint_fade_s` (0.5). `game/autoload/tuning.gd`: their tick values, `hint_ticks` (300) and `hint_fade_ticks` (30).
+- `game/rooms/tutorial_1/tutorial_1.tscn`, `game/rooms/level_1/level_1.tscn`: one `Hint` each under `Objects`, at (64, 168).
+- `game/tests/unit/test_hints.gd` (new, 5 tests); `test_tuning.gd` (the two fields and their tick values) and `test_trace.gd` (53 tuning fields).
+- `docs/decision_log.md`: the M6.6 rows and the two tuning rows.
+
+**How it works:** a hint starts hidden and listens to the trace, like the HUD does. When `room_enter` is logged for its own room and `GameState` hasn't seen it this run, it appears at full opacity. A death logs `respawn`, not `room_enter`, so the rebuilt room's hint stays hidden. Coming back later is a `room_enter`, but by then `GameState` remembers the hint, so it stays hidden then too.
+
+Its clock is the run timer from step 5, not the wall clock. Every rendered frame it looks at `GameState.run_ticks` and adds whatever that counter grew by since the last frame. That counter only grows while the rules run. So the hint waits behind the title, freezes while the pause menu is open, and doesn't age during a room-crossing slide, all without the hint having to know about any of those screens. After 300 ticks (5 s of play) it fades over 30 ticks, then hides for the rest of the run.
+
+One subtlety: the game logs `room_enter` for `tutorial_1` at launch, *behind* the title, and pressing a key on the title starts a fresh run, which clears `GameState`. If the hint recorded itself as shown at `room_enter`, that record would be wiped, and walking back into `tutorial_1` later would show it again. So it records itself on its first counted tick instead, which always comes after the run has started.
+
+In the editor, the script's `@tool` guard leaves the label visible and does nothing else, so you can see and move the text where it sits.
+
+**Why:** spec **M6 build order** step 6; the `hint.tscn`, `hint.gd`, `test_hints.gd` and `game_state.gd` rows of **M6 files**, and the `tutorial_1.tscn`/`level_1.tscn` row of the files extended in M6. A control reminder supports the tutorial's teaching (G-03's simple tutorial rooms); it is visual only and no rule reads it.
+
+**Skipped (Postponed work):** nothing in this step waits for M1.7 or M1.8.
+
+**How to see it:**
+
+1. Unit tests: 279 pass (5 new in `test_hints.gd`); the 9 deliberate errors are unchanged.
+2. Let the editor rescan for the new `Hint` class (until it does, `test_hints.gd` shows "Could not find type Hint", a stale-cache error; the headless run compiles it). Then open `hint.gd`, `test_hints.gd`, `game_state.gd` and `tuning.gd` once for diagnostics.
+3. Open `tutorial_1.tscn` and `level_1.tscn`: the hint text sits above the start entrance. Select `Objects/Hint` to rewrite **Text** in the Inspector (multiline) or drag it. The text's top-left corner is the node's position.
+4. Press F5. The jump-and-dash hint is already there behind the title and stays until you've played 5 s, then fades. Press Escape partway through: it waits. Die: it doesn't come back. Cross into Level 1: the switch hint shows. Cross back: no tutorial hint. Finish and play again: both hints show again.
+
+**Decisions and questions:**
+
+- Decide and log (decision log, M6.6): the hint's clock is the run's ticks (so debug slow motion slows it too, and the fade steps at 60 Hz); it is recorded as shown on its first counted tick; the label's layout, texts and positions. `tuning.gd` gains `hint_ticks`/`hint_fade_ticks`, following `flow_fade_ticks`.
+- No open questions. Your deletion of `game/art/objects/charged_object_01.png` was in the working tree and is not part of this commit.
+
