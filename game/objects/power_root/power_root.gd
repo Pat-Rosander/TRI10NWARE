@@ -1,6 +1,7 @@
 # A power source: touching its contact area in flow activates its network (World, step 8). The
 # contact area is the art rectangle grown by root_contact_margin_px; the editor outlines it. Not
-# solid: a room paints ordinary tiles under it if it needs footing. Serves AC N-01.
+# solid: a room paints ordinary tiles under it if it needs footing. FlowPresentation sets its
+# glow: a hint in default, full in flow while unpowered, hidden once powered. Serves AC N-01, V-02.
 @tool
 class_name PowerRoot
 extends Node2D
@@ -11,6 +12,16 @@ const _AREA_COLOR: Color = Color(0.4, 1.0, 0.6, 0.9)
 
 ## The art's rectangle in px, relative to this node's origin.
 @export var art_rect_px: Rect2i = Rect2i(-8, -8, 16, 16): set = _set_art_rect_px
+
+## The glow's alpha, set by FlowPresentation; 0 hides it.
+var glow_strength: float = 1.0: set = _set_glow_strength
+
+@onready var _glow: Sprite2D = $Glow
+
+
+func _ready() -> void:
+	if not Engine.is_editor_hint():
+		glow_strength = Tuning.data.glow_hint_alpha
 
 
 func _draw() -> void:
@@ -39,6 +50,13 @@ func _margin() -> int:
 		return Tuning.data.root_contact_margin_px
 	var data: Resource = load(TUNING_PATH)
 	return int(data.get(&"root_contact_margin_px")) if data != null else 0
+
+
+func _set_glow_strength(value: float) -> void:
+	glow_strength = value
+	if _glow != null:
+		_glow.modulate.a = value
+		_glow.visible = value > 0.0
 
 
 func _set_art_rect_px(value: Rect2i) -> void:

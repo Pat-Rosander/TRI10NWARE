@@ -1,7 +1,8 @@
 # Sound feedback: plays the sound for each Trace event that has one, through a small pool of
 # AudioStreamPlayers on the SFX bus, and the countdown tick each time the HUD's shown second
-# changes; room_complete sounds only for a completed game, never for a level's goal. It only
-# listens and reads, so no rule depends on it. Serves AC V-04.
+# changes; room_complete sounds only for a completed game, never for a level's goal; a network's
+# activation sounds once per tick, however many networks activate on it. It only listens and
+# reads, so no rule depends on it. Serves AC V-04, N-02.
 extends Node
 
 ## Emitted each time a sound starts, with its slot name. Tests listen to it.
@@ -12,7 +13,7 @@ const HudScript := preload("res://ui/hud.gd")
 ## How many sounds can play at once; the oldest is cut off when all are busy (decision log, M3.5).
 const POOL_SIZE: int = 8
 const BUS: StringName = &"SFX"
-## One stream per sound slot (spec, M3 and M6 files).
+## One stream per sound slot (spec, M3, M5 and M6 files).
 const STREAMS: Dictionary = {
 	&"jump": preload("res://audio/sfx/jump.wav"),
 	&"charged_jump": preload("res://audio/sfx/charged_jump.wav"),
@@ -27,6 +28,7 @@ const STREAMS: Dictionary = {
 	&"room_complete": preload("res://audio/sfx/room_complete.wav"),
 	&"collectible_touch": preload("res://audio/sfx/collectible_touch.wav"),
 	&"collectible_commit": preload("res://audio/sfx/collectible_commit.wav"),
+	&"network_activated": preload("res://audio/sfx/network_activated.wav"),
 }
 
 @export var player: Player
@@ -38,6 +40,8 @@ var _next: int = 0
 var _charged_refill: bool = false
 # The countdown second last heard; 0 while no countdown shows.
 var _shown_second: int = 0
+# The tick of the last network_activated sound, so several activations on one tick sound once.
+var _activation_tick: int = -1
 
 
 func _ready() -> void:
@@ -94,6 +98,10 @@ func _on_event_logged(entry: Dictionary) -> void:
 			play(&"respawn")
 		"room_enter":
 			_charged_refill = false
+		"network_activated":
+			if entry["tick"] != _activation_tick:
+				_activation_tick = entry["tick"]
+				play(&"network_activated")
 		"collectible":
 			# A lost collectible has no sound of its own: the death sound already plays.
 			if data["change"] == "touched":

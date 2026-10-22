@@ -1,9 +1,9 @@
 # Tests Sfx and Effects through the real main scene and Level 1: the charged_dash memory (a
 # ground refill, a dash, a respawn or a room_enter clears it); exactly one countdown tick per
 # shown second; identical traces with and without both nodes; pools that never grow across
-# deaths; and one check per other sound and effect. Serves AC V-04 (owner, M3 step 5). Also the
-# music: it starts on the title's dismissal and never stops, and the pause menu's slider sets
-# the Music bus (owner, M3 step 7).
+# deaths; and one check per other sound and effect, including one activation sound per tick
+# (M5 step 2). Serves AC V-04 (owner, M3 step 5). Also the music: it starts on the title's
+# dismissal and never stops, and the pause menu's slider sets the Music bus (owner, M3 step 7).
 extends TestCase
 
 const MAIN_SCENE: PackedScene = preload("res://world/main.tscn")
@@ -218,6 +218,18 @@ func test_collectible_sounds_and_none_for_a_loss() -> void:
 		Trace.record("collectible", {"id": "level_1/Collectible", "change": change})
 	assert_eq(_sounds, [&"collectible_touch", &"collectible_commit"],
 			"touched and committed have sounds; lost relies on the death sound")
+
+
+# M5 step 2: one sound per activation tick, however many networks activate on it.
+func test_network_activated_sounds_once_per_tick() -> void:
+	_setup()
+	Trace.record("network_activated", {"network": "A", "members": []})
+	assert_eq(_sounds, [&"network_activated"], "one activation, one sound")
+	Trace.tick += 1
+	Trace.record("network_activated", {"network": "A", "members": []})
+	Trace.record("network_activated", {"network": "B", "members": []})
+	assert_eq(_sounds, [&"network_activated", &"network_activated"],
+			"two networks on one tick sound once")
 
 
 func test_sounds_play_on_the_sfx_bus() -> void:

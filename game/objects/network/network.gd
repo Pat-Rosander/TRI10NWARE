@@ -1,7 +1,8 @@
-# A power network: one PowerRoot, its member ChargedObjects and (from M5 step 2) its wires, all as
-# children. Starts unpowered, and so do its members; World calls try_activate() in step 8, and a
-# powered network never activates again. Power lives in the room instance, so a rebuilt room is
-# unpowered again. Warns in the editor unless it has exactly one root. Serves AC N-01 to N-04.
+# A power network: one PowerRoot, its member ChargedObjects and its Wires, all as children.
+# Starts unpowered, and so do its members and wires; World calls try_activate() in step 8, and a
+# powered network never activates again; FlowPresentation powers and pulses the wires. Power
+# lives in the room instance, so a rebuilt room is unpowered again. Warns in the editor unless it
+# has exactly one root. Serves AC N-01 to N-04.
 @tool
 class_name Network
 extends Node2D
@@ -18,6 +19,8 @@ func _ready() -> void:
 		return
 	for member: ChargedObject in members():
 		member.powered = false
+	for wire: Wire in wires():
+		wire.powered = false
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -27,7 +30,8 @@ func _get_configuration_warnings() -> PackedStringArray:
 		if child is PowerRoot:
 			roots += 1
 	if roots != 1:
-		warnings.append("A network needs exactly one PowerRoot child; it has %d." % roots)
+		warnings.append(("A network needs exactly one PowerRoot child (beside its ChargedObjects "
+				+ "and Wires); it has %d.") % roots)
 	for member: ChargedObject in members():
 		if member.always_powered:
 			warnings.append("'%s' has always_powered on; network members start unpowered." %
@@ -51,6 +55,16 @@ func members() -> Array[ChargedObject]:
 			found.append(child)
 	found.sort_custom(func(a: ChargedObject, b: ChargedObject) -> bool:
 			return String(a.name) < String(b.name))
+	return found
+
+
+## The wires (direct children), sorted by node name.
+func wires() -> Array[Wire]:
+	var found: Array[Wire] = []
+	for child: Node in get_children():
+		if child is Wire:
+			found.append(child)
+	found.sort_custom(func(a: Wire, b: Wire) -> bool: return String(a.name) < String(b.name))
 	return found
 
 

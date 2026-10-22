@@ -9,6 +9,7 @@ extends CanvasLayer
 signal dismissed
 
 const WorldScript := preload("res://world/world.gd")
+const WIRE_SHADER: Shader = preload("res://objects/wire/wire_current.gdshader")
 
 ## The World to start. Set by Main.
 var world: WorldScript
@@ -47,19 +48,22 @@ func _is_start(event: InputEvent) -> bool:
 
 
 ## The materials drawn in flow that would otherwise compile on first use: the charged objects'
-## additive glow (M2), and from M5 the wire current shader.
+## additive glow (M2), and the wires' current shader (M5).
 static func prewarm_materials() -> Array[Material]:
 	var glow: CanvasItemMaterial = CanvasItemMaterial.new()
 	glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	return [glow]
+	var current: ShaderMaterial = ShaderMaterial.new()
+	current.shader = WIRE_SHADER
+	return [glow, current]
 
 
-# One 1 x 1 black rect per material, on screen: Godot skips drawing items outside the view, so
-# an off-screen one would never compile, and with these blend modes black changes no pixel.
+# One 1 x 1 rect per material, on screen: Godot skips drawing items outside the view, so an
+# off-screen one would never compile. Black changes no pixel under additive blending; the wire
+# shader blends normally, so its rect is transparent black instead.
 func _build_prewarm() -> void:
 	for material: Material in prewarm_materials():
 		var rect: ColorRect = ColorRect.new()
-		rect.color = Color.BLACK
+		rect.color = Color.BLACK if material is CanvasItemMaterial else Color.TRANSPARENT
 		rect.size = Vector2.ONE
 		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rect.material = material

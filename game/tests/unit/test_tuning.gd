@@ -58,6 +58,8 @@ const EXPECTED: Dictionary[String, Variant] = {
 	"coin_counter_s": 2.0,
 	"hint_s": 5.0,
 	"hint_fade_s": 0.5,
+	"wire_pulse_s": 0.4,
+	"wire_current_speed_px_s": 48.0,
 	"stick_deadzone": 0.2,
 	"music_volume": 0.7,
 	"trace_memory_limit": 100000,
@@ -79,6 +81,7 @@ const EXPECTED_TICKS: Dictionary[String, int] = {
 	"flow_fade_ticks": 9,
 	"hint_ticks": 300,
 	"hint_fade_ticks": 30,
+	"wire_pulse_ticks": 24,
 }
 
 
