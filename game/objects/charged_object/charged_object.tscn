@@ -12,7 +12,6 @@ script = ExtResource("1_script")
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("2_frames")
-animation = &"default"
 
 [node name="Glow" type="Sprite2D" parent="."]
 material = SubResource("CanvasItemMaterial_add")

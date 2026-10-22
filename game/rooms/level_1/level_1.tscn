@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=4 uid="uid://dhffvb6nejput"]
+[gd_scene load_steps=13 format=4 uid="uid://dhffvb6nejput"]
 
 [ext_resource type="Script" uid="uid://c77marlx58f6c" path="res://rooms/room.gd" id="1_room"]
 [ext_resource type="Texture2D" uid="uid://bljb4mew0rftl" path="res://art/backdrop/bg_layer1.png" id="2_5o230"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://c7gvw3tp0t3la" path="res://objects/goal/goal_zone.gd" id="5_goal"]
 [ext_resource type="PackedScene" path="res://objects/collectible/collectible.tscn" id="6_collectible"]
 [ext_resource type="Script" uid="uid://b37sfq6rb0f00" path="res://rooms/room_info.gd" id="7_info"]
+[ext_resource type="SpriteFrames" uid="uid://dd4n0ct8n4pxm" path="res://charged_object_v1_frames.tres" id="7_p4me5"]
 [ext_resource type="PackedScene" path="res://objects/hint/hint.tscn" id="8_hint"]
 
 [sub_resource type="Resource" id="RoomInfo_room"]
@@ -56,6 +57,7 @@ tile_set = ExtResource("2_tiles")
 
 [node name="ChargedObject" parent="Objects" instance=ExtResource("4_charged")]
 position = Vector2(312, 200)
+frames = ExtResource("7_p4me5")
 
 [node name="GoalZone" type="Node2D" parent="Objects"]
 position = Vector2(512, 240)
