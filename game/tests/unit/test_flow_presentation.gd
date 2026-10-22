@@ -6,7 +6,9 @@
 # change the rules' trace. From M5 step 2, through Level 1 rebuilt with two networks and a
 # decorative wire: wires and power-source glows in default and flow, an activation powering and
 # pulsing only its own network's wires, a respawn rebuilding them unpowered, and the trace
-# unchanged with networks too. Serves AC V-02, V-03, N-02.
+# unchanged with networks too. From M4 step 3: the platform family that is not solid now is drawn
+# at inactive_platform_alpha in each of those cases, keeping the layer's tint, and a room built for
+# a crossing shows the current state's platforms. Serves AC V-02, V-03, N-02.
 extends TestCase
 
 const MAIN_SCENE: PackedScene = preload("res://world/main.tscn")
@@ -58,6 +60,35 @@ func test_switch_back_restores_the_default_look() -> void:
 	assert_false(_player.flow.is_flow(), "back in default")
 	(_presentation.call(&"fade") as Tween).custom_step(Tuning.data.flow_fade_s)
 	_assert_default("after switching back")
+
+
+func test_switch_swaps_the_faint_platform_family_on_its_tick() -> void:
+	_setup()
+	var tint: Color = Color(0.8, 0.6, 1.0)
+	_layer("FlowTiles").modulate = Color(tint, Tuning.data.inactive_platform_alpha)
+	_input.play([{"tick": 1, "press": "switch"}, {"tick": 2, "release": "switch"}])
+	_run(1)
+	assert_true(_player.flow.is_flow(), "in flow")
+	assert_eq(_layer("FlowTiles").modulate, Color(tint, 1.0),
+			"flow-only platforms drawn fully on the switch tick, tint kept")
+	assert_near(_layer("DefaultTiles").modulate.a, Tuning.data.inactive_platform_alpha, 0.0001,
+			"default-only platforms faint on the switch tick")
+	assert_eq(_layer("WorldTiles").modulate, Color.WHITE, "ordinary tiles never change")
+
+
+func test_a_crossing_neighbor_shows_the_current_platforms() -> void:
+	_setup()
+	_input.play([{"tick": 1, "press": "switch"}, {"tick": 2, "release": "switch"}])
+	_run(1)
+	var neighbor: Room = WorldScript.CATALOG.find(&"level_1").scene.instantiate() as Room
+	neighbor.position = Vector2(100000, 100000)
+	_world.get_node("RoomSlot").add_child(neighbor)
+	assert_eq((neighbor.get_node("FlowTiles") as CanvasItem).modulate.a, 1.0,
+			"the neighbor's flow-only platforms are drawn fully in flow")
+	assert_near((neighbor.get_node("DefaultTiles") as CanvasItem).modulate.a,
+			Tuning.data.inactive_platform_alpha, 0.0001,
+			"the neighbor's default-only platforms are faint")
+	neighbor.free()
 
 
 func test_respawn_snaps_to_default_with_no_fade() -> void:
@@ -406,6 +437,11 @@ func _assert_default(when: String) -> void:
 		assert_eq(_sprite(object).animation, &"default",
 				"%s: default animation %s" % [object.name, when])
 		assert_true(_sprite(object).is_playing(), "%s: default is playing %s" % [object.name, when])
+	assert_eq(_layer("DefaultTiles").modulate.a, 1.0,
+			"default-only platforms drawn fully %s" % when)
+	assert_near(_layer("FlowTiles").modulate.a, Tuning.data.inactive_platform_alpha, 0.0001,
+			"flow-only platforms faint %s" % when)
+	assert_eq(_layer("WorldTiles").modulate, Color.WHITE, "ordinary tiles unchanged %s" % when)
 
 
 func _room() -> Room:
@@ -413,6 +449,10 @@ func _room() -> Room:
 		if child is Room and not child.is_queued_for_deletion():
 			return child
 	return null
+
+
+func _layer(layer_name: String) -> CanvasItem:
+	return _room().get_node(layer_name) as CanvasItem
 
 
 func _backdrop() -> CanvasItem:

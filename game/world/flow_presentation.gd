@@ -3,8 +3,9 @@
 # animations, the wires' flow look and the unpowered power sources' full glow (or reverses that);
 # on room_enter and respawn it snaps to the player's state with no fade, and a room built for a
 # crossing gets that look as soon as it is ready. On network_activated it powers that network's
-# wires, plays their pulse and turns off its source's glow (M5 step 2). It only reads Trace events
-# and the player's state, and never changes rule state, so no rule depends on it. Serves AC V-02,
+# wires, plays their pulse and turns off its source's glow (M5 step 2). The platform family that is
+# not solid now is drawn at inactive_platform_alpha (M4 step 3). It only reads Trace events and
+# the player's state, and never changes rule state, so no rule depends on it. Serves AC V-02,
 # V-03, G-01, N-02.
 extends Node
 
@@ -52,6 +53,7 @@ func _show(in_flow: bool, animate: bool) -> void:
 		object.glow_strength = 1.0 if in_flow else Tuning.data.glow_hint_alpha
 		object.electric_look = in_flow
 	_show_networks(room, in_flow)
+	_show_platforms(room, in_flow)
 	if _fade != null:
 		_fade.kill()
 		_fade = null
@@ -83,6 +85,7 @@ func _snap(room: Room) -> void:
 		object.glow_strength = 1.0 if in_flow else Tuning.data.glow_hint_alpha
 		object.electric_look = in_flow
 	_show_networks(room, in_flow)
+	_show_platforms(room, in_flow)
 	var back: CanvasItem = room.get_node_or_null("Backdrop") as CanvasItem
 	if back != null:
 		back.modulate = Tuning.data.flow_backdrop_color if in_flow else Color.WHITE
@@ -103,6 +106,21 @@ func _show_networks(room: Room, in_flow: bool) -> void:
 			source.glow_strength = 0.0
 		else:
 			source.glow_strength = 1.0 if in_flow else Tuning.data.glow_hint_alpha
+
+
+# The platform family that is solid for the player in [param in_flow]'s state is drawn fully, the
+# other at inactive_platform_alpha, at once (support changes on the switch tick). Only alpha
+# changes, so a tint set on the layer is kept. Pending tiles belong to the solid family's layer
+# and draw with it.
+func _show_platforms(room: Room, in_flow: bool) -> void:
+	var faint: float = Tuning.data.inactive_platform_alpha
+	_set_alpha(room.get_node_or_null("DefaultTiles") as CanvasItem, faint if in_flow else 1.0)
+	_set_alpha(room.get_node_or_null("FlowTiles") as CanvasItem, 1.0 if in_flow else faint)
+
+
+func _set_alpha(item: CanvasItem, alpha: float) -> void:
+	if item != null:
+		item.modulate.a = alpha
 
 
 # The network named [param network_name] in the current room (networks never span rooms) powers
