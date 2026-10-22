@@ -55,6 +55,7 @@ const EXPECTED: Dictionary[String, Variant] = {
 	"flow_fade_s": 0.15,
 	"inactive_platform_alpha": 0.35,
 	"glow_hint_alpha": 0.3,
+	"coin_counter_s": 2.0,
 	"stick_deadzone": 0.2,
 	"music_volume": 0.7,
 	"trace_memory_limit": 100000,

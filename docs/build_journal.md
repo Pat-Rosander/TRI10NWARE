@@ -4,11 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M6 step 4, room info, 2026-10-21: `room_info.gd` (`RoomInfo`: entry state and volts per entrance, volt budget, recharge points, route, notes), `room.gd`'s `info` export, filled records in `level_1` and `tutorial_1`, and room-info checks in `test_world_layout.gd` (including the owner's feasibility rule). Earlier: M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M6 step 5, coin counter and results (`/step M6.5`; spec, **M6 build order**): HUD coin counter, run timer, results and saved best time on the completion overlay. Then step 6 (control hints) and step 7 (done-when). Room info in the debug overlay waits for M1.7. **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
+- **Last completed:** M6 step 5, coin counter and results, 2026-10-21: the run timer, best time (`user://best.cfg`) and `format_time` in `GameState`; World counting ticks, finishing the run before `room_complete`, and replay starting a fresh run in `tutorial_1`; the HUD's top-right coin counter; results on the completion overlay; `coin_counter_s`; `test_run_results.gd`. Earlier: M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M6 step 6, control hints (`/step M6.6`; spec, **M6 build order**): `hint.tscn`/`hint.gd`, `hint_s` and `hint_fade_s`, shown hints in `GameState`, one hint each in `tutorial_1` and `level_1`, `test_hints.gd`. **Close `tutorial_1.tscn` and `level_1.tscn` in the editor before that session.** Then step 7 (done-when). Room info in the debug overlay waits for M1.7. **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
 - **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
-- **Added 2026-10-21: M6 step 5, coin counter and results** (spec, M6 build order): HUD coin counter, run timer, results and saved best time on the completion overlay. M6 done-when is now step 7, after step 6 (control hints); steps 1–4 are unchanged.
 - **Waiting on the owner:**
+    - **M6.5 check:** follow "How to see it" in the M6 step 5 entry: open the seven scripts for diagnostics, press F5, watch the coin counter (touch, land, pause), finish Level 1, read the results, play again (starts in `tutorial_1`), and relaunch to see the best time kept. Rewrite the completion wording in `completion_overlay.gd` if you like.
     - **M6.4 check:** follow "How to see it" in the M6 step 4 entry: let the editor rescan for the new `RoomInfo` class, open the three scripts for diagnostics, and read and rewrite the **Info** records on `Level1` and `Tutorial1`. Keep each new entrance's state and volts in its room's record.
     - **M6.3 check:** follow "How to see it" in the M6 step 3 entry: open `world_map_preview.tscn` and check that the map matches your layout. Check it, and run the tests, each time you add a room to the catalog.
 - **M6.2 check:** follow "How to see it" in the M6 step 2 entry: open the eight listed scripts for diagnostics, press F5 (you start in `tutorial_1`), cross into Level 1 and back in both states, at 0 and 1 volts, holding jump, dying after each crossing, and carrying the coin out. Watch the slide for gaps or flicker. **Every empty cell on Level 1's left edge (rows 0–11 too) and on `tutorial_1`'s right edge is passable**; close what you don't want with tiles, and keep the doorway clear on both sides. Repaint `tutorial_1` over the placeholder floor and design the tutorial.
@@ -1364,4 +1364,43 @@ The values I filled in are yours to rewrite. `level_1` assumes `start` in defaul
 
 - Owner (decision log, M6.4): game rooms only; checks in `test_world_layout.gd`, including the feasibility rule.
 - Decide and log (decision log, M6.4): the field shapes, the starting values, and the integer-division warning fix left by M6.3.
+- No open questions.
+
+## M6 step 5: Coin counter and results (2026-10-21)
+
+**What was built:**
+
+- `game/autoload/game_state.gd`: the run's tick count, the best time (loaded at startup, saved to `user://best.cfg`), `finish_run()`, `is_new_best()`, `format_time()`, `load_best()`/`save_best()`; `reset()` now also restarts the timer and keeps the best.
+- `game/world/world.gd`: counts each tick in `GameState`; `start()` begins a fresh run; completion finishes the run just before `room_complete` is logged; `replay()` starts a fresh run in the start room.
+- `game/ui/hud.gd`, `game/ui/hud.tscn`: the top-right coin counter (`CoinSlot/CoinCounter` with `CoinIcon` and `CoinCount`).
+- `game/ui/completion_overlay.gd`, `game/ui/completion_overlay.tscn`: `Coins`, `Time`, `Best` and `NewBest` labels.
+- `game/config/tuning_data.gd`, `game/config/tuning.tres`: `coin_counter_s` (2.0).
+- `game/tests/test_runner.gd`: tests save best times to `user://test_best.cfg`, deleted afterwards.
+- `game/tests/unit/test_run_results.gd` (new, 7 tests); `test_play_loop.gd` (replay expects the start room); `test_tuning.gd` and `test_trace.gd` (the new field).
+- `docs/TRI10NWARE.md` (approved): the `test_run_results.gd` row, the `game_state.gd` row's disk wording, and the `completion_overlay.gd` row's replay wording. `docs/decision_log.md`: the M6.5 rows and the `coin_counter_s` tuning row.
+
+**How it works:** the run timer is a plain counter in `GameState`. `World` calls `GameState.count_tick()` on the line right after it advances its own `tick`, so the two always agree. Everything the spec excludes is excluded already: on the title and the completion screen World doesn't tick, while paused the engine doesn't call World at all, and a crossing's slide returns before the tick advances. Deaths count, because the death freeze and respawn lock are ticks. The time is shown from whole ticks with whole-number math (hundredths = ticks × 100 ÷ 60, rounded down), so it reads the same on every machine and in the browser.
+
+When the goal is reached, World calls `GameState.finish_run()` and then logs `room_complete`. The order matters: the completion overlay listens for `room_complete` and reads the results the moment it is logged, so the run has to be finished first. `finish_run()` compares the time with the best (strictly faster wins; the first completion always does), and if it is a new best, writes it to `user://best.cfg` with a `ConfigFile`. At startup `GameState` reads that file back. If the file is missing, broken, or storage is blocked (some private browser windows), it simply keeps the best in memory: no error. "Play again" calls `GameState.reset()` (collectibles cleared, timer at zero, best kept) and builds `tutorial_1` at `start`, so every timed run covers the same route (your decision).
+
+The coin counter is a read-only view, like the rest of the HUD. When a `collectible` event says `touched` or `committed`, it starts a 2-second timer (`coin_counter_s`). While the timer runs, or while the game is paused, the counter slides in from beyond the right edge. The number is read from `GameState` every frame, so it ticks up the moment a coin is committed and drops to 0 on a fresh run. The timer stands still while paused, so resuming gives the counter its remaining time before it slides out.
+
+Tests complete rooms, which would now save a best time. So the test runner points `GameState` at a separate test file and deletes it afterwards. Your own best time is never touched by `run_tests`.
+
+**Why:** spec **M6 build order** step 5 (counter, run timer, results, saved best, replay, tests); the `game_state.gd`, `hud`, `completion_overlay` rows of **M6 files**; AC G-02 (progress kept apart), L1-04 and V-04 (visible completion).
+
+**Skipped (Postponed work):** nothing in this step waits for M1.7 or M1.8.
+
+**How to see it:**
+
+1. Unit tests: 274 pass (7 new in `test_run_results.gd`); the 9 deliberate errors are unchanged.
+2. Open `game_state.gd`, `world.gd`, `hud.gd`, `completion_overlay.gd`, `test_runner.gd`, `test_run_results.gd` and `test_play_loop.gd` once so the editor analyzes them (diagnostics; `world.gd` and `game_state.gd` are already clean). Accept if Godot asks to reload `hud.tscn` or `completion_overlay.tscn`.
+3. Press F5. Touch Level 1's coin: the counter slides in at the top right showing 0, ticks to 1 when you land, and slides out 2 s later. Press Escape: it shows while paused.
+4. Reach the goal: the overlay shows coins, time, best time and "New best!". Press jump: you start in `tutorial_1` with 0 coins. Finish slower (no "New best!", best unchanged), then faster ("New best!").
+5. Quit and relaunch, then finish again: the best time is still there. In the web build, check the same in each browser (it lives in browser storage).
+
+**Decisions and questions:**
+
+- Owner (decision log, M6.5): replay starts in the start room; the three spec edits; "New best!" on the first completion too.
+- Decide and log (decision log, M6.5): time format and rounding, ties, the save file's format and silent failures, where the tick is counted and why the run finishes before `room_complete`, the counter's slide and pause behavior, the completion wording, the test runner's test file, the `test_play_loop` change.
 - No open questions.

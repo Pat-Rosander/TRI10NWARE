@@ -137,8 +137,10 @@ func test_completion_stops_ticks_until_replay() -> void:
 	var entered: int = _count("room_enter")
 	_world.replay()
 	assert_eq(_world.play_state, WorldScript.PlayState.PLAYING, "replay plays again")
-	assert_eq(_count("room_enter"), entered + 1, "the room was rebuilt")
-	assert_eq(_events("room_enter")[1]["data"]["entrance"], "start", "at its start")
+	assert_eq(_count("room_enter"), entered + 1, "a room was built")
+	var entry: Dictionary = _events("room_enter")[entered]["data"]
+	assert_eq(entry["room"], String(WorldScript.CATALOG.start_room), "the start room (M6 step 5)")
+	assert_eq(entry["entrance"], String(WorldScript.CATALOG.start_entrance), "at its start")
 	_run(1)
 	assert_eq(_world.tick, done_tick + 1, "ticks resume")
 

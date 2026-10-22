@@ -1,6 +1,7 @@
 # The HUD: volt pips, state icon, dash pip and the zero-volt countdown, read from the player every
-# frame; the volt pips flash on switch_refused. A read-only view that never changes state.
-# Serves AC V-03, V-04.
+# frame; the volt pips flash on switch_refused; the top-right coin counter slides in when a
+# collectible is touched or committed and shows GameState's committed count. A read-only view that
+# never changes state. Serves AC V-03, V-04, G-02.
 extends CanvasLayer
 
 const VOLT_SHEET: Texture2D = preload("res://art/ui/volt_pip.png")
@@ -18,6 +19,10 @@ const STATE_WARNING: int = 2
 const FLASH_S: float = 0.4
 const FLASH_BLINKS: int = 3
 const FLASH_COLOR: Color = Color(1.0, 0.25, 0.25)
+## How long the coin counter takes to slide in or out, in rendered seconds.
+const COIN_SLIDE_S: float = 0.15
+## How far past its slot the hidden coin counter waits, beyond the screen's right edge.
+const COIN_MARGIN_PX: float = 8.0
 
 ## The player whose state is shown.
 @export var player: Player
@@ -27,6 +32,9 @@ var _dash_frames: Array[AtlasTexture] = []
 var _state_frames: Array[AtlasTexture] = []
 var _pips: Array[TextureRect] = []
 var _flash_left_s: float = 0.0
+# Rendered seconds left before the coin counter slides out, and how far in it is (0 to 1).
+var _coin_left_s: float = 0.0
+var _coin_shown: float = 0.0
 
 @onready var _volt_pips: HBoxContainer = %VoltPips
 @onready var _state_icon: TextureRect = %StateIcon
@@ -34,6 +42,9 @@ var _flash_left_s: float = 0.0
 @onready var _countdown: Control = %Countdown
 @onready var _ring: TextureProgressBar = %Ring
 @onready var _numerals: Label = %Numerals
+@onready var _coin_slot: Control = %CoinSlot
+@onready var _coin_counter: HBoxContainer = %CoinCounter
+@onready var _coin_count: Label = %CoinCount
 
 
 func _ready() -> void:
@@ -51,6 +62,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_show_coins(delta)
 	if player == null or player.flow.ledger == null:
 		return
 	var ledger: FlowLedger = player.flow.ledger
@@ -104,6 +116,23 @@ func _show_flash(delta: float) -> void:
 	_volt_pips.modulate = color
 
 
+# Slides the coin counter in while its timer runs or the game is paused, and out otherwise; the
+# timer stands still while paused.
+func _show_coins(delta: float) -> void:
+	var paused: bool = is_inside_tree() and get_tree().paused
+	if not paused:
+		_coin_left_s = maxf(_coin_left_s - delta, 0.0)
+	var target: float = 1.0 if paused or _coin_left_s > 0.0 else 0.0
+	_coin_shown = move_toward(_coin_shown, target, delta / COIN_SLIDE_S)
+	_coin_counter.visible = _coin_shown > 0.0
+	_coin_counter.position.x = (1.0 - _coin_shown) * (_coin_slot.size.x + COIN_MARGIN_PX)
+	_coin_count.text = str(GameState.committed_ids().size())
+
+
 func _on_event_logged(entry: Dictionary) -> void:
 	if entry["event"] == "switch_refused":
 		_flash_left_s = FLASH_S
+	elif entry["event"] == "collectible":
+		var change: String = entry["data"].get("change", "")
+		if change == "touched" or change == "committed":
+			_coin_left_s = Tuning.data.coin_counter_s

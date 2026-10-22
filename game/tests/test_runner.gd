@@ -3,6 +3,8 @@
 extends Node
 
 const UNIT_DIR: String = "res://tests/unit"
+## Where tests save best times, so a run never touches the player's own user://best.cfg.
+const TEST_BEST_PATH: String = "user://test_best.cfg"
 
 
 # Collects every error raised while a test runs. GDScript has no exceptions: a runtime error
@@ -35,6 +37,8 @@ var _claimed_errors: int = 0
 
 func _ready() -> void:
 	OS.add_logger(_capture)
+	GameState.best_path = TEST_BEST_PATH
+	GameState.best_ticks = 0
 	var files: Array[String] = []
 	for file: String in DirAccess.get_files_at(UNIT_DIR):
 		if file.begins_with("test_") and file.ends_with(".gd"):
@@ -43,6 +47,8 @@ func _ready() -> void:
 	for file: String in files:
 		_run_file("%s/%s" % [UNIT_DIR, file])
 	OS.remove_logger(_capture)
+	if FileAccess.file_exists(TEST_BEST_PATH):
+		DirAccess.remove_absolute(TEST_BEST_PATH)
 	if _passed + _failed == 0:
 		print("No tests found in %s." % UNIT_DIR)
 		_failed = 1

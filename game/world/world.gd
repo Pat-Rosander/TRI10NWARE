@@ -1,13 +1,13 @@
 # World, the referee: the project's only _physics_process. Runs the 11-step tick in a fixed order,
 # so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 runs the
 # play states (title, death and respawn, completion), and from M6 touches, commits and loses
-# collectibles and runs crossings between neighboring rooms.
-# Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-01, G-02.
+# collectibles and runs crossings between neighboring rooms; it also counts the run's ticks in
+# GameState. Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-01, G-02.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
 const CATALOG: RoomCatalog = preload("res://rooms/room_catalog.tres")
-## Where a completed room replays from.
+## The fallback checkpoint when a room has no entrance near the crossed edge.
 const START_ENTRANCE: StringName = &"start"
 ## How far from the crossed edge an entrance may be to become the checkpoint (48 px, 3 tiles).
 const CHECKPOINT_REACH_PX: int = 48
@@ -82,6 +82,7 @@ func _physics_process(_delta: float) -> void:
 		return
 	tick += 1
 	Trace.tick = tick
+	GameState.count_tick()
 	if play_state != PlayState.PLAYING:
 		_step_locked()
 		return
@@ -98,21 +99,24 @@ func _physics_process(_delta: float) -> void:
 	_step_publish()
 
 
-## Leaves the title: marks inputs stale (the start key never becomes a jump) and starts play.
-## Ticks advance from the next physics step.
+## Leaves the title: starts a fresh run in GameState, marks inputs stale (the start key never
+## becomes a jump) and starts play. Ticks advance from the next physics step.
 func start() -> void:
 	if play_state != PlayState.TITLE:
 		return
+	GameState.reset()
 	_input_source.mark_all_stale()
 	play_state = PlayState.PLAYING
 
 
-## Leaves the completion screen: rebuilds the room at its start, marks inputs stale (the jump
-## that dismissed the screen never becomes a jump) and plays again.
+## Leaves the completion screen with a fresh run: clears the run in GameState (the best time is
+## kept), builds the start room at its start entrance, marks inputs stale (the jump that dismissed
+## the screen never becomes a jump) and plays again.
 func replay() -> void:
 	if play_state != PlayState.COMPLETE:
 		return
-	load_room(room_id, START_ENTRANCE)
+	GameState.reset()
+	load_room(CATALOG.start_room, CATALOG.start_entrance)
 	_input_source.mark_all_stale()
 	play_state = PlayState.PLAYING
 
@@ -284,6 +288,8 @@ func _step_outcomes() -> void:
 		_commit_carried()
 	match result:
 		Outcome.COMPLETE:
+			# Before the record: the completion overlay reads the results when it is logged.
+			GameState.finish_run()
 			Trace.record("room_complete", {"room": String(room_id)})
 			play_state = PlayState.COMPLETE
 		Outcome.SPIKE:

@@ -1654,7 +1654,7 @@ M3 is built in these numbered steps, one session each (`/step M3.1` and so on; o
 | `game/ui/pause_menu.tscn` | `CanvasLayer`, process mode **Always**: Resume, Restart room, Fullscreen, Sound on/off, Music volume (from step 7), Quit (Quit hidden on web) | R-04, D-07 and normal play |
 | `game/ui/pause_menu.gd` | Pauses and unpauses the scene tree; marks inputs stale on resume. Restart room is a death with cause `restart`, so it resets exactly like any other death | Pausing freezes ticks, so the countdown cannot expire in the background |
 | `game/ui/completion_overlay.tscn` | `CanvasLayer`: "Level complete", then "press jump to play again" | Visible completion (L1-04, V-04) |
-| `game/ui/completion_overlay.gd` | Shows on `room_complete`; on replay, marks inputs stale and rebuilds the room | Clean replay; the jump that dismissed it never becomes a jump |
+| `game/ui/completion_overlay.gd` | Shows on `room_complete`; on replay, marks inputs stale and starts a fresh run in the catalog's start room (M6 step 5; owner, 2026-10-21) | Clean replay; the jump that dismissed it never becomes a jump |
 | `game/audio/sfx.gd` | Script on a new `Sfx` node in Main. Plays sounds in response to `Trace` events through a small pool of `AudioStreamPlayer`s on the SFX bus; plays the countdown tick each time the displayed second changes | Audio feedback with no link to the rules (V-04) |
 | `game/default_bus_layout.tres` | Audio buses: Master, SFX, Music (the Music bus plays the owner's track from step 7) | Separate volume control, including the pause menu's music volume |
 | `game/audio/sfx/jump.wav` | Ordinary, coyote and wall jumps | Feedback |
@@ -2010,7 +2010,7 @@ M6 is built in these numbered steps, one session each (`/step M6.1` and so on; o
 
 | File | What it is | Why it exists |
 | --- | --- | --- |
-| `game/autoload/game_state.gd` | Autoload named `GameState`, third in the autoload list. Committed collectible IDs, permanent unlock flags and the completion flag, kept in memory for the session; from M6 step 5 also the run's tick count and the best completion time, which is saved to `user://best.cfg`; from step 6 the hints already shown this run. Nothing is written to disk (saving is parked) | Permanent progress, kept apart from temporary electricity (G-02) |
+| `game/autoload/game_state.gd` | Autoload named `GameState`, third in the autoload list. Committed collectible IDs, permanent unlock flags and the completion flag, kept in memory for the session; from M6 step 5 also the run's tick count and the best completion time, which is saved to `user://best.cfg`; from step 6 the hints already shown this run. Only the best time is written to disk | Permanent progress, kept apart from temporary electricity (G-02) |
 | `game/rooms/room_info.gd` | `class_name RoomInfo extends Resource`: entry state and assumed volts per entrance, volt budget, recharge points, completion route, notes. Saved inside each room scene | The G-03 record, shown in the debug overlay and copied into the ledger |
 | `game/objects/collectible/collectible.tscn` | A `Node2D` with a sprite | Placed in rooms |
 | `game/objects/collectible/collectible.gd` | `class_name Collectible extends Node2D`. ID is room ID plus node name; idle or following; hides itself if already committed | The commitment rule (below) |
@@ -2019,6 +2019,7 @@ M6 is built in these numbered steps, one session each (`/step M6.1` and so on; o
 | `game/audio/sfx/collectible_commit.wav` | Committed | Feedback |
 | `game/objects/hint/hint.tscn` | A `Node2D` with a `Label` in the theme's pixel font (step 6) | Temporary control hints placed in rooms |
 | `game/objects/hint/hint.gd` | `class_name Hint extends Node2D`, `@tool`. Exported `text`; shown on the first entry to its room in a run, for `hint_s`, then faded over `hint_fade_s`; the timer runs only during play (step 6) | Teaches controls once, then gets out of the way |
+| `game/tests/unit/test_run_results.gd` | Through a real Main scene: the run's tick count across a death, a pause and a crossing's slide; the time formatting; the best-time comparison; the save and load round trip (to a test path); replay starting a fresh run in the start room; the HUD coin counter; the completion overlay's results (step 5; owner approval 2026-10-21) | The run timer, the saved best time and the results |
 | `game/tests/unit/test_hints.gd` | First entry shows it; no repeat after a death or re-entry; a new run shows it again; the timer pauses behind the title and in pause (step 6) | The once-per-run rule and its timing |
 | `game/verification/gym/gym_annex.tscn` | A second verification room placed on the map directly right of the gym, with entrances beside the shared edge, a network near that edge and a collectible station | Crossings, re-entry and progress can be tested without owner rooms. **Postponed** (owner, 2026-10-21): crossings are tested by hand in Level 1's rooms |
 | `game/rooms/world_map_preview.tscn` | An editor-only scene with one `Node2D` running `world_map_preview.gd`. Excluded from exports | Lets the owner see the whole world map at once, the way Celeste's map view does |
