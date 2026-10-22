@@ -1,6 +1,7 @@
-[gd_resource type="TileSet" load_steps=3 format=3 uid="uid://b65vntye0tecc"]
+[gd_resource type="TileSet" load_steps=5 format=3 uid="uid://b65vntye0tecc"]
 
 [ext_resource type="Texture2D" uid="uid://dv5pxrx6gtbdw" path="res://art/tiles/level_1_tiles_v2.png" id="1_u6yuk"]
+[ext_resource type="Texture2D" uid="uid://b7d86p0hohtkn" path="res://art/tiles/electrun_build2_tiles.png" id="2_o56vp"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_o56vp"]
 texture = ExtResource("1_u6yuk")
@@ -48,7 +49,63 @@ texture = ExtResource("1_u6yuk")
 0:4/0 = 0
 1:4/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_8e36m"]
+texture = ExtResource("2_o56vp")
+0:0/0 = 0
+0:0/0/custom_data_0 = 1
+1:0/0 = 0
+1:0/0/custom_data_0 = 1
+2:0/0 = 0
+2:0/0/custom_data_0 = 1
+3:0/0 = 0
+3:0/0/custom_data_0 = 1
+4:0/0 = 0
+4:0/0/custom_data_0 = 1
+5:0/0 = 0
+5:0/0/custom_data_0 = 1
+0:1/0 = 0
+0:1/0/custom_data_0 = 1
+1:1/0 = 0
+1:1/0/custom_data_0 = 1
+2:1/0 = 0
+2:1/0/custom_data_0 = 1
+3:1/0 = 0
+3:1/0/custom_data_0 = 1
+4:1/0 = 0
+4:1/0/custom_data_0 = 1
+5:1/0 = 0
+5:1/0/custom_data_0 = 1
+0:2/0 = 0
+0:2/0/custom_data_0 = 1
+1:2/0 = 0
+1:2/0/custom_data_0 = 1
+2:2/0 = 0
+2:2/0/custom_data_0 = 1
+3:2/0 = 0
+3:2/0/custom_data_0 = 1
+4:2/0 = 0
+4:2/0/custom_data_0 = 1
+5:2/0 = 0
+5:2/0/custom_data_0 = 1
+0:3/0 = 0
+0:3/0/custom_data_0 = 4
+1:3/0 = 0
+1:3/0/custom_data_0 = 7
+2:3/0 = 0
+2:3/0/custom_data_0 = 5
+3:3/0 = 0
+3:3/0/custom_data_0 = 6
+4:3/0 = 0
+5:3/0 = 0
+0:4/0 = 0
+1:4/0 = 0
+2:4/0 = 0
+3:4/0 = 0
+4:4/0 = 0
+5:4/0 = 0
+
 [resource]
 custom_data_layer_0/name = "solidity"
 custom_data_layer_0/type = 2
 sources/0 = SubResource("TileSetAtlasSource_o56vp")
+sources/1 = SubResource("TileSetAtlasSource_8e36m")
