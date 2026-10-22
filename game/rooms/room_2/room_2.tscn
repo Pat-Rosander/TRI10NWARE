@@ -22,7 +22,7 @@ entry_volts = Dictionary[StringName, int]({
 route = "Placeholder until the owner designs the tutorial: from start, run and jump right to the east opening into level_1."
 notes = "Movement only (G-03: tutorials may use simple alternation). A crossing back from level_1 carries the player's state and volts unchanged, so they may differ from what is assumed at east."
 
-[node name="Tutorial1" type="Node2D"]
+[node name="Room2" type="Node2D"]
 script = ExtResource("1_1mjti")
 room_id = &"room_2"
 info = SubResource("RoomInfo_room")
