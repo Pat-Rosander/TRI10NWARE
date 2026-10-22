@@ -1,8 +1,9 @@
 # Checks the world map in room_catalog.tres: unique IDs, scene IDs matching their records, whole-
 # tile rects of at least 640 x 368, no overlaps, the start room and entrance, an entrance within
 # 48 px of every shared edge on both sides, and every entrance's body inside its room. Every game
-# room (not under verification/) has a complete, affordable RoomInfo. Small layouts and records
-# built in code prove each check catches its mistake. Serves AC G-01, G-03, R-01.
+# room (not under verification/) has a complete, affordable RoomInfo, and every doorway matches
+# both ways: a cell open on one side of a shared edge is not solid on the other. Small layouts and
+# records built in code prove each check catches its mistake. Serves AC G-01, G-03, R-01.
 extends TestCase
 
 const CATALOG_PATH: String = "res://rooms/room_catalog.tres"
@@ -28,6 +29,54 @@ func test_catalog_has_no_layout_problems() -> void:
 	var problems: Array[String] = layout_problems(catalog.rooms, catalog.start_room,
 			catalog.start_entrance, scene_ids, entrances, Tuning.data.body_size_px)
 	assert_eq(problems, [] as Array[String], "\n  " + "\n  ".join(problems))
+
+
+func test_catalog_doorways_match() -> void:
+	var catalog: RoomCatalog = load(CATALOG_PATH) as RoomCatalog
+	var grids: Dictionary = {}
+	for entry: RoomEntry in catalog.rooms:
+		if entry == null or entry.scene == null \
+				or entry.scene.resource_path.begins_with(VERIFICATION_DIR):
+			continue
+		var room: Room = entry.scene.instantiate() as Room
+		var grid: SolidGrid = SolidGrid.new(entry.world_rect, Tuning.data.spike_depth_px,
+				Tuning.data.spike_inset_px)
+		for layer_name: String in ["WorldTiles", "DefaultTiles", "FlowTiles"]:
+			grid.add_layer(room.get_node(layer_name) as TileMapLayer)
+		grids[entry.room_id] = grid
+		room.free()
+	var problems: Array[String] = doorway_problems(catalog.rooms, grids)
+	assert_eq(problems, [] as Array[String], "\n  " + "\n  ".join(problems))
+
+
+func test_matching_doorways_have_no_problems() -> void:
+	var layout: Dictionary = _pair()
+	var grids: Dictionary = _doorway_grids(layout.rooms)
+	grids[&"a"].set_cell(Vector2i(39, 15), SolidGrid.ORDINARY)
+	grids[&"b"].set_cell(Vector2i(0, 15), SolidGrid.ORDINARY)
+	assert_eq(doorway_problems(layout.rooms, grids), [] as Array[String])
+
+
+func test_a_cell_solid_on_one_side_and_open_on_the_other_is_caught() -> void:
+	var layout: Dictionary = _pair()
+	var grids: Dictionary = _doorway_grids(layout.rooms)
+	grids[&"a"].set_cell(Vector2i(39, 16), SolidGrid.ORDINARY)
+	assert_eq(doorway_problems(layout.rooms, grids),
+			["'a' cell (39, 16) is solid but 'b' cell (0, 16) is open"] as Array[String])
+	# Platform tops and decoration are not solid, so they match an open cell.
+	grids = _doorway_grids(layout.rooms)
+	grids[&"a"].set_cell(Vector2i(39, 16), SolidGrid.DECORATION)
+	grids[&"b"].set_cell(Vector2i(0, 16), SolidGrid.DEFAULT_ONLY)
+	assert_eq(doorway_problems(layout.rooms, grids), [] as Array[String])
+
+
+func test_stacked_doorways_compare_the_bottom_and_top_rows() -> void:
+	var layout: Dictionary = _pair()
+	layout.rooms[1].world_rect = Rect2i(0, 368, 640, 368)
+	var grids: Dictionary = _doorway_grids(layout.rooms)
+	grids[&"b"].set_cell(Vector2i(5, 0), SolidGrid.ORDINARY)
+	assert_eq(doorway_problems(layout.rooms, grids),
+			["'a' cell (5, 22) is open but 'b' cell (5, 0) is solid"] as Array[String])
 
 
 func test_reach_matches_world() -> void:
@@ -291,6 +340,67 @@ static func room_info_problems(room_id: StringName, info: RoomInfo,
 	return problems
 
 
+## Every doorway mismatch between neighboring [param rooms], as readable messages; empty when every
+## shared edge matches. [param grids] maps each room ID to its SolidGrid, built at its
+## `world_rect`; rooms without one are skipped. Facing cells across a shared edge must agree on
+## being solid. Cells are room-local; the left or upper room is named first.
+static func doorway_problems(rooms: Array[RoomEntry], grids: Dictionary) -> Array[String]:
+	var problems: Array[String] = []
+	var catalog: RoomCatalog = RoomCatalog.new()
+	catalog.rooms = rooms
+	for i: int in rooms.size():
+		for other: RoomEntry in catalog.neighbors(rooms[i]):
+			if rooms.find(other) <= i:
+				continue
+			var first: RoomEntry = rooms[i]
+			var second: RoomEntry = other
+			if second.world_rect.end.x <= first.world_rect.position.x \
+					or second.world_rect.end.y <= first.world_rect.position.y:
+				first = other
+				second = rooms[i]
+			if not grids.has(first.room_id) or not grids.has(second.room_id):
+				continue
+			problems.append_array(_edge_mismatches(first, second, grids[first.room_id],
+					grids[second.room_id]))
+	return problems
+
+
+# The mismatched facing cells across the edge [param first] shares with [param second], which lies
+# to its right or below it.
+static func _edge_mismatches(first: RoomEntry, second: RoomEntry, first_grid: SolidGrid,
+		second_grid: SolidGrid) -> Array[String]:
+	var problems: Array[String] = []
+	var a: Rect2i = Rect2i(first.world_rect.position / TILE_PX, first.world_rect.size / TILE_PX)
+	var b: Rect2i = Rect2i(second.world_rect.position / TILE_PX, second.world_rect.size / TILE_PX)
+	var side_by_side: bool = b.position.x == a.end.x
+	var step: Vector2i = Vector2i(1, 0) if side_by_side else Vector2i(0, 1)
+	var along: Vector2i = Vector2i(0, 1) if side_by_side else Vector2i(1, 0)
+	var start: int
+	var stop: int
+	var edge_cell: Vector2i
+	if side_by_side:
+		start = maxi(a.position.y, b.position.y)
+		stop = mini(a.end.y, b.end.y)
+		edge_cell = Vector2i(a.end.x - 1, 0)
+	else:
+		start = maxi(a.position.x, b.position.x)
+		stop = mini(a.end.x, b.end.x)
+		edge_cell = Vector2i(0, a.end.y - 1)
+	for k: int in range(start, stop):
+		var here: Vector2i = edge_cell + along * k
+		var there: Vector2i = here + step
+		var here_solid: bool = first_grid.cell_flags(here) & SolidGrid.SOLID != 0
+		var there_solid: bool = second_grid.cell_flags(there) & SolidGrid.SOLID != 0
+		if here_solid != there_solid:
+			var here_local: Vector2i = here - a.position
+			var there_local: Vector2i = there - b.position
+			problems.append("'%s' cell (%d, %d) is %s but '%s' cell (%d, %d) is %s" % [
+					first.room_id, here_local.x, here_local.y,
+					"solid" if here_solid else "open", second.room_id, there_local.x,
+					there_local.y, "solid" if there_solid else "open"])
+	return problems
+
+
 # The edge of [param here] that [param rect] (a neighbor) lies beyond, as World._edge_toward.
 static func _edge_toward(here: Rect2i, rect: Rect2i) -> String:
 	if rect.end.x <= here.position.x:
@@ -349,6 +459,14 @@ func _pair() -> Dictionary:
 		"scene_ids": {&"a": &"a", &"b": &"b"},
 		"entrances": {&"a": {&"start": Vector2i(592, 256)}, &"b": {&"west": Vector2i(48, 256)}},
 	}
+
+
+# An empty SolidGrid for each of [param rooms], keyed by room ID.
+func _doorway_grids(rooms: Array[RoomEntry]) -> Dictionary:
+	var grids: Dictionary = {}
+	for entry: RoomEntry in rooms:
+		grids[entry.room_id] = SolidGrid.new(entry.world_rect, 0, 0)
+	return grids
 
 
 func _entry(id: StringName, rect: Rect2i) -> RoomEntry:

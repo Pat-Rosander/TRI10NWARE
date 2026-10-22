@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="RoomCatalog" load_steps=9 format=3 uid="uid://b6av5to8x7hcd"]
+[gd_resource type="Resource" script_class="RoomCatalog" load_steps=11 format=3 uid="uid://b6av5to8x7hcd"]
 
 [ext_resource type="Script" uid="uid://bkg8k1d06kjdr" path="res://rooms/room_catalog.gd" id="1_catalog"]
 [ext_resource type="Script" uid="uid://dlweeg825ajgc" path="res://rooms/room_entry.gd" id="2_entry"]
 [ext_resource type="PackedScene" uid="uid://blkx4f3r5foj8" path="res://verification/gym/gym.tscn" id="3_gym"]
 [ext_resource type="PackedScene" uid="uid://dhffvb6nejput" path="res://rooms/level_1/level_1.tscn" id="4_level_1"]
 [ext_resource type="PackedScene" uid="uid://bta5an0ljo8c" path="res://rooms/tutorial_1/tutorial_1.tscn" id="5_tutorial_1"]
+[ext_resource type="PackedScene" uid="uid://hh3l76gn3x56" path="res://rooms/room_2/room_2.tscn" id="6_room_2"]
 
 [sub_resource type="Resource" id="Resource_tutorial_1"]
 script = ExtResource("2_entry")
@@ -18,6 +19,12 @@ room_id = &"level_1"
 scene = ExtResource("4_level_1")
 world_rect = Rect2i(0, 0, 640, 368)
 
+[sub_resource type="Resource" id="Resource_room_2"]
+script = ExtResource("2_entry")
+room_id = &"room_2"
+scene = ExtResource("6_room_2")
+world_rect = Rect2i(640, 0, 640, 368)
+
 [sub_resource type="Resource" id="Resource_gym"]
 script = ExtResource("2_entry")
 room_id = &"gym"
@@ -26,6 +33,6 @@ world_rect = Rect2i(32768, 0, 5760, 512)
 
 [resource]
 script = ExtResource("1_catalog")
-rooms = Array[ExtResource("2_entry")]([SubResource("Resource_tutorial_1"), SubResource("Resource_level_1"), SubResource("Resource_gym")])
+rooms = Array[ExtResource("2_entry")]([SubResource("Resource_tutorial_1"), SubResource("Resource_level_1"), SubResource("Resource_room_2"), SubResource("Resource_gym")])
 start_room = &"tutorial_1"
 start_entrance = &"start"
