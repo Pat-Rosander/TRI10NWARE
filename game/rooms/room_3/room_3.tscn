@@ -63,7 +63,7 @@ text = "Jump: C, Space or J.
 Dash: X or K, aimed with the arrow keys or WASD."
 
 [node name="ChargedObject" parent="Objects" instance=ExtResource("7_4vpai")]
-position = Vector2(224, 278)
+position = Vector2(216, 260)
 frames = ExtResource("8_siojn")
 
 [node name="Collectibles" type="Node2D" parent="."]
@@ -80,6 +80,6 @@ entrance_id = &"east"
 facing = -1
 
 [node name="Start" type="Marker2D" parent="Entrances"]
-position = Vector2(48, 256)
+position = Vector2(45, 96)
 script = ExtResource("8_o6usj")
 entrance_id = &"start"
