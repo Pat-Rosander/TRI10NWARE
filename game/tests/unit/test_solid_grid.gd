@@ -1,7 +1,7 @@
 # Tests SolidGrid: building from tile data, state-dependent platform tops, room-edge walls and
 # pits, spike hitboxes in all four directions at their exact edges, and the shipped
-# level_tiles.tres. Pending tiles are added with M4 step 2.
-# Serves AC M-01, M-02, M-03, R-01 (spike deaths).
+# level_tiles.tres, and pending platform tiles (passable until released, cancelled by a switch).
+# Serves AC M-01, M-02, M-03, R-01 (spike deaths), P-04.
 extends TestCase
 
 const T: int = SolidGrid.TILE_PX
@@ -291,6 +291,58 @@ func test_spike_on_ground_is_two_cells() -> void:
 	assert_false(grid.blocks(body), "the spike cell is open")
 	assert_true(grid.blocks(body.grow_individual(0, 0, 0, 1)), "the ground below is solid")
 	assert_true(grid.touches_spike(body), "standing in it touches the hitbox")
+
+
+func test_overlapped_platforms_lists_the_solid_family_row_by_row() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(3, 4), SolidGrid.DEFAULT_ONLY)
+	grid.set_cell(Vector2i(2, 5), SolidGrid.DEFAULT_ONLY)
+	grid.set_cell(Vector2i(3, 5), SolidGrid.FLOW_ONLY)
+	grid.set_cell(Vector2i(4, 5), SolidGrid.ORDINARY)
+	var rect: Rect2i = Rect2i(2 * T + 8, 4 * T + 8, 2 * T, T)
+	var found: Array[Vector2i] = grid.overlapped_platforms(rect)
+	assert_eq(found, [Vector2i(3, 4), Vector2i(2, 5)] as Array[Vector2i], "default family")
+	grid.set_flow(true)
+	found = grid.overlapped_platforms(rect)
+	assert_eq(found, [Vector2i(3, 5)] as Array[Vector2i], "flow family")
+	assert_eq(grid.overlapped_platforms(Rect2i(3 * T, 4 * T - 4, T, 4)).size(), 0,
+			"touching a top is not overlapping")
+
+
+func test_has_active_family() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(3, 4), SolidGrid.FLOW_ONLY)
+	assert_false(grid.has_active_family(), "no default-only tiles")
+	grid.set_flow(true)
+	assert_true(grid.has_active_family(), "a flow-only tile")
+
+
+func test_a_pending_tile_is_no_top_until_released() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(3, 4), SolidGrid.DEFAULT_ONLY)
+	grid.set_cell(Vector2i(5, 4), SolidGrid.DEFAULT_ONLY)
+	var on_first: Rect2i = Rect2i(3 * T + 2, 4 * T - 15, 12, 15)
+	var on_second: Rect2i = Rect2i(5 * T + 2, 4 * T - 15, 12, 15)
+	grid.set_pending([Vector2i(3, 4)] as Array[Vector2i])
+	assert_false(grid.platform_top_at(on_first), "the pending tile is passable")
+	assert_true(grid.platform_top_at(on_second), "another tile of the family is solid")
+	var inside: Rect2i = Rect2i(3 * T + 2, 4 * T - 10, 12, 15)
+	assert_eq(grid.release_pending(inside).size(), 0, "still overlapped: kept")
+	assert_eq(grid.pending_cells(), [Vector2i(3, 4)] as Array[Vector2i])
+	# Feet exactly on the top: no longer overlapping, so released.
+	assert_eq(grid.release_pending(on_first), [Vector2i(3, 4)] as Array[Vector2i], "released")
+	assert_true(grid.platform_top_at(on_first), "solid once released")
+	assert_eq(grid.pending_cells().size(), 0, "nothing pending")
+
+
+func test_a_switch_cancels_pending_tiles() -> void:
+	var grid: SolidGrid = _new_grid(ROOM)
+	grid.set_cell(Vector2i(3, 4), SolidGrid.DEFAULT_ONLY)
+	grid.set_pending([Vector2i(3, 4)] as Array[Vector2i])
+	grid.set_flow(true)
+	assert_eq(grid.pending_cells().size(), 0, "cancelled")
+	grid.set_flow(false)
+	assert_true(grid.platform_top_at(Rect2i(3 * T + 2, 4 * T - 15, 12, 15)), "solid again")
 
 
 func test_level_tiles_resource() -> void:

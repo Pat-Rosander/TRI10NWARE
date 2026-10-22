@@ -23,7 +23,8 @@ func test_entering_flow_costs_one_volt_and_leaving_costs_none() -> void:
 	player.step_switch(_press())
 	assert_false(player.flow.is_flow(), "back in default")
 	assert_eq(player.flow.ledger.volts, 2)
-	assert_eq(_event_names(), ["switch"])
+	# The room has default-only tiles, so the overlap policy logs them solid (M4).
+	assert_eq(_event_names(), ["switch", "platform_solid"])
 
 
 func test_holding_switch_without_a_fresh_press_does_nothing() -> void:

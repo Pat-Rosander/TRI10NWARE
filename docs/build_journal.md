@@ -4,10 +4,11 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M6 step 6, control hints, 2026-10-21: `hint.tscn`/`hint.gd` (shown once per run on the first `room_enter`, held `hint_s`, faded over `hint_fade_s`, timed by the run's ticks), shown hints in `GameState`, `hint_s`/`hint_fade_s` (and `Tuning.hint_ticks`/`hint_fade_ticks`), one hint each in `tutorial_1` and `level_1`, `test_hints.gd`. Earlier: M6 step 5 (coin counter and results), M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
-- **Next step:** M6 step 7, done-when (`/step M6.7`; spec, **M6 done when**): the owner's checks. `g01`, `g02` and `n03`'s re-entry case wait for M1.8. Room info in the debug overlay waits for M1.7. **M4 steps 2–5 (platforms) wait** until a room needs them; M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
+- **Last completed:** M4 step 2, overlap policy, 2026-10-21 (hold lifted for this step by the owner): `overlap_policy.gd`, pending tiles in `solid_grid.gd`, the policy in `flow_controller.gd`, the same-tick snap landing in `player.gd`, `test_overlap_policy.gd`, `test_platforms.gd`. Before it: M6 step 6, control hints, 2026-10-21: `hint.tscn`/`hint.gd` (shown once per run on the first `room_enter`, held `hint_s`, faded over `hint_fade_s`, timed by the run's ticks), shown hints in `GameState`, `hint_s`/`hint_fade_s` (and `Tuning.hint_ticks`/`hint_fade_ticks`), one hint each in `tutorial_1` and `level_1`, `test_hints.gd`. Earlier: M6 step 5 (coin counter and results), M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Next step:** M6 step 7, done-when (`/step M6.7`; spec, **M6 done when**): the owner's checks. `g01`, `g02` and `n03`'s re-entry case wait for M1.8. Room info in the debug overlay waits for M1.7. **M4 steps 3–5 (platforms) still wait** until a room needs them (step 2 is done); M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
 - **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
 - **Waiting on the owner:**
+    - **M4.2 check:** let the editor rescan for the new `OverlapPolicy` class, then open the seven scripts listed in the M4 step 2 entry's "How to see it" once for diagnostics. Nothing to see in play until M4 step 3 adds platform tiles.
     - **M6.6 check:** follow "How to see it" in the M6 step 6 entry: let the editor rescan for the new `Hint` class, open `hint.gd`, `test_hints.gd`, `game_state.gd` and `tuning.gd` for diagnostics, press F5, read both hints and check they wait behind the title and in pause, then rewrite their text and move them (`Objects/Hint` in `tutorial_1` and `level_1`).
     - **M6.5 check:** follow "How to see it" in the M6 step 5 entry: open the seven scripts for diagnostics, press F5, watch the coin counter (touch, land, pause), finish Level 1, read the results, play again (starts in `tutorial_1`), and relaunch to see the best time kept. Rewrite the completion wording in `completion_overlay.gd` if you like.
     - **M6.4 check:** follow "How to see it" in the M6 step 4 entry: let the editor rescan for the new `RoomInfo` class, open the three scripts for diagnostics, and read and rewrite the **Info** records on `Level1` and `Tutorial1`. Keep each new entrance's state and volts in its room's record.
@@ -1441,3 +1442,38 @@ In the editor, the script's `@tool` guard leaves the label visible and does noth
 - Decide and log (decision log, M6.6): the hint's clock is the run's ticks (so debug slow motion slows it too, and the fade steps at 60 Hz); it is recorded as shown on its first counted tick; the label's layout, texts and positions. `tuning.gd` gains `hint_ticks`/`hint_fade_ticks`, following `flow_fade_ticks`.
 - No open questions. Your deletion of `game/art/objects/charged_object_01.png` was in the working tree and is not part of this commit.
 
+
+## M4 step 2: Overlap policy (2026-10-21)
+
+**What was built:**
+
+- New: `game/core/overlap_policy.gd` (`OverlapPolicy`), `game/tests/unit/test_overlap_policy.gd`, `game/tests/unit/test_platforms.gd`.
+- Changed: `game/core/solid_grid.gd` (pending tiles), `game/player/flow_controller.gd` (applies the policy on every switch, releases pending tiles), `game/player/player.gd` (the snap lands in step 2; step 7 releases pending tiles first), `game/tests/unit/test_solid_grid.gd` (pending-tile cases), `game/tests/unit/test_flow_controller.gd` (one expectation, below).
+- Docs: the spec's **How the overlap policy works** step 1 and two new **Same-tick contract** rows (owner, this session); decision-log rows M4.2.
+
+**How it works:**
+
+A switch changes which platform family is solid, and the player may be inside one of the newly solid tiles at that moment. `FlowController.request_switch` now asks `SolidGrid` which tiles of the new family the body overlaps, then hands the facts to `OverlapPolicy`, a small rule class that answers **solid**, **snap** or **pending**:
+
+- **Solid:** nothing is overlapped, so the family is simply solid. `platform_solid` is logged only if the room has any tile of that family, so rooms without platforms log nothing new.
+- **Snap:** the feet are 1–6 px (`overlap_snap_px`) below the top of the tiles under them, the player is falling or still, and the body fits above. The player moves straight up onto the top, and this is a landing on the switch tick. `land` is logged right there in step 2, and that tick's dash and jump decisions already see the player grounded, so a jump pressed that tick is a ground jump. Step 7 later compares grounded before and after, sees no change, and does not log `land` again.
+- **Pending:** anything else (deeper, rising, or no room above). Only the overlapped tiles wait. `SolidGrid` keeps them in a small set, and `platform_top_at` ignores them. Landing, grounded sensing and the one-way help all ask that one function, so a pending tile is passable for every purpose while the family's other tiles are solid at once. At the start of each step 7, any pending tile the body no longer overlaps turns solid (`platform_solid` with those tiles). A switch back clears the set.
+
+Nothing in the policy moves the player sideways or down, and the snap moves at most 6 px up. So the policy can't embed, crush or launch the player (P-04).
+
+**Why:** spec **M4 build order** step 2; **M4 files** (`overlap_policy.gd`, `test_overlap_policy.gd`, `test_platforms.gd`, and the `solid_grid.gd`, `flow_controller.gd` and `player.gd` rows); **How the overlap policy works**; **Assist precedence** (the overlap snap is step 2's correction); P-01 to P-04. The owner lifted the hold on this step this session (steps 3–5 still wait).
+
+**Skipped (Postponed work):** `p01`–`p04` wait for M1.8 (`test_platforms.gd` stands in for them), and the pending-tile marks in `debug_world_draw.gd` wait for M1.7.
+
+**How to see it:**
+
+1. Unit tests: 302 pass (23 new: 6 in `test_overlap_policy.gd`, 13 in `test_platforms.gd`, 4 in `test_solid_grid.gd`). The 9 deliberate errors are unchanged.
+2. Nothing is visible in the game yet. No room has platform tiles until M4 step 3 adds the art and sets `solidity` 2 and 3.
+3. Let the editor rescan for the new `OverlapPolicy` class. Then open `overlap_policy.gd`, `solid_grid.gd`, `flow_controller.gd`, `test_overlap_policy.gd`, `test_platforms.gd`, `test_solid_grid.gd` and `test_flow_controller.gd` once for diagnostics (`player.gd` is already clean).
+
+**Decisions and questions:**
+
+- Owner (decision log, M4.2): the hold is lifted for step 2 only. `platform_solid` on a switch without overlap is logged only when the room has that family. A snap is a landing on the switch tick, with `land` logged once. Spec updated: overlap-policy step 1 and two Same-tick rows (the snap, plus the M2 vanished-floor coyote case, which had no row).
+- Decide and log (decision log, M4.2): the `tiles` format (`[x, y]` world cells; an empty list means the whole family); event order on a switch; how "tiles under the feet" and the feet depth are measured; tiles still overlapped after a snap go pending; pending tiles are released at the start of step 7; nothing is carried across a crossing; the "body fits" check is defensive with a 15 px body.
+- `test_flow_controller.gd`'s first test now expects `["switch", "platform_solid"]` on the return to default, because its room has default-only tiles. That is your new logging rule, not a looser check.
+- No open questions. The `charged_object_01*.png` changes in the working tree are yours and are not part of this commit.

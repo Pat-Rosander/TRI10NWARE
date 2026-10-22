@@ -2,7 +2,7 @@
 # small movement-state record) and the step methods World calls each tick; its FlowController
 # holds state, volts and the countdown. Senses the room's charged objects and fires the charged
 # jump. No _physics_process.
-# Serves AC M-01, M-02, M-03, M-04, M-05, M-06, M-07, R-01, S-01, C-01 to C-08.
+# Serves AC M-01, M-02, M-03, M-04, M-05, M-06, M-07, R-01, S-01, C-01 to C-08, P-01 to P-04.
 class_name Player
 extends Node2D
 
@@ -68,13 +68,20 @@ func respawn(feet: Vector2i, grid: SolidGrid, facing: int = 1,
 	reset_physics_interpolation()
 
 
-## Step 2: on a fresh switch press, switches state through the FlowController. If the floor
-## vanished with the old platform family, coyote time starts exactly as on walking off a ledge.
-## Position, velocity and an active dash are untouched (S-01).
+## Step 2: on a fresh switch press, switches state through the FlowController, which applies
+## the overlap policy. A snap onto a platform top is a landing on this tick: land is logged here,
+## once, and this tick's decisions see the player grounded. If the floor vanished with the old
+## platform family, coyote time starts exactly as on walking off a ledge. Otherwise position,
+## velocity and an active dash are untouched (S-01).
 func step_switch(frame: InputFrame) -> void:
-	if not frame.switch_pressed or not flow.request_switch():
+	if not frame.switch_pressed or not flow.request_switch(mover):
 		return
-	if state.grounded and not mover.is_grounded():
+	if flow.snapped:
+		var was_grounded: bool = state.grounded
+		_sense_contacts()
+		if state.grounded and not was_grounded:
+			Trace.record("land", {"vx": mover.velocity_x, "vy_before": flow.snap_vy_before})
+	elif state.grounded and not mover.is_grounded():
 		state.grounded = false
 		state.coyote_ticks = Tuning.coyote_ticks
 
@@ -154,10 +161,12 @@ func step_move() -> void:
 		_log_assist("corner", mover.corner_shift, 0)
 
 
-## Step 7: the one-way platform help, then grounded, landing, the ground refill, coyote and soft
-## apex, walls and ceiling, then each charged object's encounter state in node-name order. A lift
-## onto a platform counts as a landing.
+## Step 7: pending platform tiles the body has cleared become solid; then the one-way platform
+## help, grounded, landing, the ground refill, coyote and soft apex, walls and ceiling, then each
+## charged object's encounter state in node-name order. A lift onto a platform counts as a
+## landing.
 func step_sense() -> void:
+	flow.release_pending(mover.body_rect(mover.position))
 	var was_grounded: bool = state.grounded
 	var lift: int = mover.oneway_help()
 	if lift != 0:

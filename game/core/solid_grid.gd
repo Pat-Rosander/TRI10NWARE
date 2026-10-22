@@ -1,6 +1,6 @@
 # The mover's view of one room: which 16 px cells are solid, one-way platform tops, spikes or
-# open, read once from the room's tile layers, plus the room-edge walls, pit and (from M6) openings
-# into neighboring rooms. No physics engine.
+# open, read once from the room's tile layers, plus the room-edge walls, pit, (from M4) pending
+# platform tiles and (from M6) openings into neighboring rooms. No physics engine.
 # Serves AC M-01, M-02, M-03 (collision), R-01 (spike deaths), from M4 P-01 to P-04, from M6 G-01.
 class_name SolidGrid
 extends RefCounted
@@ -39,6 +39,9 @@ var _openings: Array[Rect2i] = []
 # Rooms joined during a crossing, in cells: their cells are read from _cells like this room's.
 var _joined: Array[Rect2i] = []
 var _active_top: int = DEFAULT_TOP
+# Platform tiles of the solid family that stay passable until the body clears them (overlap
+# policy). Insertion order is kept, so released tiles come back in the order they were set.
+var _pending: Dictionary[Vector2i, bool] = {}
 var _spike_depth: int
 var _spike_inset: int
 
@@ -106,9 +109,59 @@ func join(other: SolidGrid) -> void:
 
 
 ## Chooses which platform family is solid for the player: flow-only tops when [param on],
-## default-only tops otherwise.
+## default-only tops otherwise. Cancels every pending tile.
 func set_flow(on: bool) -> void:
 	_active_top = FLOW_TOP if on else DEFAULT_TOP
+	_pending.clear()
+
+
+## True if any cell holds a platform tile of the family that is solid for the player now.
+func has_active_family() -> bool:
+	for cell: Vector2i in _cells:
+		if _cells[cell] & _active_top:
+			return true
+	return false
+
+
+## The world cells of the solid family's platform tiles that the world-pixel [param rect]
+## overlaps, row by row from the top, left to right. Pending tiles are included.
+func overlapped_platforms(rect: Rect2i) -> Array[Vector2i]:
+	var found: Array[Vector2i] = []
+	if rect.size.x <= 0 or rect.size.y <= 0:
+		return found
+	var first: Vector2i = cell_of(rect.position)
+	var last: Vector2i = cell_of(rect.end - Vector2i.ONE)
+	for y: int in range(first.y, last.y + 1):
+		for x: int in range(first.x, last.x + 1):
+			var cell: Vector2i = Vector2i(x, y)
+			if cell_flags(cell) & _active_top:
+				found.append(cell)
+	return found
+
+
+## Makes the world [param cells] pending: passable for the player until released.
+func set_pending(cells: Array[Vector2i]) -> void:
+	for cell: Vector2i in cells:
+		_pending[cell] = true
+
+
+## The pending world cells, in the order they were set.
+func pending_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	cells.assign(_pending.keys())
+	return cells
+
+
+## Releases every pending tile the world-pixel [param rect] no longer overlaps: from now on it is
+## solid for the player. Returns the released cells, in the order they were set.
+func release_pending(rect: Rect2i) -> Array[Vector2i]:
+	var released: Array[Vector2i] = []
+	for cell: Vector2i in _pending:
+		if not rect.intersects(Rect2i(cell * TILE_PX, Vector2i(TILE_PX, TILE_PX))):
+			released.append(cell)
+	for cell: Vector2i in released:
+		_pending.erase(cell)
+	return released
 
 
 ## The flags of the world [param cell]. Outside the room, a joined room's cells are read as
@@ -143,13 +196,15 @@ func blocks(rect: Rect2i) -> bool:
 
 
 ## True if the bottom of the world-pixel [param rect] sits exactly on the top edge of a
-## platform tile that is solid for the player now. The test for moving down onto a one-way top.
+## platform tile that is solid for the player now and not pending. The test for moving down onto a
+## one-way top.
 func platform_top_at(rect: Rect2i) -> bool:
 	if rect.size.x <= 0 or rect.size.y <= 0 or posmod(rect.end.y, TILE_PX) != 0:
 		return false
 	var row: int = _floor_div(rect.end.y)
 	for x: int in range(_floor_div(rect.position.x), _floor_div(rect.end.x - 1) + 1):
-		if cell_flags(Vector2i(x, row)) & _active_top:
+		var cell: Vector2i = Vector2i(x, row)
+		if (cell_flags(cell) & _active_top) and not _pending.has(cell):
 			return true
 	return false
 
