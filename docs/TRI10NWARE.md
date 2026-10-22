@@ -2153,7 +2153,8 @@ Until M1.8 runs, steps 4 and 5 wait (**Postponed work**); the owner plays each r
 | Room ID | Mockup | Systems it introduces | Place on the map (`world_rect`) | Neighbors | Entrances | Goal |
 | --- | --- | --- | --- | --- | --- | --- |
 | `level_1` | Design document page 2 (concept only) | Charged jump | (0, 0, 640, 368) | None yet | `start` | Yes |
-| `room_3` | None (the painted room) | Charged jump, spikes | (1280, 0, 640, 368) | `room_2` (west) | `west` | Not yet |
+| `room_3` | None (the painted room) | Charged jump, spikes | (1280, 0, 640, 368) | `room_2` (west), `room_4` (east) | `west`, `east` | Not yet |
+| `room_4` | None (the painted room) | Charged jump, networks | (1920, 0, 640, 368) | `room_3` (west) | `west` | Not yet |
 
 ---
 

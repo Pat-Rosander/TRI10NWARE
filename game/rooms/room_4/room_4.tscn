@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=4 uid="uid://fpl2vsoa3cth"]
+[gd_scene load_steps=13 format=4 uid="uid://fpl2vsoa3cth"]
 
 [ext_resource type="Script" uid="uid://c77marlx58f6c" path="res://rooms/room.gd" id="1_8x3l1"]
 [ext_resource type="Script" uid="uid://b37sfq6rb0f00" path="res://rooms/room_info.gd" id="2_5l0ag"]
@@ -7,7 +7,6 @@
 [ext_resource type="TileSet" uid="uid://b65vntye0tecc" path="res://tiles/level_tiles.tres" id="5_66pul"]
 [ext_resource type="PackedScene" uid="uid://b3w62b5bepfyq" path="res://objects/charged_object/charged_object.tscn" id="6_416cl"]
 [ext_resource type="SpriteFrames" uid="uid://dd4n0ct8n4pxm" path="res://charged_object_v1_frames.tres" id="7_l4m0f"]
-[ext_resource type="PackedScene" path="res://objects/collectible/collectible.tscn" id="8_po2gs"]
 [ext_resource type="Script" uid="uid://cbr2itwxp42qq" path="res://rooms/room_entrance.gd" id="9_gclp6"]
 [ext_resource type="Script" uid="uid://bb3j7hmotts76" path="res://objects/network/network.gd" id="10_tkb5m"]
 [ext_resource type="PackedScene" path="res://objects/power_root/power_root.tscn" id="11_c6yx8"]
@@ -21,9 +20,10 @@ entry_states = Dictionary[StringName, int]({
 entry_volts = Dictionary[StringName, int]({
 &"west": 3
 })
-volt_budget = 1
-route = "Draft, owner to rewrite: enter at west on the row-6 ledge from room_2, then cross the room using the charged object."
-notes = "Entered from room_2 through the doorway above the row-6 ledge (rows 0-5). A crossing carries the player's state and volts unchanged, so they may differ from what is assumed at west. Columns 14-39 are unpainted and there is no goal yet."
+volt_budget = 2
+recharge_points = Array[NodePath]([NodePath("Objects/Network1/Root")])
+route = "Draft, owner to rewrite: enter at west on the floor at row 21 from room_3, touch the power source in flow to power Network1, then cross using the two charged objects."
+notes = "Entered from room_3 through the doorway at rows 0-20 (floor at row 21 on both sides). A crossing carries the player's state and volts unchanged, so they may differ from what is assumed at west. Columns 8-39 are mostly unpainted and there is no goal yet."
 
 [node name="Room4" type="Node2D"]
 script = ExtResource("1_8x3l1")
@@ -57,36 +57,33 @@ tile_set = ExtResource("5_66pul")
 
 [node name="Objects" type="Node2D" parent="."]
 
-[node name="ChargedObject" parent="Objects" instance=ExtResource("6_416cl")]
+[node name="Network1" type="Node2D" parent="Objects"]
+script = ExtResource("10_tkb5m")
+
+[node name="Root" parent="Objects/Network1" instance=ExtResource("11_c6yx8")]
+position = Vector2(111, 320)
+
+[node name="Wire" type="Line2D" parent="Objects/Network1"]
+points = PackedVector2Array(224, 176)
+width = 2.0
+script = ExtResource("12_r5xb4")
+metadata/_custom_type_script = "uid://dsoq4ushy4sby"
+
+[node name="ChargedObject" parent="Objects/Network1" instance=ExtResource("6_416cl")]
 position = Vector2(216, 160)
 always_powered = false
 frames = ExtResource("7_l4m0f")
 
-[node name="ChargedObject2" parent="Objects" instance=ExtResource("6_416cl")]
+[node name="ChargedObject2" parent="Objects/Network1" instance=ExtResource("6_416cl")]
 position = Vector2(404, 260)
 always_powered = false
 frames = ExtResource("7_l4m0f")
 
 [node name="Collectibles" type="Node2D" parent="."]
 
-[node name="Collectible" parent="Collectibles" instance=ExtResource("8_po2gs")]
-position = Vector2(113, 245)
-
 [node name="Entrances" type="Node2D" parent="."]
 
 [node name="West" type="Marker2D" parent="Entrances"]
-position = Vector2(45, 96)
+position = Vector2(45, 336)
 script = ExtResource("9_gclp6")
 entrance_id = &"west"
-
-[node name="Network1" type="Node2D" parent="."]
-script = ExtResource("10_tkb5m")
-
-[node name="Root" parent="Network1" instance=ExtResource("11_c6yx8")]
-position = Vector2(111, 320)
-
-[node name="Wire" type="Line2D" parent="Network1"]
-points = PackedVector2Array(224, 176)
-width = 2.0
-script = ExtResource("12_r5xb4")
-metadata/_custom_type_script = "uid://dsoq4ushy4sby"
