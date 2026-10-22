@@ -181,6 +181,8 @@ func _setup() -> void:
 # Moves the player onto Level 1's goal.
 func _stand_on_goal() -> void:
 	var goal: GoalZone = _world._goals[0]
+	# Level 1's goal is a banner goal (M7 step 1); here it stands in for the final room's goal.
+	goal.completes_game = true
 	_player.respawn(Vector2i(roundi(goal.position.x + goal.width_px / 2.0), roundi(goal.position.y)),
 			_player.mover.grid)
 

@@ -1,6 +1,7 @@
 # A room's goal: a thin rectangle on a platform's top surface. The node's origin sits on the
-# surface at the zone's left end; World completes the room in step 10 when the player is grounded
-# with feet inside it, so touching the platform's side or flying past never counts.
+# surface at the zone's left end; World reaches it in step 10 when the player is grounded with feet
+# inside it, so touching the platform's side or flying past never counts. A completes_game goal
+# ends the run; a banner goal shows "Level N complete" once per run and play goes on (M7 step 1).
 # Serves AC L1-04.
 @tool
 class_name GoalZone
@@ -12,6 +13,18 @@ const _OUTLINE_COLOR: Color = Color(0.3, 1.0, 0.4, 0.9)
 @export var width_px: int = 64: set = _set_width_px
 ## How far above the surface the zone reaches, in px. The surface row itself is always inside.
 @export var height_px: int = 4: set = _set_height_px
+## The level number the "Level N complete" banner shows; 0 means no banner.
+@export var banner_level: int = 0
+## True if reaching this goal ends the game (the final room's goal). Off for a banner goal.
+@export var completes_game: bool = true
+
+## "<room_id>/<NodeName>"; read from the Room ancestor on ready unless already set.
+var id: String = ""
+
+
+func _ready() -> void:
+	if id.is_empty() and not Engine.is_editor_hint():
+		id = _room_id() + "/" + String(name)
 
 
 func _draw() -> void:
@@ -40,3 +53,12 @@ func _set_width_px(value: int) -> void:
 func _set_height_px(value: int) -> void:
 	height_px = value
 	queue_redraw()
+
+
+func _room_id() -> String:
+	var node: Node = get_parent()
+	while node != null:
+		if node is Room:
+			return String((node as Room).room_id)
+		node = node.get_parent()
+	return ""

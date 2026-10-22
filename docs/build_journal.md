@@ -4,11 +4,12 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M4 step 2, overlap policy, 2026-10-21 (hold lifted for this step by the owner): `overlap_policy.gd`, pending tiles in `solid_grid.gd`, the policy in `flow_controller.gd`, the same-tick snap landing in `player.gd`, `test_overlap_policy.gd`, `test_platforms.gd`. Before it: M6 step 6, control hints, 2026-10-21: `hint.tscn`/`hint.gd` (shown once per run on the first `room_enter`, held `hint_s`, faded over `hint_fade_s`, timed by the run's ticks), shown hints in `GameState`, `hint_s`/`hint_fade_s` (and `Tuning.hint_ticks`/`hint_fade_ticks`), one hint each in `tutorial_1` and `level_1`, `test_hints.gd`. Earlier: M6 step 5 (coin counter and results), M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Last completed:** M7 step 1, level goals, 2026-10-21: `banner_level`/`completes_game` on `goal_zone.gd`, the banner path in `world.gd` step 10, banner memory in `GameState`, `level_banner_s`, the HUD's `LevelBanner`, the completion overlay gated on `GameState.completed`, `level_1`'s goal turned into a Level 1 banner goal, `test_goals.gd`. **The game has no ending** until the final room's `GoalZone` keeps `completes_game` on. Before it: M4 step 2, overlap policy, 2026-10-21 (hold lifted for this step by the owner): `overlap_policy.gd`, pending tiles in `solid_grid.gd`, the policy in `flow_controller.gd`, the same-tick snap landing in `player.gd`, `test_overlap_policy.gd`, `test_platforms.gd`. Earlier: M6 step 6 (control hints), M6 step 5 (coin counter and results), M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
 - **Next step:** M6 step 7, done-when (`/step M6.7`; spec, **M6 done when**): the owner's checks. `g01`, `g02` and `n03`'s re-entry case wait for M1.8. Room info in the debug overlay waits for M1.7. **M4 steps 3–5 (platforms) still wait** until a room needs them (step 2 is done); M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
 - **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
-- **Added 2026-10-21: M7 step 1, level goals** (`/step M7.1`; spec, **M7 build order**; not gated, runnable now): `banner_level` and `completes_game` on `goal_zone.gd`; `level_1`'s goal becomes a "Level 1 complete" banner and play continues. The game then has no ending until the owner gives the final room's goal `completes_game`.
+- **M7 rooms:** the owner builds rooms by hand (spec, M7 "For each room"). Give the final room's destination a `GoalZone` with `completes_game` on (the default) to bring back the ending, results and best time.
 - **Waiting on the owner:**
+    - **M7.1 check:** follow "How to see it" in the M7 step 1 entry (rescan, open the listed scripts for diagnostics, reload `level_1.tscn`/`hud.tscn`, press F5 and reach Level 1's goal). **Answer the failing-test question** there: `test_empty_frames_use_the_placeholder_look` fails since your art swap (`9e5bad0`); approve updating it, and say whether `game/charged_object_v1_frames.tres` should move to `game/objects/charged_object/looks/`. Add `charged_object_v1.png` to `CREDITS.md` if your uncommitted edit doesn't already.
     - **M4.2 check:** let the editor rescan for the new `OverlapPolicy` class, then open the seven scripts listed in the M4 step 2 entry's "How to see it" once for diagnostics. Nothing to see in play until M4 step 3 adds platform tiles.
     - **M6.6 check:** follow "How to see it" in the M6 step 6 entry: let the editor rescan for the new `Hint` class, open `hint.gd`, `test_hints.gd`, `game_state.gd` and `tuning.gd` for diagnostics, press F5, read both hints and check they wait behind the title and in pause, then rewrite their text and move them (`Objects/Hint` in `tutorial_1` and `level_1`).
     - **M6.5 check:** follow "How to see it" in the M6 step 5 entry: open the seven scripts for diagnostics, press F5, watch the coin counter (touch, land, pause), finish Level 1, read the results, play again (starts in `tutorial_1`), and relaunch to see the best time kept. Rewrite the completion wording in `completion_overlay.gd` if you like.
@@ -1478,3 +1479,58 @@ Nothing in the policy moves the player sideways or down, and the snap moves at m
 - Decide and log (decision log, M4.2): the `tiles` format (`[x, y]` world cells; an empty list means the whole family); event order on a switch; how "tiles under the feet" and the feet depth are measured; tiles still overlapped after a snap go pending; pending tiles are released at the start of step 7; nothing is carried across a crossing; the "body fits" check is defensive with a 15 px body.
 - `test_flow_controller.gd`'s first test now expects `["switch", "platform_solid"]` on the return to default, because its room has default-only tiles. That is your new logging rule, not a looser check.
 - No open questions. The `charged_object_01*.png` changes in the working tree are yours and are not part of this commit.
+
+## M7 step 1: Level goals (2026-10-21)
+
+**What was built:**
+
+- `game/objects/goal/goal_zone.gd`: new exports `banner_level` (0 = no banner) and `completes_game` (on by default), plus an `id` (`<room_id>/<NodeName>`).
+- `game/world/world.gd`: step 10 now finds *which* live goal was reached (`reached_goal()`), and the new `_reach_goal()` handles it.
+- `game/autoload/game_state.gd`: remembers the banner goals reached this run (`mark_banner_shown`, `is_banner_shown`), cleared by `reset()`.
+- `game/config/tuning_data.gd`, `game/config/tuning.tres`, `game/autoload/tuning.gd`: `level_banner_s` = 1.5, which becomes `level_banner_ticks` = 90.
+- `game/ui/hud.gd`, `game/ui/hud.tscn`: a centered `LevelBanner` label.
+- `game/ui/completion_overlay.gd`: shows only for a completed game.
+- `game/rooms/level_1/level_1.tscn`: the goal is `banner_level` 1, `completes_game` off.
+- New: `game/tests/unit/test_goals.gd` (8 tests).
+- Updated tests: `test_tuning.gd`, `test_trace.gd` (54 tuning fields), `test_play_loop.gd`, `test_feedback.gd`, `test_run_results.gd`.
+
+**How it works:**
+
+Every goal used to end the game. Now a goal has two settings. A `completes_game` goal (the default, meant for the final room) works as before: World marks the game completed, ends the run (results and best time), logs `room_complete`, and stops the ticks behind the completion overlay.
+
+A banner goal leaves play running. The first time the player stands in it during a run, World logs `room_complete` and `goal_banner` (with the level number), and `GameState` notes the goal's ID. The HUD shows "Level 1 complete" in the middle of the screen and hides it after 90 ticks of the run timer, so the banner waits while you pause. The run timer keeps counting, and you walk on.
+
+From then on, the goal is no longer *live*. Standing in it, dying and respawning, or leaving and coming back does nothing, and it can't stop a death either. A new run forgets it, so it fires again.
+
+The completion overlay used to open on any `room_complete`. Banner goals log that event too, so the overlay now also checks `GameState.completed`. World sets that flag before logging, and only for the final goal. The goal sound and sparkle still play on every `room_complete`, banner goals included.
+
+**As the spec says, the game now has no ending.** Level 1's goal is a banner, and no room has a `completes_game` goal yet, so the completion screen, results and best time can't be reached in play. They come back as soon as you put a `GoalZone` (with `completes_game` left on) on the final room's destination.
+
+**Why:** spec **M7 build order** step 1; **Death, retry and completion in World** ("Completion (step 10)"); **Same-tick contract** (the "goal, spike, countdown…" and "a level's goal is reached" rows); the tuning table's `level_banner_s`; the trace catalog's `goal_banner`. AC L1-04 ("visibly completes"), G-02.
+
+**Skipped (Postponed work):** no scenario covers the banner. `test_goals.gd` stands in until M1.8.
+
+**How to see it:**
+
+1. Unit tests: 309 pass, 1 fails. The failure is `test_empty_frames_use_the_placeholder_look` (`test_charged_jump.gd`), which comes from your art swap (`9e5bad0`), not from this step. It also fails with this step's changes stashed. The test expects Level 1's `ChargedObject` to set no look of its own, and your swap gave it `charged_object_v1_frames.tres`. This needs your call (see below).
+2. Let the editor rescan. Then open `goal_zone.gd`, `hud.gd`, `completion_overlay.gd`, `tuning.gd`, `tuning_data.gd`, `test_tuning.gd`, `test_trace.gd`, `test_feedback.gd` and `test_play_loop.gd` once for diagnostics. (`world.gd`, `game_state.gd` and `test_goals.gd` are already clean.) `test_run_results.gd` shows 9 older `STATIC_CALLED_ON_INSTANCE` warnings from M6.5 (lines 53–64), which this step didn't add.
+3. Reload `level_1.tscn` and `hud.tscn` if Godot asks. Select `Objects/GoalZone` in Level 1: the Inspector shows **Banner Level** 1 and **Completes Game** off.
+4. Press F5, reach Level 1's goal, and check:
+   - "Level 1 complete" shows for 1.5 s, with the sound, and you keep control.
+   - Pausing holds the banner.
+   - After a death, returning to the goal shows nothing.
+   - No completion screen appears.
+5. Restyle `HUD/Root/LevelBanner` in `hud.tscn` however you like. It's a placeholder.
+
+**Decisions and questions:**
+
+- Decide and log (decision log, M7.1):
+  - A banner goal wins step 10 on the tick it is first reached, and is inert after that.
+  - Banners are remembered per goal ID.
+  - The banner is timed by run ticks.
+  - The banner's look is a placeholder.
+  - The goal effect and sound still play for banner goals, and the overlay is gated on `GameState.completed`.
+  - A goal with neither setting logs `room_complete` once per run.
+- `test_feedback.gd` and `test_run_results.gd` used Level 1's real goal to reach the completion screen, so they now set `completes_game` on it inside the test. `test_play_loop.gd` now also checks that the overlay does *not* open on a banner goal's `room_complete`. These follow the new rule and loosen no check.
+- **Question:** `test_empty_frames_use_the_placeholder_look` fails since your art swap. Should I update it so Level 1 is expected to use `charged_object_v1_frames.tres`, keeping the placeholder check on a bare `ChargedObject`? Also, should the frames file move from `game/` to `game/objects/charged_object/looks/`, like `default_frames.tres`? And `charged_object_v1.png` needs a `CREDITS.md` row; your uncommitted `CREDITS.md` edit may already add it.
+- Your `CREDITS.md` edit and the new `game/rooms/room_2/` are yours and are not in this commit.

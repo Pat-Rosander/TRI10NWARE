@@ -1,4 +1,5 @@
-# The completion screen: shown when room_complete is logged, with the run's results from GameState
+# The completion screen: shown when room_complete is logged for a completed game (a completes_game
+# goal; a banner goal's room_complete never shows it), with the run's results from GameState
 # (coins committed, the run's time, the best time and "New best!"); jump starts a fresh run
 # through World.replay(), which builds the start room and marks inputs stale, so the dismissing
 # jump never becomes a jump. Serves AC L1-04, V-04.
@@ -39,6 +40,6 @@ func show_results() -> void:
 
 
 func _on_event_logged(entry: Dictionary) -> void:
-	if entry.get("event", "") == "room_complete":
+	if entry.get("event", "") == "room_complete" and GameState.completed:
 		show_results()
 		show()

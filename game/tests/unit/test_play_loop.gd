@@ -182,7 +182,11 @@ func test_main_scene_wires_the_overlays() -> void:
 	pause.call(&"resume")
 	assert_false(main.get_tree().paused, "resume unpauses")
 	Trace.record("room_complete", {"room": "level_1"})
-	assert_true(completion.visible, "room_complete shows the completion overlay")
+	assert_false(completion.visible, "a banner goal's room_complete does not show it")
+	GameState.mark_completed()
+	Trace.record("room_complete", {"room": "level_1"})
+	assert_true(completion.visible, "a completed game's room_complete shows the completion overlay")
+	GameState.reset()
 
 
 # A World with the start room loaded, its input from a ScriptedInputSource.

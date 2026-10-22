@@ -1,8 +1,8 @@
 # World, the referee: the project's only _physics_process. Runs the 11-step tick in a fixed order,
 # so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 runs the
 # play states (title, death and respawn, completion), and from M6 touches, commits and loses
-# collectibles and runs crossings between neighboring rooms; it also counts the run's ticks in
-# GameState. Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-01, G-02.
+# collectibles and runs crossings between neighboring rooms, and from M7 tells banner goals from
+# the final goal; it also counts the run's ticks in GameState. Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-01, G-02.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
@@ -156,13 +156,11 @@ func set_input_source(source: InputSource) -> void:
 
 
 ## Step 10's decision for [param player] in a room with [param goals]: the goal (grounded, feet
-## inside a zone), then a spike touched during the move, then countdown expiry, then a fall; the
-## first that applies wins.
+## inside a live zone), then a spike touched during the move, then countdown expiry, then a fall;
+## the first that applies wins.
 static func outcome(player: Player, goals: Array[GoalZone]) -> Outcome:
-	if player.state.grounded:
-		for goal: GoalZone in goals:
-			if goal.contains_feet(player.mover.position):
-				return Outcome.COMPLETE
+	if reached_goal(player, goals) != null:
+		return Outcome.COMPLETE
 	if player.touched_spike():
 		return Outcome.SPIKE
 	if player.flow.countdown_expired:
@@ -170,6 +168,18 @@ static func outcome(player: Player, goals: Array[GoalZone]) -> Outcome:
 	if player.fell():
 		return Outcome.FELL
 	return Outcome.NONE
+
+
+## The first goal in [param goals] (node-name order) that [param player] stands in, or null. A
+## completes_game goal is always live; a banner goal only until it is reached once in the run.
+static func reached_goal(player: Player, goals: Array[GoalZone]) -> GoalZone:
+	if not player.state.grounded:
+		return null
+	for goal: GoalZone in goals:
+		if goal.completes_game or not GameState.is_banner_shown(goal.id):
+			if goal.contains_feet(player.mover.position):
+				return goal
+	return null
 
 
 ## Builds [param id] fresh from the catalog and places the player at [param entrance_id] with
@@ -275,9 +285,9 @@ func _step_timers() -> void:
 	_player.step_timers()
 
 
-# Step 10: goal, spike, countdown expiry, falls, then a crossing, in that order. A completion
-# stops the ticks until the completion overlay calls replay(); a death starts the death freeze
-# (and loses carried collectibles). Without a death, carried collectibles commit on a grounded
+# Step 10: goal, spike, countdown expiry, falls, then a crossing, in that order. A completes_game
+# goal stops the ticks until the completion overlay calls replay(); a banner goal logs its banner
+# once per run and play goes on; a death starts the death freeze (and loses carried collectibles). Without a death, carried collectibles commit on a grounded
 # tick, or on any tick a crossing begins.
 func _step_outcomes() -> void:
 	var result: Outcome = outcome(_player, _goals)
@@ -288,16 +298,29 @@ func _step_outcomes() -> void:
 		_commit_carried()
 	match result:
 		Outcome.COMPLETE:
-			# Before the record: the completion overlay reads the results when it is logged.
-			GameState.finish_run()
-			Trace.record("room_complete", {"room": String(room_id)})
-			play_state = PlayState.COMPLETE
+			_reach_goal(reached_goal(_player, _goals))
 		Outcome.SPIKE:
 			_die("spike")
 		Outcome.COUNTDOWN:
 			_die("countdown")
 		Outcome.FELL:
 			_die("fell")
+
+
+# A completes_game goal ends the run. Completion and results come before the record, because the
+# completion overlay reads them when it is logged. A banner goal is remembered for the run and
+# logs its banner; play is not stopped.
+func _reach_goal(goal: GoalZone) -> void:
+	if goal.completes_game:
+		GameState.mark_completed()
+		GameState.finish_run()
+		Trace.record("room_complete", {"room": String(room_id)})
+		play_state = PlayState.COMPLETE
+		return
+	GameState.mark_banner_shown(goal.id)
+	Trace.record("room_complete", {"room": String(room_id)})
+	if goal.banner_level > 0:
+		Trace.record("goal_banner", {"level": goal.banner_level})
 
 
 # Step 11: publish the new state; the camera target is set here, except during a slide.

@@ -63,6 +63,8 @@ frames = ExtResource("7_p4me5")
 position = Vector2(512, 240)
 script = ExtResource("5_goal")
 width_px = 208
+banner_level = 1
+completes_game = false
 
 [node name="Hint" parent="Objects" instance=ExtResource("8_hint")]
 position = Vector2(64, 168)
