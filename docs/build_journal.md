@@ -4,11 +4,12 @@ Every step of the build adds an entry here, newest at the bottom. The Status blo
 
 ## Status
 
-- **Last completed:** M7 step 1, level goals, 2026-10-21, revised the same day by the owner: `banner_level`/`completes_game` on `goal_zone.gd`; Level 1's goal is a level goal that logs `room_complete` and `goal_banner` once per run and shows only the goal sparkle (no banner, no sound); the completion overlay and `room_complete.wav` are for the final goal alone (`GameState.completed`); `test_goals.gd`. **The game has no ending** until the final room's `GoalZone` keeps `completes_game` on. Before it: M4 step 2, overlap policy, 2026-10-21 (hold lifted for this step by the owner): `overlap_policy.gd`, pending tiles in `solid_grid.gd`, the policy in `flow_controller.gd`, the same-tick snap landing in `player.gd`, `test_overlap_policy.gd`, `test_platforms.gd`. Earlier: M6 step 6 (control hints), M6 step 5 (coin counter and results), M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
+- **Last completed:** M7 step 2, `room_3` setup, 2026-10-21: `room_3` on the map at (1280, 0, 640, 368), east of `room_2`; its entrance `west` and room_2's `east` (moved onto the row-6 ledge) face the shared doorway (rows 0–5, both floors at row 6); `RoomInfo` with a placeholder route for the owner; leftovers removed. Before it: M7 step 1, level goals, 2026-10-21, revised the same day by the owner: `banner_level`/`completes_game` on `goal_zone.gd`; Level 1's goal is a level goal that logs `room_complete` and `goal_banner` once per run and shows only the goal sparkle (no banner, no sound); the completion overlay and `room_complete.wav` are for the final goal alone (`GameState.completed`); `test_goals.gd`. **The game has no ending** until the final room's `GoalZone` keeps `completes_game` on. Before it: M4 step 2, overlap policy, 2026-10-21 (hold lifted for this step by the owner): `overlap_policy.gd`, pending tiles in `solid_grid.gd`, the policy in `flow_controller.gd`, the same-tick snap landing in `player.gd`, `test_overlap_policy.gd`, `test_platforms.gd`. Earlier: M6 step 6 (control hints), M6 step 5 (coin counter and results), M6 step 4 (room info), M6 step 3 (map tools), M6 step 2 (crossings, `tutorial_1`), M6 step 1 (collectibles, `GameState`), M3 step 7 (music and volume), M4 step 1 (spike rules), M3 step 6 (ship, 0.2.0 builds from `4357afe`; owner approved movement and visuals, web check still open), M3 steps 1–5, M2 step 5 (HUD), with placeholder art; the six M2 gym stations and part of the M1 gym are still unpainted (details below).
 - **Next step:** M6 step 7, done-when (`/step M6.7`; spec, **M6 done when**): the owner's checks. `g01`, `g02` and `n03`'s re-entry case wait for M1.8. Room info in the debug overlay waits for M1.7. **M4 steps 3–5 (platforms) still wait** until a room needs them (step 2 is done); M5 waits for a room with a power network. Still postponed: M1 steps 7–9 and M3's gate evidence (spec, **Postponed work**), and the gym annex.
 - **Then, when the owner wants a new build:** run M3 step 6 (ship) again (`/step M3.6`), so the builds include the music.
 - **M7 rooms:** the owner builds rooms by hand (spec, M7 "For each room"). Give the final room's destination a `GoalZone` with `completes_game` on (the default) to bring back the ending, results and best time.
 - **Waiting on the owner:**
+    - **M7.2 room_3 check:** follow "How to see it" in the "M7 step 2: room_3 setup" entry (world map preview, both crossings with a death after each). Write room_3's route in its **Info** record. **level_1 needs an east entrance** for the room_2 doorway (the one failing test): run `/step M7.2` for `room_2` (close `level_1.tscn` first), which also fixes room_2's placeholder `RoomInfo`.
     - **M7.1 check:** follow "How to see it" in the "M7 step 1, revised" entry: reload `hud.tscn` if asked, press F5, reach Level 1's goal (sparkle only, play continues, no repeat after a death). Optionally move `game/charged_object_v1_frames.tres` to `game/objects/charged_object/looks/`.
     - **M4.2 check:** let the editor rescan for the new `OverlapPolicy` class, then open the seven scripts listed in the M4 step 2 entry's "How to see it" once for diagnostics. Nothing to see in play until M4 step 3 adds platform tiles.
     - **M6.6 check:** follow "How to see it" in the M6 step 6 entry: let the editor rescan for the new `Hint` class, open `hint.gd`, `test_hints.gd`, `game_state.gd` and `tuning.gd` for diagnostics, press F5, read both hints and check they wait behind the title and in pause, then rewrite their text and move them (`Objects/Hint` in `tutorial_1` and `level_1`).
@@ -1563,3 +1564,44 @@ The completion overlay used to open on any `room_complete`. Banner goals log tha
 
 - Owner decision logged (M7.1). The banner-timing and banner-look rows in the decision log are marked superseded, and a row records the test fix.
 - Still open (not blocking): `charged_object_v1_frames.tres` sits at `game/`, while the spec's place for owner looks is `game/objects/charged_object/looks/<type>_frames.tres`. Move it whenever you like; it's your asset, so I haven't. Your uncommitted tile changes in `level_1.tscn`, `room_2/` and `electrun_build2_tiles.png` are not in this commit.
+
+## M7 step 2: room_3 setup (2026-10-21)
+
+**What was built:**
+
+- `game/rooms/room_3/room_3.tscn`: the entrance `Start` is renamed `West` (`entrance_id` `west`, still at (45, 96) facing right). The leftover `East` entrance and the hidden tutorial `Hint` (with its ext_resource) are removed. `RoomInfo` is rewritten for this room.
+- `game/rooms/room_2/room_2.tscn`: the `East` entrance moves from (600, 256) to (600, 96). Nothing else changes.
+- `game/rooms/room_catalog.tres`: a `room_3` `RoomEntry` at `world_rect` (1280, 0, 640, 368), east of `room_2`. `start_room` is unchanged.
+- `docs/TRI10NWARE.md`: a `room_3` row in the M7 Rooms table (the step asks for it).
+- `docs/decision_log.md`: three M7.2 room_3 rows.
+- `game/tests/unit/test_solid_grid.gd`: `test_level_tiles_resource` expects (2, 1) solid (17 solid blocks).
+- `test_world_layout.gd` is unchanged. The doorway check the step adds "on the first run" was already there (your commit `8e73384`, with its made-up failing cases).
+
+**How it works:** room_3 joins the map by its `RoomEntry` alone. World places the room at `world_rect.position`, so x 1280 puts its left edge exactly on room_2's right edge, and the catalog's neighbor search sees them as sharing that edge. When the player's center crosses x 1280, World builds room_3 beside room_2, slides the camera, and picks the room_3 entrance within 48 px of the crossed edge as the checkpoint. Going back works the same way.
+
+The doorway is rows 0–5, above a floor at row 6 on both sides. I compared every cell of room_2's column 39 with room_3's column 0, and they agree. Each side's entrance stands on that ledge: room_3's `west` at (45, 96) and room_2's `east` at (600, 96). Room_2's `east` used to be at (600, 256), which put its feet inside the solid block at columns 30–39. The layout test measures only the 48 px reach, so it never caught that, but a death after crossing back would have respawned you inside the wall.
+
+`RoomInfo` now names only `west`: entered in default with 3 volts, and a volt budget of 1, for the one charged object. There are no recharge points. The route is a placeholder for you to rewrite, since the test needs one.
+
+**Design checks (reported, nothing changed):**
+
+- **Rules 1–4:** room_3 has no default-only or flow-only tiles, so rule 1 can't be broken. A budget of 1 fits the 3 entry volts (rule 2). There are no power sources (M5 not built), so rule 3 depends on your route: if the route ends on a last-volt moment with no source, it breaks the rule. Rule 4 doesn't apply.
+- **Spikes:** a chamber at columns 4–9, rows 11–20, with down spikes on its ceiling (row 11, cols 5–9), up spikes on its floor (row 20, cols 5–9) and right-facing spikes on its left wall (col 4, rows 12–19). The room is one screen, so the whole chamber is visible from the doorway: the approach is readable. The collectible (113, 245) sits inside the chamber, between the spikes.
+- **Packages not built yet:** none. room_3 uses only ordinary, spike and decoration tiles. No platform tiles, no power sources.
+- **Still unpainted:** columns 14–39. Past the ledge's end (col 10), the player falls to the failure line, and there is no goal yet. The game still has no ending (M7.1), and the east edge is a wall until a room_4 sits there.
+
+**Why:** spec, M7 build order step 2 (room setup) and "For each room" steps 1–3; Room scene convention; How crossings work; Level design rules 1–4 and 8. AC G-01 (map layout), G-03 (room info), R-01 (checkpoints).
+
+**How to see it:**
+
+1. Unit tests: 314 pass, 1 fails (`test_catalog_has_no_layout_problems`, level_1's missing east entrance; see below).
+2. Open `game/rooms/world_map_preview.tscn`: room_3 should sit to the right of room_2.
+3. Reload `room_2.tscn` and `room_3.tscn` if Godot asks.
+4. Playtest (set `start_room` to `room_2` in the catalog's Inspector if you like, and don't commit that): walk from room_2 along the row-6 ledge into room_3, die, and check you respawn at `west`. Then walk back into room_2, die, and check you respawn at `east` on the ledge. Try each crossing holding jump, and in flow.
+
+**Decisions and questions:**
+
+- Owner decisions (this session): `Start` → `West`, `East` and the hidden `Hint` removed, the route left for you. Decision-and-log choices: the room info defaults, and the move of room_2's `east`. All three are in the decision log.
+- **Fixed by the owner during this step:** `level_tiles.tres` source 0's fill tile (2, 1) had lost its `solidity` 1 in commit `4cf3a1b` ("level 1 art updated"), when it became a decoration piece. Every source-0 fill cell (in level_1, room_2 and room_3) counted as decoration, so the player could walk into those walls, and `test_catalog_doorways_match` failed on the level_1 ↔ room_2 edge. You set `2:1/0/custom_data_0 = 1` again (owner: keep it solid), so the doorway test passes. Any (2, 1) painted in level_1 is now a wall too. `test_level_tiles_resource` in `test_solid_grid.gd` had recorded (2, 1) as decoration; it now expects 17 solid block tiles and no decoration piece.
+- **Still failing, not this step's:** `test_catalog_has_no_layout_problems`: "level_1: no entrance within 48 px of its right edge (shared with room_2)". level_1 needs an east entrance on its side of the room_2 doorway. That is room_2's setup (`/step M7.2` for room_2), which also needs room_2's own `RoomInfo` (still the tutorial placeholder) and possibly a better name for its west entrance (`start`). level_1 must be closed in the editor for it.
+- The Rooms table still lacks rows for `tutorial_1` and `room_2`. room_2's setup can add its row.

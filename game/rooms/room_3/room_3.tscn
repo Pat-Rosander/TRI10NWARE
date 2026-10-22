@@ -1,11 +1,10 @@
-[gd_scene load_steps=12 format=4 uid="uid://dnqxkrebxvlwl"]
+[gd_scene load_steps=11 format=4 uid="uid://dnqxkrebxvlwl"]
 
 [ext_resource type="Script" uid="uid://c77marlx58f6c" path="res://rooms/room.gd" id="1_mfuty"]
 [ext_resource type="Script" uid="uid://b37sfq6rb0f00" path="res://rooms/room_info.gd" id="2_wgks7"]
 [ext_resource type="Texture2D" uid="uid://bljb4mew0rftl" path="res://art/backdrop/bg_layer1.png" id="3_d1b01"]
 [ext_resource type="Texture2D" uid="uid://dux2iwis13ekj" path="res://art/backdrop/bg_layer2.png" id="4_5ag3f"]
 [ext_resource type="TileSet" uid="uid://b65vntye0tecc" path="res://tiles/level_tiles.tres" id="5_5usag"]
-[ext_resource type="PackedScene" path="res://objects/hint/hint.tscn" id="6_50cbe"]
 [ext_resource type="PackedScene" uid="uid://b3w62b5bepfyq" path="res://objects/charged_object/charged_object.tscn" id="7_4vpai"]
 [ext_resource type="Script" uid="uid://cbr2itwxp42qq" path="res://rooms/room_entrance.gd" id="8_o6usj"]
 [ext_resource type="SpriteFrames" uid="uid://dd4n0ct8n4pxm" path="res://charged_object_v1_frames.tres" id="8_siojn"]
@@ -14,15 +13,14 @@
 [sub_resource type="Resource" id="RoomInfo_room"]
 script = ExtResource("2_wgks7")
 entry_states = Dictionary[StringName, int]({
-&"east": 0,
-&"start": 0
+&"west": 0
 })
 entry_volts = Dictionary[StringName, int]({
-&"east": 3,
-&"start": 3
+&"west": 3
 })
-route = "Placeholder until the owner designs the tutorial: from start, run and jump right to the east opening into level_1."
-notes = "Movement only (G-03: tutorials may use simple alternation). A crossing back from level_1 carries the player's state and volts unchanged, so they may differ from what is assumed at east."
+volt_budget = 1
+route = "Draft, owner to rewrite: enter at west on the row-6 ledge from room_2, then cross the room using the charged object."
+notes = "Entered from room_2 through the doorway above the row-6 ledge (rows 0-5). A crossing carries the player's state and volts unchanged, so they may differ from what is assumed at west. Columns 14-39 are unpainted and there is no goal yet."
 
 [node name="Room3" type="Node2D"]
 script = ExtResource("1_mfuty")
@@ -56,12 +54,6 @@ tile_set = ExtResource("5_5usag")
 
 [node name="Objects" type="Node2D" parent="."]
 
-[node name="Hint" parent="Objects" instance=ExtResource("6_50cbe")]
-visible = false
-position = Vector2(64, 168)
-text = "Jump: C, Space or J.
-Dash: X or K, aimed with the arrow keys or WASD."
-
 [node name="ChargedObject" parent="Objects" instance=ExtResource("7_4vpai")]
 position = Vector2(216, 260)
 frames = ExtResource("8_siojn")
@@ -73,13 +65,7 @@ position = Vector2(113, 245)
 
 [node name="Entrances" type="Node2D" parent="."]
 
-[node name="East" type="Marker2D" parent="Entrances"]
-position = Vector2(600, 256)
-script = ExtResource("8_o6usj")
-entrance_id = &"east"
-facing = -1
-
-[node name="Start" type="Marker2D" parent="Entrances"]
+[node name="West" type="Marker2D" parent="Entrances"]
 position = Vector2(45, 96)
 script = ExtResource("8_o6usj")
-entrance_id = &"start"
+entrance_id = &"west"
