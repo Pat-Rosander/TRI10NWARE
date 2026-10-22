@@ -1,6 +1,6 @@
 # Every room scene's root. World talks to rooms only through it: bounds from the catalog, the
-# entrance, charged-object, goal-zone and collectible lookups, the room's SolidGrid and its
-# RoomInfo. In the editor it outlines its bounds. Serves AC R-01, L1-04, G-02, G-03.
+# entrance, charged-object, network, goal-zone and collectible lookups, the room's SolidGrid and
+# its RoomInfo. In the editor it outlines its bounds. Serves AC R-01, L1-04, G-02, G-03, N-04.
 @tool
 class_name Room
 extends Node2D
@@ -58,6 +58,16 @@ func charged_objects() -> Array[ChargedObject]:
 	return found
 
 
+## Every network under `Objects`, at any depth, sorted by node name (the same-tick ordering
+## rule).
+func networks() -> Array[Network]:
+	var found: Array[Network] = []
+	_collect_networks($Objects, found)
+	found.sort_custom(func(a: Network, b: Network) -> bool:
+			return String(a.name) < String(b.name))
+	return found
+
+
 ## Every goal zone under `Objects`, at any depth, sorted by node name (the same-tick ordering
 ## rule).
 func goal_zones() -> Array[GoalZone]:
@@ -93,6 +103,13 @@ func _collect_charged(parent: Node, found: Array[ChargedObject]) -> void:
 		if child is ChargedObject:
 			found.append(child)
 		_collect_charged(child, found)
+
+
+func _collect_networks(parent: Node, found: Array[Network]) -> void:
+	for child: Node in parent.get_children():
+		if child is Network:
+			found.append(child)
+		_collect_networks(child, found)
 
 
 func _collect_goals(parent: Node, found: Array[GoalZone]) -> void:

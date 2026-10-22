@@ -2,8 +2,9 @@
 # so every same-tick tie resolves the same way; from M1 it also loads rooms, and from M3 runs the
 # play states (title, death and respawn, completion), and from M6 touches, commits and loses
 # collectibles and runs crossings between neighboring rooms, and from M7 tells level goals from
-# the final goal; it also counts the run's ticks in GameState. Serves AC D-04, D-05, R-01, R-02,
-# R-04, L1-04, G-01, G-02.
+# the final goal, and from M5 activates power networks and recharges; it also counts the run's
+# ticks in GameState. Serves AC D-04, D-05, R-01, R-02, R-04, L1-04, G-01, G-02, N-01 to N-04,
+# S-04.
 extends Node2D
 
 const CameraRigScript := preload("res://world/camera_rig.gd")
@@ -49,6 +50,8 @@ var _slide_steps_left: int = 0
 var _goals: Array[GoalZone] = []
 # The current room's collectibles, sorted by node name.
 var _collectibles: Array[Collectible] = []
+# The current room's power networks, sorted by node name.
+var _networks: Array[Network] = []
 var _input_source: InputSource
 var _step_requested: bool = false
 # Ticks left in the death freeze (DYING) or the respawn lock (RESPAWNING).
@@ -276,9 +279,18 @@ func _step_sense() -> void:
 			_log_collectible(collectible, "touched")
 
 
-# Step 8: power-source contacts and recharge (M2, M5).
+# Step 8: power-source contacts and recharge (How activation works). Every network whose root the
+# body touches in flow activates, in node-name order; the player is recharged once, however many
+# activated. Runs before step 9, so a recharge on the expiry tick wins.
 func _step_contacts() -> void:
-	pass
+	var body: Rect2i = _player.mover.body_rect(_player.mover.position)
+	var in_flow: bool = _player.flow.is_flow()
+	var activated: bool = false
+	for network: Network in _networks:
+		if network.try_activate(body, in_flow):
+			activated = true
+	if activated:
+		_player.flow.recharge()
 
 
 # Step 9: the countdown and short timers.
@@ -498,6 +510,7 @@ func _set_room(room: Room, entry: RoomEntry, grid: SolidGrid, checkpoint_id: Str
 	checkpoint = checkpoint_id
 	_goals = room.goal_zones()
 	_collectibles = room.collectibles()
+	_networks = room.networks()
 	Trace.room = String(room_id)
 
 

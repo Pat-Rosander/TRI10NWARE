@@ -1919,6 +1919,7 @@ M5 is built in these numbered steps, one session each, when the first room with 
 | `game/objects/wire/wire_current.gdshader` | Canvas-item shader: dashes scrolling along the line in flow; a `pulse_progress` uniform for the activation pulse | The animated current and pulse, using only features the Compatibility renderer supports |
 | `game/art/props/wire_strip.png` | A 4 × 1 white texture | `Line2D` only generates the coordinates the current shader needs when it has a texture |
 | `game/verification/scenarios/n01_contact_activation.json` … `n04_death_reset.json` | 4 files, listed below | N-01 to N-04 |
+| `game/tests/unit/test_networks.gd` | Unit test through a real World and player scene: activation in default and in flow (walking, falling, jumping, dashing, switching while overlapping), the contact margin, members powered, recharge and countdown cancel, no farming, several roots on one tick, recharge on the expiry tick, fresh networks unpowered, the room lookup and the editor warnings | Stands in for `n01`–`n04` and `s04`'s recharge cases until M1.8 (standing rule) |
 
 ```text
 Network           Node2D, network.gd

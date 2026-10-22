@@ -1,6 +1,7 @@
 # The FlowLedger's adapter to the scene: holds the ledger, makes the grid's solid platform family
 # follow the state, applies the overlap policy on every switch, and logs the events the ledger and
-# the policy produce. Serves AC S-01, S-02, S-03, S-04, M-08, P-01 to P-04.
+# the policy produce, and recharges on a network activation. Serves AC S-01, S-02, S-03, S-04,
+# M-08, N-02, P-01 to P-04.
 class_name FlowController
 extends Node
 
@@ -57,6 +58,13 @@ func request_switch(mover: PixelMover) -> bool:
 	if changed:
 		_apply_overlap_policy(mover)
 	return changed
+
+
+## Step 8, once per tick on which a network activated: volts to max_volts and the countdown
+## cancelled, logging the ledger's events.
+func recharge() -> void:
+	for e: Dictionary in ledger.recharge():
+		Trace.record(e["event"], e["fields"])
 
 
 ## Step 7: every pending tile [param body] no longer overlaps becomes solid (platform_solid).
