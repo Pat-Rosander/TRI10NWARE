@@ -1,0 +1,82 @@
+[gd_scene load_steps=5 format=3 uid="uid://drwjb7dsprnlr"]
+
+[ext_resource type="Script" uid="uid://cymgd362wimkj" path="res://ui/title_overlay.gd" id="1_vxxbw"]
+[ext_resource type="Theme" path="res://ui/theme.tres" id="2_x1rul"]
+[ext_resource type="Texture2D" uid="uid://dwwyciotuwr7m" path="res://art/electrun_itch.png" id="3_vxxbw"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_x1rul"]
+font_size = 40
+
+[node name="TitleOverlay" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_vxxbw")
+
+[node name="Root" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 76.0
+offset_top = 579.0
+offset_right = 76.0
+offset_bottom = 719.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_x1rul")
+texture = ExtResource("3_vxxbw")
+
+[node name="Prewarm" type="Control" parent="Root"]
+unique_name_in_owner = true
+anchors_preset = 0
+offset_right = 1.0
+offset_bottom = 1.0
+mouse_filter = 2
+
+[node name="Center" type="VBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -184.0
+offset_top = -150.0
+offset_right = 184.0
+offset_bottom = -70.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Root/Center"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "E L E C T R U N"
+label_settings = SubResource("LabelSettings_x1rul")
+horizontal_alignment = 1
+
+[node name="Prompt" type="Label" parent="Root/Center"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Press any key"
+horizontal_alignment = 1
+
+[node name="Build" type="Label" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -204.0
+offset_top = -16.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "Build"
+horizontal_alignment = 2

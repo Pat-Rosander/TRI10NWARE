@@ -67,8 +67,9 @@ banner_level = 1
 completes_game = false
 
 [node name="Hint" parent="Objects" instance=ExtResource("8_hint")]
-position = Vector2(64, 168)
-text = "Switch to flow: Z or L."
+position = Vector2(22, 166)
+text = "Switch to flow: Z or L.
+In flow, jump on charged objects"
 
 [node name="Collectibles" type="Node2D" parent="."]
 
